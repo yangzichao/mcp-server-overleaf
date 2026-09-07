@@ -34,6 +34,8 @@ tsconfig.tsbuildinfo
 .env.*
 !.env.example
 !.env.sample
+.envrc
+.direnv/
 secrets/
 *.pem
 *.key
@@ -44,6 +46,23 @@ secrets/
 id_rsa*
 id_ed25519*
 
+# Credential-shaped files. This repo is public and its whole subject is a service
+# token, so anything named like a key is ignored by default rather than by memory.
+# A file that genuinely belongs in the repo can still be added with `git add -f`.
+*-key.txt
+*_key.txt
+*.key.txt
+*-token.txt
+*_token.txt
+*.token
+credentials.json
+.credentials
+overleaf-runtime-key.txt
+
+# Local MCP client configuration. `.mcp.json` carries an `env` block, which is
+# exactly where someone puts OVERLEAF_GIT_TOKEN while trying the server out.
+.mcp.json
+
 # ---------------------------------------------------------------------------
 # Runtime state written by the server
 # Clones live in OVERLEAF_MCP_WORKSPACE_DIR, default ~/.overleaf-mcp/projects.
@@ -51,6 +70,8 @@ id_ed25519*
 # ---------------------------------------------------------------------------
 workspace/
 .overleaf-mcp/
+.build/
+.locks/
 pids/
 *.pid
 *.pid.lock
@@ -175,6 +196,17 @@ temp/
 *.bak
 *.orig
 *.rej
+
+# ---------------------------------------------------------------------------
+# Browser automation captures.
+# Playwright MCP writes page snapshots and console logs here. They record whatever
+# was on screen, including other people's names and email addresses, so they must
+# never be swept into a commit by `git add -A`.
+# ---------------------------------------------------------------------------
+.playwright-mcp/
+.codex/
+.specstory/
+.continue/
 
 # ---------------------------------------------------------------------------
 # Local agent / assistant settings
