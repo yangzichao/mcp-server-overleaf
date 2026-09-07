@@ -14,6 +14,16 @@ picking a winner. Losing someone else's work is the one outcome it is built to p
 The rest of this file is written for an AI agent installing the server. It is meant to be
 read top to bottom and followed literally.
 
+## Guides
+
+- [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
+  desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
+  verification, and troubleshooting.
+- [Connect ChatGPT to Overleaf with Secure MCP Tunnel](docs/connect-chatgpt-with-secure-mcp-tunnel.md)
+  covers the complete private connection from a local stdio server to ChatGPT desktop and
+  web, including workspace association, least-privilege credentials, validation, and
+  troubleshooting.
+
 ## What you are installing
 
 An MCP server exposing 15 tools over stdio or Streamable HTTP. One core, two transports;
@@ -84,6 +94,8 @@ config. Anything the client sets in the environment explicitly still wins.
 ## Step 4: register with the client
 
 Use the absolute path from step 1. Configure only the client the user actually asked for.
+For client-specific configuration locations, verification, and troubleshooting, see the
+[local MCP client guide](docs/connect-local-mcp-clients.md).
 
 **Claude Code**
 
@@ -94,7 +106,8 @@ claude mcp add overleaf -s user -- node /absolute/path/to/mcp-server-overleaf/di
 Then run `claude mcp list` and confirm it reports `✔ Connected`. Do not report success
 until you have seen that.
 
-**Claude Desktop or Cursor** — add to the client's MCP config file:
+**Claude Desktop or Cursor** — add to the client's MCP config file. The file location and
+restart steps differ by client; the local MCP client guide lists both.
 
 ```json
 {
@@ -107,7 +120,8 @@ until you have seen that.
 }
 ```
 
-**Codex CLI** — add to `~/.codex/config.toml`:
+**Codex desktop, CLI, or IDE extension** — the clients on one Codex host share
+`~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.mcp-server-overleaf]
@@ -115,15 +129,19 @@ command = "node"
 args = ["/absolute/path/to/mcp-server-overleaf/dist/index.js", "--stdio"]
 ```
 
-Set `default_tools_approval_mode = "writes"` if the user wants reads to run freely while
-every write asks first.
+Add `default_tools_approval_mode = "writes"` inside the server table if the user wants
+reads to run freely while every write asks first.
 
-**ChatGPT desktop** — Settings, then MCP servers, then Add server, with the same command and
-arguments. Restart the app and type `/mcp` in the composer to confirm.
+**ChatGPT desktop local MCP settings** can start the same stdio command directly on the
+computer that holds this repository. This local configuration is shared with Codex clients
+on the same host; the local MCP client guide includes the UI and CLI paths.
 
-ChatGPT on the web cannot use any of the above. It requires the HTTP transport on a public
-HTTPS endpoint with OAuth or no auth, because it does not send static bearer tokens. Say
-this plainly rather than attempting a stdio setup that cannot work.
+**ChatGPT web or a workspace-shared ChatGPT app** — use OpenAI Secure MCP Tunnel without
+exposing the server to the public internet. ChatGPT connects to an OpenAI-hosted tunnel
+endpoint while `tunnel-client` forwards requests to `dist/index.js --stdio`. Follow the
+[step-by-step Secure MCP Tunnel guide](docs/connect-chatgpt-with-secure-mcp-tunnel.md); it
+includes the required Platform organization and ChatGPT workspace association, runtime key,
+developer-mode app setup, and end-to-end verification.
 
 **Remote clients over HTTP**
 
