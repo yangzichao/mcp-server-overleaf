@@ -214,8 +214,10 @@ Everything here stays inside that envelope.
 The real risk is not a failed push, it is silently overwriting a co-author, so writing and
 publishing are separate:
 
-1. Every read and every edit pulls from Overleaf first, so a model never reasons about a
-   stale copy of a file someone else already changed.
+1. Every read and every edit synchronizes with Overleaf first. If local work prevents
+   synchronization, the call fails and preserves that work. Review it with `show_diff`,
+   then publish it or explicitly discard it before continuing; stale reads and edits
+   are refused.
 2. Edits land in the local clone only. Nothing reaches Overleaf until `push_changes`.
 3. `push_changes` re-checks Overleaf immediately before pushing and rebases onto anything
    that landed in the meantime. If that cannot be applied cleanly the push is refused and
@@ -260,14 +262,29 @@ npm run check
 ```
 
 Runs the type checker, Biome, the build, and the tests in one pass.
+The type checker includes test code. Every Vitest invocation builds the server first,
+including focused runs and coverage, so the subprocess tests cannot use an old `dist`.
 
 | Command | What it does |
 | --- | --- |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | Type-check source, tests and Vitest configuration |
 | `npm run lint` | Biome lint and format check |
 | `npm run format` | Biome, applying fixes |
-| `npm test` | Vitest, whole suite |
-| `npm run test:coverage` | Vitest with v8 coverage |
+| `npm test` | Build, then Vitest, whole suite |
+| `npm run test:coverage` | Build, then Vitest with v8 coverage |
+
+The suites cover the same tool contract over stdio and HTTP, including schemas, error
+flags, reading, editing, reviewing and publishing. Recovery tests exercise dirty-tree
+sync, conflict recovery, remote rejection and reconnection, process restarts, a killed
+lock holder, and simultaneous clients. New files and unpushed commits must remain
+visible in `show_diff`. Deterministic subprocess fixtures test Git and compiler timeouts
+without needing a network connection or TeX installation.
+
+TeX-dependent tests share one availability check. Set `OVERLEAF_TEST_TEX=skip` to run
+without TeX, or `OVERLEAF_TEST_TEX=required` to fail if `latexmk` or `pdflatex` is missing.
+The default, `auto`, runs those tests when both executables are available. GitHub Actions
+runs core checks on Linux and macOS with Node 20 and 24, plus a Linux job that installs
+TeX and requires the compilation tests to run.
 
 Tests never touch the real Overleaf. `tests/integration/fakeOverleafRemote.ts` stands up a
 bare git repository plus a second clone acting as a co-author, which reproduces everything

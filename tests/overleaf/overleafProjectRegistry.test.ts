@@ -1,3 +1,5 @@
+import { rename } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { loadServerConfigurationFromEnvironment } from "../../src/config/serverConfiguration.js";
@@ -89,8 +91,14 @@ describe("caching clones", () => {
     const missingProjectId = "ffffffffffffffffffffffff";
 
     await expect(registry.openRepository(missingProjectId)).rejects.toThrow();
-    // The same id must be retried, not answered from a poisoned cache entry.
-    await expect(registry.openRepository(missingProjectId)).rejects.toThrow();
+    // Make the same project available after the failed attempt. A cached rejection
+    // would still reject here, even though the remote can now be cloned.
+    await rename(
+      remote.bareRepositoryDirectory,
+      join(dirname(remote.bareRepositoryDirectory), missingProjectId),
+    );
+    const repository = await registry.openRepository(missingProjectId);
+    expect(await repository.listTrackedFiles()).toEqual(["main.tex"]);
   });
 });
 

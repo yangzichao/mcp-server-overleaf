@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { findSectionByTitle, parseLatexSections, replaceSectionText } from "../latex/parseLatexSections.js";
 import { replaceTextOccurrences } from "../latex/replaceTextOccurrences.js";
-import { synchronizeWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
 const projectArgument = z
@@ -43,7 +43,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     async ({ project, path, findText, replaceWith, replaceAll }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const originalContent = await repository.readTextFile(path);
           const replacement = replaceTextOccurrences(
@@ -90,7 +90,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     async ({ project, path, sectionTitle, newContent }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const originalContent = await repository.readTextFile(path);
           const sections = parseLatexSections(originalContent);
@@ -125,7 +125,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     async ({ project, path, content }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const existedBefore = await repository.fileExists(path);
           await repository.writeTextFile(path, content);
@@ -148,7 +148,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     async ({ project }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          const diff = await repository.getUncommittedDiff();
+          const diff = await repository.getPendingDiff();
           return textResult(diff.trim() === "" ? "No local changes pending." : truncateForModel(diff));
         }),
       ),

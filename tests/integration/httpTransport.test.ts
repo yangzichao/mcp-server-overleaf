@@ -1,4 +1,5 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
+import { request } from "node:http";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -6,10 +7,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadHttpTransportConfiguration } from "../../src/config/httpTransportConfiguration.js";
 import { ConfigurationError } from "../../src/config/serverConfiguration.js";
 import { FakeOverleafRemote } from "./fakeOverleafRemote.js";
+import { httpTestToken, McpHttpClient } from "./support/mcpHttpClient.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const bearerToken = "test-bearer-token-not-a-real-secret";
-const port = 3199;
+const bearerToken = httpTestToken;
 
 describe("loadHttpTransportConfiguration", () => {
   it("refuses to start unauthenticated by default", () => {
@@ -48,50 +49,79 @@ describe("loadHttpTransportConfiguration", () => {
 
 describe("the HTTP endpoint", () => {
   let remote: FakeOverleafRemote;
-  let serverProcess: ChildProcessWithoutNullStreams;
+  let client: McpHttpClient;
 
+  const initializeRequest = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+  };
   const post = (headers: Record<string, string>) =>
-    fetch(`http://127.0.0.1:${port}/`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        ...headers,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "t", version: "1" } },
-      }),
-    });
+    client.post(initializeRequest, { authorization: "", ...headers });
 
   beforeAll(async () => {
     remote = await FakeOverleafRemote.create("74a1b2c3d4e5f6a7b8c9d0e1");
-    serverProcess = spawn(
-      "node",
-      [resolve(packageRoot, "dist", "index.js"), "--http", "--port", String(port)],
-      {
-        env: {
-          PATH: process.env.PATH,
-          HOME: process.env.HOME,
-          ...remote.environment(),
-          OVERLEAF_MCP_HTTP_AUTH_TOKEN: bearerToken,
-        },
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: packageRoot,
-      },
-    );
-    await new Promise<void>((resolvePromise) => {
-      serverProcess.stderr.on("data", (chunk: Buffer) => {
-        if (chunk.toString().includes("listening on http")) resolvePromise();
-      });
-    });
+    await remote.collaboratorPushes("main.tex", "Original draft", "Initial draft");
+    client = await McpHttpClient.start(remote.environment());
   });
 
-  afterAll(() => {
-    serverProcess.kill();
-    remote.cleanUp();
+  afterAll(async () => {
+    await client?.stop();
+    remote?.cleanUp();
+  });
+
+  it("rejects unauthenticated tool writes before they reach the project", async () => {
+    const response = await client.post(
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "write_file",
+          arguments: { path: "main.tex", content: "Unauthorized edit" },
+        },
+      },
+      { authorization: "" },
+    );
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toContain("Bearer");
+    await response.text();
+    expect(await remote.readPublishedFile("main.tex")).toBe("Original draft");
+    expect(await client.call("show_diff")).toBe("No local changes pending.");
+  });
+
+  it("rejects an unexpected Host even with a valid token", async () => {
+    // fetch normalizes Host on some Node versions; use an actual HTTP request to
+    // guarantee that the attacker-controlled header reaches the server unchanged.
+    const status = await new Promise<number | undefined>((resolvePromise, rejectPromise) => {
+      const attempt = request(
+        client.url,
+        {
+          method: "POST",
+          headers: {
+            host: "attacker.invalid",
+            authorization: `Bearer ${bearerToken}`,
+            "content-type": "application/json",
+          },
+        },
+        (response) => {
+          response.resume();
+          response.once("end", () => resolvePromise(response.statusCode));
+        },
+      );
+      attempt.once("error", rejectPromise);
+      attempt.setTimeout(5000, () => attempt.destroy(new Error("HTTP Host check timed out")));
+      attempt.end(JSON.stringify(initializeRequest));
+    });
+    expect(status).toBe(403);
+  });
+
+  it("rejects the wrong content type and remains usable", async () => {
+    const response = await client.post(initializeRequest, { "content-type": "text/plain" });
+    expect(response.status).toBe(415);
+    await response.text();
+    expect(await client.call("list_projects")).toContain("paper");
   });
 
   it("rejects a request with no credentials", async () => {

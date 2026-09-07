@@ -23,7 +23,6 @@ export async function publishToOverleaf(
   repository: OverleafGitRepository,
   commitMessage: string,
 ): Promise<PublishOutcome> {
-  const commitBeforePublish = await repository.getHeadCommitHash();
   const { committed, commitHash } = await repository.stageAllAndCommit(commitMessage);
 
   if (!committed) {
@@ -47,6 +46,7 @@ export async function publishToOverleaf(
     }
   }
 
+  const remoteBeforePush = await repository.getRemoteCommitHash();
   const push = await repository.pushToOverleaf();
   const headAfterPush = await repository.getHeadCommitHash();
 
@@ -57,7 +57,7 @@ export async function publishToOverleaf(
   return {
     status: "pushed",
     commitHash: headAfterPush,
-    diff: await repository.getDiffBetweenCommits(commitBeforePublish, headAfterPush),
+    diff: await repository.getDiffBetweenCommits(remoteBeforePush, headAfterPush),
     report: push.report,
   };
 }

@@ -5,6 +5,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { compileLatexProject } from "../../src/workflow/compileLatexProject.js";
+import { shouldRunTexTests } from "../support/texAvailability.js";
+
+const describeWithLatex = describe.runIf(await shouldRunTexTests());
 
 /**
  * The root file name reaches compileLatexProject from a model, and latexmk parses any
@@ -32,7 +35,7 @@ afterEach(() => {
   rmSync(buildDirectory, { recursive: true, force: true });
 });
 
-describe("a file whose name starts with a dash", () => {
+describeWithLatex("a file whose name starts with a dash", () => {
   it("is compiled as a file rather than read as an option", async () => {
     await writeFile(join(repositoryDirectory, "-weird.tex"), document, "utf8");
 
@@ -67,7 +70,7 @@ describe("a file whose name starts with a dash", () => {
   });
 });
 
-describe("an ordinary document", () => {
+describeWithLatex("an ordinary document", () => {
   it("still compiles", async () => {
     await writeFile(join(repositoryDirectory, "main.tex"), document, "utf8");
 

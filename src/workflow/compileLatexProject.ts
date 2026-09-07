@@ -79,18 +79,29 @@ export async function compileLatexProject(options: {
       tailOfLog: combinedOutput.split("\n").slice(-30).join("\n"),
     };
   } catch (error) {
-    const failure = error as { stdout?: string; stderr?: string; message?: string; code?: string };
+    const failure = error as {
+      stdout?: string;
+      stderr?: string;
+      message?: string;
+      code?: string | number;
+      killed?: boolean;
+    };
     if (failure.code === "ENOENT") {
       throw new Error(
-        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live) or skip compilation by passing compile=false.",
+        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live) or skip calling compile_project.",
       );
     }
     const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
     const diagnostics = collectDiagnostics(combinedOutput);
+    if (failure.killed) {
+      diagnostics.errorLines.unshift(`Compilation timed out after ${timeoutMs} ms.`);
+    } else if (diagnostics.errorLines.length === 0) {
+      diagnostics.errorLines.push(`latexmk failed (${failure.code ?? "unknown exit status"}).`);
+    }
     return {
       succeeded: false,
       mainTexFile,
-      errorLines: diagnostics.errorLines,
+      errorLines: diagnostics.errorLines.slice(0, MAXIMUM_REPORTED_DIAGNOSTICS),
       warningLines: diagnostics.warningLines,
       tailOfLog: combinedOutput.split("\n").slice(-40).join("\n"),
     };

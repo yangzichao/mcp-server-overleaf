@@ -2,6 +2,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { assertRealPathInsideRepository } from "./assertRealPathInsideRepository.js";
 import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
+import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository } from "./repositoryPaths.js";
 
 /**
@@ -156,7 +157,10 @@ export class OverleafGitRepository {
   /** Replays local commits on top of whatever collaborators pushed. Aborts cleanly on conflict. */
   async rebaseOntoRemote(): Promise<{ succeeded: boolean; conflictReport: string }> {
     const branchName = await this.getBranchName();
-    const result = await this.git(["rebase", `origin/${branchName}`], { tolerateFailure: true });
+    // Never let a user's global autoStash setting move unpublished edits into a stash.
+    const result = await this.git(["-c", "rebase.autoStash=false", "rebase", `origin/${branchName}`], {
+      tolerateFailure: true,
+    });
     const rebaseInProgress = await this.directoryExists(
       `${this.options.repositoryDirectory}/.git/rebase-merge`,
     );
@@ -165,10 +169,14 @@ export class OverleafGitRepository {
     );
 
     if (rebaseInProgress || rebaseApplyInProgress) {
-      await this.git(["rebase", "--abort"], { tolerateFailure: true });
+      await this.git(["rebase", "--abort"]);
       return { succeeded: false, conflictReport: `${result.stdout}\n${result.stderr}`.trim() };
     }
-    return { succeeded: true, conflictReport: "" };
+    return {
+      succeeded: result.exitCode === 0,
+      conflictReport:
+        result.exitCode === 0 ? "" : `${result.stdout}\n${result.stderr}`.trim() || "Git rebase failed.",
+    };
   }
 
   async listTrackedFiles(): Promise<string[]> {
@@ -225,9 +233,19 @@ export class OverleafGitRepository {
       .filter((line) => line !== "");
   }
 
-  async getUncommittedDiff(): Promise<string> {
-    const { stdout } = await this.git(["diff", "HEAD", "--"]);
-    return stdout;
+  async getPendingDiff(): Promise<string> {
+    const branchName = await this.getBranchName();
+    return pendingProjectDiff(
+      (args, options) => this.git(args, options),
+      `origin/${branchName}`,
+      (path) => this.resolveClientPath(path),
+    );
+  }
+
+  async getRemoteCommitHash(): Promise<string> {
+    const branchName = await this.getBranchName();
+    const { stdout } = await this.git(["rev-parse", `origin/${branchName}`]);
+    return stdout.trim();
   }
 
   async getDiffBetweenCommits(fromCommit: string, toCommit: string): Promise<string> {

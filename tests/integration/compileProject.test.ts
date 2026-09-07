@@ -1,22 +1,10 @@
-import { execFile } from "node:child_process";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { shouldRunTexTests } from "../support/texAvailability.js";
 
 import { FakeOverleafRemote } from "./fakeOverleafRemote.js";
 import { McpStdioClient } from "./mcpStdioClient.js";
-
-const execFileAsync = promisify(execFile);
-
-async function latexmkIsInstalled(): Promise<boolean> {
-  try {
-    await execFileAsync("latexmk", ["-v"]);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const compilablePaper = [
   "\\documentclass{article}",
@@ -30,7 +18,7 @@ const brokenPaper = ["\\documentclass{article}", "\\begin{document}", "\\undefin
 
 // latexmk and a TeX distribution are optional dependencies of this project, so these
 // tests describe themselves as skipped rather than failing on a machine without them.
-const describeWithLatex = (await latexmkIsInstalled()) ? describe : describe.skip;
+const describeWithLatex = describe.runIf(await shouldRunTexTests());
 
 describeWithLatex("compile_project", () => {
   let remote: FakeOverleafRemote;
@@ -42,8 +30,8 @@ describeWithLatex("compile_project", () => {
     client = await McpStdioClient.start(remote.environment());
   });
 
-  afterAll(() => {
-    client.stop();
+  afterAll(async () => {
+    await client.stop();
     remote.cleanUp();
   });
 

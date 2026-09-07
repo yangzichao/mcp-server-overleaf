@@ -45,3 +45,15 @@ export async function synchronizeWithOverleaf(
     headCommitHash: await repository.getHeadCommitHash(),
   };
 }
+
+/** Reads and edits must not silently proceed after a failed synchronization. */
+export async function requireSynchronizedWithOverleaf(repository: OverleafGitRepository): Promise<void> {
+  const result = await synchronizeWithOverleaf(repository);
+  if (result.rebaseConflict || result.commitsStillOnlyOnRemote > 0) {
+    throw new Error(
+      "Cannot synchronize with Overleaf. Local work has been preserved. " +
+        "Review it with show_diff, then publish with push_changes or explicitly discard it with discard_local_changes.\n" +
+        (result.rebaseConflict ?? "Remote commits could not be integrated."),
+    );
+  }
+}

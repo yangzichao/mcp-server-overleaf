@@ -50,7 +50,7 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
           if (synchronization.rebaseConflict) {
             lines.push(
               "",
-              "WARNING: local work conflicts with what collaborators pushed to Overleaf. The rebase was aborted and nothing was lost.",
+              "WARNING: synchronization could not finish. Local work was preserved; the clone is not up to date.",
               synchronization.rebaseConflict,
             );
           }
@@ -73,9 +73,9 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
           const synchronization = await synchronizeWithOverleaf(repository);
-          if (synchronization.rebaseConflict) {
-            return textResult(
-              `Pulled, but local work conflicts with Overleaf and the rebase was aborted:\n${synchronization.rebaseConflict}`,
+          if (synchronization.rebaseConflict || synchronization.commitsStillOnlyOnRemote > 0) {
+            throw new Error(
+              `Cannot synchronize with Overleaf. Local work was preserved. Review with show_diff, then publish or explicitly discard it.\n${synchronization.rebaseConflict ?? "Remote commits remain unmerged."}`,
             );
           }
           return textResult(
@@ -156,14 +156,15 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
             case "nothing-to-push":
               return textResult("Nothing to push: there are no local changes.");
             case "conflict-with-collaborator":
-              return textResult(
-                "Push refused. A collaborator changed the same lines on Overleaf while these edits were being made, " +
-                  "and the rebase could not be applied cleanly. Nothing was pushed and no local work was lost.\n\n" +
+              throw new Error(
+                "Push refused. Local commits could not be rebased onto Overleaf. Nothing was pushed and no local work was lost.\n\n" +
                   `${outcome.conflictReport}\n\n` +
-                  "Pull the collaborator's version with sync_project, re-read the affected file, and redo the edit on top of it.",
+                  "Review and preserve your changes with show_diff. Only if you intend to discard them, call discard_local_changes; then re-read the collaborator's version and make a new edit.",
               );
             case "push-rejected":
-              return textResult(`Overleaf rejected the push. Nothing was published.\n\n${outcome.report}`);
+              throw new Error(
+                `Overleaf rejected the push. Local commits remain available for review and retry.\n\n${outcome.report}`,
+              );
             case "pushed":
               return textResult(
                 `Pushed to Overleaf as ${outcome.commitHash.slice(0, 10)}. The changes are now live in the Overleaf editor.\n\n` +

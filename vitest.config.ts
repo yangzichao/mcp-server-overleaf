@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
+    globalSetup: ["./tests/support/buildServer.ts"],
     // Integration tests clone real git repositories and run latexmk, so they are slower
     // than the default allows, and they must not share a temporary workspace.
     testTimeout: 120_000,

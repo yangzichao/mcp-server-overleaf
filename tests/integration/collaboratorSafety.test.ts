@@ -22,8 +22,8 @@ beforeEach(async () => {
   client = await McpStdioClient.start(remote.environment());
 });
 
-afterEach(() => {
-  client.stop();
+afterEach(async () => {
+  await client.stop();
   remote.cleanUp();
 });
 
@@ -150,6 +150,8 @@ describe("a co-author editing at the same time", () => {
     await client.call("push_changes", { commitMessage: "Our own correction" });
 
     expect(await client.call("project_status")).toContain("branch:");
+    expect((await client.callRaw("list_files")).result?.isError).toBe(true);
+    await client.call("discard_local_changes");
     expect(await client.call("list_files")).toContain("main.tex");
   });
 });

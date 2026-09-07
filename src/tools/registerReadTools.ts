@@ -4,7 +4,7 @@ import * as z from "zod/v4";
 import { categorizeProjectFiles, guessMainTexFile } from "../latex/latexProjectFiles.js";
 import { extractSectionText, findSectionByTitle, parseLatexSections } from "../latex/parseLatexSections.js";
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
-import { synchronizeWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
 const projectArgument = z
@@ -52,7 +52,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     async ({ project }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const files = await repository.listTrackedFiles();
           const categorized = categorizeProjectFiles(files);
@@ -100,7 +100,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     async ({ project, path, startLine, endLine }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const fileContent = await repository.readTextFile(path);
           if (startLine === undefined && endLine === undefined) {
@@ -134,7 +134,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     async ({ project, path }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const sections = parseLatexSections(await repository.readTextFile(path));
           if (sections.length === 0) {
@@ -169,7 +169,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     async ({ project, path, sectionTitle }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const fileContent = await repository.readTextFile(path);
           const sections = parseLatexSections(fileContent);
@@ -210,7 +210,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     async ({ project, query, isRegularExpression, maximumMatches }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
-          await synchronizeWithOverleaf(repository);
+          await requireSynchronizedWithOverleaf(repository);
 
           const matches = await searchProjectFiles({
             trackedFiles: await repository.listTrackedFiles(),

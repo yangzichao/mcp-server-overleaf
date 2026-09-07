@@ -16,6 +16,8 @@ const CREDENTIAL_HELPER_SHELL_SNIPPET =
 export interface GitCommandResult {
   readonly stdout: string;
   readonly stderr: string;
+  /** Null means the process could not start or was terminated by a signal. */
+  readonly exitCode: number | null;
 }
 
 export class GitCommandError extends Error {
@@ -68,13 +70,14 @@ export async function runGitCommand(options: RunGitCommandOptions): Promise<GitC
     return {
       stdout: redactSecrets(stdout, [overleafGitToken]),
       stderr: redactSecrets(stderr, [overleafGitToken]),
+      exitCode: 0,
     };
   } catch (error) {
-    const failure = error as { stdout?: string; stderr?: string; message?: string };
+    const failure = error as { stdout?: string; stderr?: string; message?: string; code?: number | string };
     const stdout = redactSecrets(failure.stdout ?? "", [overleafGitToken]);
     const stderr = redactSecrets(failure.stderr ?? "", [overleafGitToken]);
     if (tolerateFailure) {
-      return { stdout, stderr };
+      return { stdout, stderr, exitCode: typeof failure.code === "number" ? failure.code : null };
     }
     // Redact the assembled message, not just the parts: `args` can itself carry the token,
     // for instance in a remote url, and this message is what reaches the model.

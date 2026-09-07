@@ -4,9 +4,10 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GitCommandError, runGitCommand } from "../../src/overleaf/gitCommandRunner.js";
+import { writeFakeExecutable } from "../support/fakeExecutable.js";
 
 const execFileAsync = promisify(execFile);
 const token = "olp_test_token_not_a_real_secret";
@@ -24,6 +25,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   rmSync(workingDirectory, { recursive: true, force: true });
 });
 
@@ -48,11 +50,21 @@ describe("running a command", () => {
   });
 
   it("gives up rather than hanging when a command exceeds its timeout", async () => {
-    // A fetch of an unreachable path fails fast; the point is that a timeout is honoured.
-    await expect(
-      git(["fetch", join(workingDirectory, "no-such-remote")], { timeoutMs: 30_000 }),
-    ).rejects.toThrow(GitCommandError);
-  });
+    const executableDirectory = join(workingDirectory, "bin");
+    await writeFakeExecutable(
+      executableDirectory,
+      "git",
+      "process.stdout.write(String(process.pid)); setInterval(() => {}, 1000);",
+    );
+    vi.stubEnv("PATH", executableDirectory);
+    const startedAt = Date.now();
+    const error = await git(["fetch", "origin"], { timeoutMs: 1500 }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(GitCommandError);
+    expect(Date.now() - startedAt).toBeLessThan(4000);
+    const childProcessId = Number((error as GitCommandError).stdout);
+    expect(childProcessId).toBeGreaterThan(0);
+    expect(() => process.kill(childProcessId, 0)).toThrow();
+  }, 5000);
 });
 
 describe("keeping the token out of everything that leaves the process", () => {
