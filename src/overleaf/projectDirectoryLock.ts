@@ -1,0 +1,109 @@
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { hostname } from "node:os";
+import { dirname, join } from "node:path";
+
+interface LockOwner {
+  readonly processId: number;
+  readonly host: string;
+  readonly acquiredAtEpochMs: number;
+}
+
+/** Long enough to outlast a slow clone or a full latexmk run, short enough to self-heal. */
+const STALE_LOCK_AGE_MS = 15 * 60 * 1000;
+const ACQUIRE_TIMEOUT_MS = 2 * 60 * 1000;
+const RETRY_INTERVAL_MS = 100;
+
+const wait = (milliseconds: number) => new Promise((done) => setTimeout(done, milliseconds));
+
+function isProcessAlive(processId: number): boolean {
+  try {
+    // Signal 0 checks for the process without touching it.
+    process.kill(processId, 0);
+    return true;
+  } catch (error) {
+    // EPERM means it exists but belongs to another user, which still counts as alive.
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+async function readOwner(lockDirectory: string): Promise<LockOwner | null> {
+  try {
+    return JSON.parse(await readFile(join(lockDirectory, "owner.json"), "utf8")) as LockOwner;
+  } catch {
+    return null;
+  }
+}
+
+/** True if the holder is gone or has held the lock implausibly long. */
+async function lockLooksAbandoned(lockDirectory: string): Promise<boolean> {
+  const owner = await readOwner(lockDirectory);
+
+  // No readable owner means the directory was just created and not yet stamped, or its
+  // holder died in between. Fall back to the directory's own age, or a crash in that
+  // window would wedge the project forever.
+  if (!owner) {
+    try {
+      const { mtimeMs } = await stat(lockDirectory);
+      return Date.now() - mtimeMs > STALE_LOCK_AGE_MS;
+    } catch {
+      // It went away while we looked; the next mkdir will decide.
+      return false;
+    }
+  }
+
+  if (Date.now() - owner.acquiredAtEpochMs > STALE_LOCK_AGE_MS) return true;
+  return owner.host === hostname() && !isProcessAlive(owner.processId);
+}
+
+/**
+ * Mutual exclusion between server processes sharing one workspace.
+ *
+ * The in-process queue in OverleafProjectRegistry only orders this process's own tool
+ * calls. A user who registers the server in two clients gets two processes cloning,
+ * rebasing and writing in the same directory, where the same read-modify-write race
+ * loses an edit. `mkdir` is atomic on every platform, so the directory is the lock.
+ *
+ * A crashed holder is detected and its lock broken, or a stale lock file would leave the
+ * project permanently unusable.
+ */
+export async function withProjectDirectoryLock<T>(
+  lockDirectory: string,
+  action: () => Promise<T>,
+): Promise<T> {
+  // The lock itself must be created non-recursively to stay atomic, so its parent has to
+  // exist first.
+  await mkdir(dirname(lockDirectory), { recursive: true });
+  const deadline = Date.now() + ACQUIRE_TIMEOUT_MS;
+
+  for (;;) {
+    try {
+      await mkdir(lockDirectory, { recursive: false });
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (await lockLooksAbandoned(lockDirectory)) {
+        await rm(lockDirectory, { recursive: true, force: true });
+        continue;
+      }
+      if (Date.now() > deadline) {
+        throw new Error(
+          `Timed out waiting for another mcp-server-overleaf process to finish with this project. ` +
+            `If no other client is running, remove ${lockDirectory}.`,
+        );
+      }
+      await wait(RETRY_INTERVAL_MS);
+    }
+  }
+
+  try {
+    const owner: LockOwner = {
+      processId: process.pid,
+      host: hostname(),
+      acquiredAtEpochMs: Date.now(),
+    };
+    await writeFile(join(lockDirectory, "owner.json"), JSON.stringify(owner), "utf8");
+    return await action();
+  } finally {
+    await rm(lockDirectory, { recursive: true, force: true });
+  }
+}

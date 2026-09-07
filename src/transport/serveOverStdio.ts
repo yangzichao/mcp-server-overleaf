@@ -1,0 +1,16 @@
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+
+import { createOverleafMcpServer } from "../server/createOverleafMcpServer.js";
+import type { ToolContext } from "../tools/toolContext.js";
+
+/**
+ * For local clients that spawn the server as a child process: the ChatGPT desktop
+ * app, Codex CLI, Claude Desktop, Cursor.
+ *
+ * Nothing may be written to stdout other than protocol frames, so logging goes to stderr.
+ */
+export async function serveOverStdio(context: ToolContext): Promise<void> {
+  const server = createOverleafMcpServer(context);
+  await server.connect(new StdioServerTransport());
+  process.stderr.write("mcp-server-overleaf: listening on stdio\n");
+}

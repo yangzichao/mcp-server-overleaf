@@ -1,0 +1,46 @@
+{
+  "name": "mcp-server-overleaf",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "overleaf",
+    "latex",
+    "git",
+    "ai"
+  ],
+  "type": "module",
+  "bin": {
+    "mcp-server-overleaf": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check src tests",
+    "format": "biome check src tests --write",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run typecheck && npm run lint && npm run build && npm run test",
+    "start:stdio": "node dist/index.js --stdio",
+    "start:http": "node dist/index.js --http"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@types/node": "^26.4.1",
+    "@vitest/coverage-v8": "^3.2.7",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.5.4"
+  }
+}

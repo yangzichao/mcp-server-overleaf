@@ -1,0 +1,188 @@
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+bower_components/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+!.yarn/patches/
+!.yarn/plugins/
+!.yarn/releases/
+!.yarn/versions/
+
+# ---------------------------------------------------------------------------
+# Build output (tsconfig outDir is dist/)
+# ---------------------------------------------------------------------------
+dist/
+build/
+out/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+*.d.ts.map
+
+# ---------------------------------------------------------------------------
+# Secrets and local environment
+# .env.example stays tracked on purpose; it is the documented template.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.sample
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+.netrc
+id_rsa*
+id_ed25519*
+
+# ---------------------------------------------------------------------------
+# Runtime state written by the server
+# Clones live in OVERLEAF_MCP_WORKSPACE_DIR, default ~/.overleaf-mcp/projects.
+# These two catch the case where someone points that at the repo.
+# ---------------------------------------------------------------------------
+workspace/
+.overleaf-mcp/
+pids/
+*.pid
+*.pid.lock
+*.seed
+
+# ---------------------------------------------------------------------------
+# Logs and diagnostics
+# ---------------------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+*.heapsnapshot
+*.cpuprofile
+
+# ---------------------------------------------------------------------------
+# Tests and coverage
+# ---------------------------------------------------------------------------
+coverage/
+*.lcov
+.nyc_output/
+.vitest/
+test-results/
+playwright-report/
+junit.xml
+
+# ---------------------------------------------------------------------------
+# Tool caches
+# ---------------------------------------------------------------------------
+.cache/
+.parcel-cache/
+.turbo/
+.rollup.cache/
+.swc/
+.eslintcache
+.stylelintcache
+
+# ---------------------------------------------------------------------------
+# LaTeX build artifacts, in case a project is compiled inside the repo.
+# *.pdf is deliberately NOT ignored: a committed PDF is usually intentional.
+# ---------------------------------------------------------------------------
+*.acn
+*.acr
+*.alg
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.brf
+*.dvi
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.idx
+*.ilg
+*.ind
+*.ist
+*.loa
+*.lof
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.spl
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.vrb
+*.xdv
+_minted*/
+*.pyg
+latex.out/
+
+# ---------------------------------------------------------------------------
+# Editors and IDEs
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.idea/
+*.iml
+.fleet/
+.history/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+.Trash-*
+
+# ---------------------------------------------------------------------------
+# Temp and editor leftovers
+# ---------------------------------------------------------------------------
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ---------------------------------------------------------------------------
+# Local agent / assistant settings
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+.claude/local/
+CLAUDE.local.md
+.aider*
+
+# Test coverage output
+coverage/

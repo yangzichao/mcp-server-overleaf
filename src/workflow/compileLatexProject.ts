@@ -1,0 +1,98 @@
+import { execFile } from "node:child_process";
+import { mkdir } from "node:fs/promises";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
+export interface CompileResult {
+  readonly succeeded: boolean;
+  readonly mainTexFile: string;
+  readonly errorLines: string[];
+  readonly warningLines: string[];
+  readonly tailOfLog: string;
+}
+
+const MAXIMUM_REPORTED_DIAGNOSTICS = 40;
+
+function collectDiagnostics(compilerOutput: string): { errorLines: string[]; warningLines: string[] } {
+  const errorLines: string[] = [];
+  const warningLines: string[] = [];
+
+  for (const line of compilerOutput.split("\n")) {
+    // `-file-line-error` renders errors as `file.tex:12: Undefined control sequence`.
+    if (/^.+\.\w+:\d+:/.test(line) || line.startsWith("! ")) {
+      errorLines.push(line.trim());
+    } else if (
+      /^(LaTeX|Package|Class)\s.*Warning/.test(line) ||
+      line.startsWith("Overfull") ||
+      line.startsWith("Underfull")
+    ) {
+      warningLines.push(line.trim());
+    }
+  }
+
+  return {
+    errorLines: errorLines.slice(0, MAXIMUM_REPORTED_DIAGNOSTICS),
+    warningLines: warningLines.slice(0, MAXIMUM_REPORTED_DIAGNOSTICS),
+  };
+}
+
+/**
+ * Compiles the project with latexmk into a build directory outside the clone, so
+ * build artifacts never end up staged and pushed back to Overleaf.
+ */
+export async function compileLatexProject(options: {
+  repositoryDirectory: string;
+  buildDirectory: string;
+  mainTexFile: string;
+  timeoutMs: number;
+}): Promise<CompileResult> {
+  const { repositoryDirectory, buildDirectory, mainTexFile, timeoutMs } = options;
+  await mkdir(buildDirectory, { recursive: true });
+
+  const latexmkArguments = [
+    "-pdf",
+    "-interaction=nonstopmode",
+    "-file-line-error",
+    "-halt-on-error",
+    `-outdir=${buildDirectory}`,
+    // "./" prefixed, always. latexmk parses any argument starting with a dash as an
+    // option, so a file called "-weird.tex" is otherwise rejected as an unknown option
+    // rather than compiled, and a name shaped like an option never reaches the parser.
+    // The name comes from a model, so it is not ours to trust.
+    `./${mainTexFile}`,
+  ];
+
+  try {
+    const { stdout, stderr } = await execFileAsync("latexmk", latexmkArguments, {
+      cwd: repositoryDirectory,
+      timeout: timeoutMs,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const combinedOutput = `${stdout}\n${stderr}`;
+    const diagnostics = collectDiagnostics(combinedOutput);
+    return {
+      succeeded: true,
+      mainTexFile,
+      errorLines: diagnostics.errorLines,
+      warningLines: diagnostics.warningLines,
+      tailOfLog: combinedOutput.split("\n").slice(-30).join("\n"),
+    };
+  } catch (error) {
+    const failure = error as { stdout?: string; stderr?: string; message?: string; code?: string };
+    if (failure.code === "ENOENT") {
+      throw new Error(
+        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live) or skip compilation by passing compile=false.",
+      );
+    }
+    const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
+    const diagnostics = collectDiagnostics(combinedOutput);
+    return {
+      succeeded: false,
+      mainTexFile,
+      errorLines: diagnostics.errorLines,
+      warningLines: diagnostics.warningLines,
+      tailOfLog: combinedOutput.split("\n").slice(-40).join("\n"),
+    };
+  }
+}
