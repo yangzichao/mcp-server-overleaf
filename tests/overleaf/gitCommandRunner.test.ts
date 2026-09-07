@@ -7,10 +7,12 @@ import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GitCommandError, runGitCommand } from "../../src/overleaf/gitCommandRunner.js";
-import { writeFakeExecutable } from "../support/fakeExecutable.js";
+import { waitForRecordedProcessId, writeHangingExecutable } from "../support/fakeExecutable.js";
 
 const execFileAsync = promisify(execFile);
 const token = "olp_test_token_not_a_real_secret";
+// See writeHangingExecutable: the child must start before the timeout it is testing.
+const HUNG_GIT_TIMEOUT_MS = 5000;
 
 let workingDirectory: string;
 
@@ -51,20 +53,24 @@ describe("running a command", () => {
 
   it("gives up rather than hanging when a command exceeds its timeout", async () => {
     const executableDirectory = join(workingDirectory, "bin");
-    await writeFakeExecutable(
-      executableDirectory,
-      "git",
-      "process.stdout.write(String(process.pid)); setInterval(() => {}, 1000);",
-    );
+    const processIdFile = join(workingDirectory, "hung-git.pid");
+    await writeHangingExecutable(executableDirectory, "git", processIdFile);
     vi.stubEnv("PATH", executableDirectory);
+
     const startedAt = Date.now();
-    const error = await git(["fetch", "origin"], { timeoutMs: 1500 }).catch((caught: unknown) => caught);
+    const [error, childProcessId] = await Promise.all([
+      git(["fetch", "origin"], { timeoutMs: HUNG_GIT_TIMEOUT_MS }).catch((caught: unknown) => caught),
+      waitForRecordedProcessId(processIdFile, HUNG_GIT_TIMEOUT_MS),
+    ]);
+
     expect(error).toBeInstanceOf(GitCommandError);
-    expect(Date.now() - startedAt).toBeLessThan(4000);
-    const childProcessId = Number((error as GitCommandError).stdout);
-    expect(childProcessId).toBeGreaterThan(0);
+    // Both bounds matter. Without the lower one a child that died instantly for its own
+    // reasons would satisfy this test without the timeout ever having been enforced.
+    const elapsed = Date.now() - startedAt;
+    expect(elapsed).toBeGreaterThanOrEqual(HUNG_GIT_TIMEOUT_MS - 500);
+    expect(elapsed).toBeLessThan(HUNG_GIT_TIMEOUT_MS + 4000);
     expect(() => process.kill(childProcessId, 0)).toThrow();
-  }, 5000);
+  }, 30_000);
 });
 
 describe("keeping the token out of everything that leaves the process", () => {

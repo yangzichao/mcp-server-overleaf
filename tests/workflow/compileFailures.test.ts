@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compileLatexProject } from "../../src/workflow/compileLatexProject.js";
-import { writeFakeExecutable } from "../support/fakeExecutable.js";
+import {
+  waitForRecordedProcessId,
+  writeFakeExecutable,
+  writeHangingExecutable,
+} from "../support/fakeExecutable.js";
 
 let directory: string;
 beforeEach(async () => {
@@ -21,6 +25,8 @@ const compile = (timeoutMs = 5000) =>
     timeoutMs,
   });
 
+const HUNG_COMPILER_TIMEOUT_MS = 5000;
+
 describe("compiler failures without a TeX dependency", () => {
   it("explains a missing executable", async () => {
     vi.stubEnv("PATH", directory);
@@ -28,23 +34,28 @@ describe("compiler failures without a TeX dependency", () => {
   });
 
   it("terminates a hung compiler, reports the timeout, and permits another compile", async () => {
-    await writeFakeExecutable(
-      directory,
-      "latexmk",
-      "process.stdout.write(String(process.pid)); setInterval(() => {}, 1000);",
-    );
+    const processIdFile = join(directory, "hung-compiler.pid");
+    await writeHangingExecutable(directory, "latexmk", processIdFile);
     vi.stubEnv("PATH", directory);
+
+    // Generous on purpose. The child has to start and record its id before the timeout
+    // fires, and how long the operating system takes over starting a freshly written
+    // executable is not something this test can bound. A short budget made this fail
+    // roughly once in eight full-suite runs, reading an id that was never written.
     const startedAt = Date.now();
-    const result = await compile(1500);
+    const [result, childProcessId] = await Promise.all([
+      compile(HUNG_COMPILER_TIMEOUT_MS),
+      waitForRecordedProcessId(processIdFile, HUNG_COMPILER_TIMEOUT_MS),
+    ]);
+
     expect(result.succeeded).toBe(false);
     expect(result.errorLines.join("\n")).toContain("timed out");
-    expect(Date.now() - startedAt).toBeLessThan(4000);
-    const childProcessId = Number(result.tailOfLog.trim());
-    expect(childProcessId).toBeGreaterThan(0);
+    expect(Date.now() - startedAt).toBeLessThan(HUNG_COMPILER_TIMEOUT_MS + 4000);
     expect(() => process.kill(childProcessId, 0)).toThrow();
+
     await writeFakeExecutable(directory, "latexmk", 'process.stdout.write("Compiled successfully\\n");');
     expect((await compile()).succeeded).toBe(true);
-  }, 7000);
+  }, 30_000);
 
   it("reports exit failures even without recognizable TeX diagnostics", async () => {
     await writeFakeExecutable(
