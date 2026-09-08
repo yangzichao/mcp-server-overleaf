@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-overleaf",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
   "license": "MIT",
   "author": "Zichao Yang",
