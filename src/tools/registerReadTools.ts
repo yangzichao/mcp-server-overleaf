@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
-
-import { categorizeProjectFiles, guessMainTexFile } from "../latex/latexProjectFiles.js";
 import { extractSectionText, findSectionByTitle, parseLatexSections } from "../latex/parseLatexSections.js";
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { registerProjectInventoryTools } from "./reading/projectInventoryTools.js";
+import { registerReadFileTool } from "./reading/readFileTool.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
 const projectArgument = z
@@ -35,89 +35,20 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
         }
         const defaultName = context.configuration.defaultProjectName;
         return textResult(
-          names.map((name) => `- ${name}${name === defaultName ? "  (default)" : ""}`).join("\n"),
+          names
+            .map((name) => {
+              const displayName = context.configuration.registeredProjects.find(
+                (project) => project.projectName === name,
+              )?.displayName;
+              return `- ${name}${name === defaultName ? "  (default)" : ""}${displayName ? ` — ${displayName}` : ""}`;
+            })
+            .join("\n"),
         );
       }),
   );
 
-  server.registerTool(
-    "list_files",
-    {
-      title: "List project files",
-      description:
-        "Pull the latest version from Overleaf and list the files in the project, grouped by kind (tex, bibliography, figures, styles).",
-      inputSchema: z.object({ project: projectArgument }),
-      annotations: { readOnlyHint: true },
-    },
-    async ({ project }) =>
-      runToolSafely(context, () =>
-        context.projectRegistry.withRepository(project, async (repository) => {
-          await requireSynchronizedWithOverleaf(repository);
-
-          const files = await repository.listTrackedFiles();
-          const categorized = categorizeProjectFiles(files);
-          const groups = new Map<string, string[]>();
-          for (const file of categorized) {
-            const bucket = groups.get(file.category) ?? [];
-            bucket.push(file.path);
-            groups.set(file.category, bucket);
-          }
-
-          const mainTexFile = guessMainTexFile(files);
-          const renderedGroups = [...groups.entries()]
-            .map(
-              ([category, paths]) =>
-                `${category} (${paths.length}):\n${paths.map((path) => `  ${path}`).join("\n")}`,
-            )
-            .join("\n\n");
-
-          return textResult(
-            `${files.length} tracked files. Likely main document: ${mainTexFile ?? "unknown"}\n\n${renderedGroups}`,
-          );
-        }),
-      ),
-  );
-
-  server.registerTool(
-    "read_file",
-    {
-      title: "Read a project file",
-      description:
-        "Pull the latest version from Overleaf and read a text file from the project. Optionally restrict to a line range.",
-      inputSchema: z.object({
-        project: projectArgument,
-        path: z.string().describe("Path relative to the project root, e.g. sections/introduction.tex"),
-        startLine: z.number().int().positive().optional().describe("First line to return (1-indexed)."),
-        endLine: z
-          .number()
-          .int()
-          .positive()
-          .optional()
-          .describe("Last line to return (1-indexed, inclusive)."),
-      }),
-      annotations: { readOnlyHint: true },
-    },
-    async ({ project, path, startLine, endLine }) =>
-      runToolSafely(context, () =>
-        context.projectRegistry.withRepository(project, async (repository) => {
-          await requireSynchronizedWithOverleaf(repository);
-
-          const fileContent = await repository.readTextFile(path);
-          if (startLine === undefined && endLine === undefined) {
-            return textResult(truncateForModel(fileContent));
-          }
-
-          const lines = fileContent.split("\n");
-          const firstLine = Math.max(1, startLine ?? 1);
-          const lastLine = Math.min(lines.length, endLine ?? lines.length);
-          const selected = lines
-            .slice(firstLine - 1, lastLine)
-            .map((line, offset) => `${firstLine + offset}\t${line}`)
-            .join("\n");
-          return textResult(truncateForModel(selected));
-        }),
-      ),
-  );
+  registerReadFileTool(server, context);
+  registerProjectInventoryTools(server, context);
 
   server.registerTool(
     "list_sections",

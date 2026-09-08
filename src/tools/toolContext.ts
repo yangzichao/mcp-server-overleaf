@@ -5,7 +5,10 @@ import { redactSecrets } from "../config/secretRedaction.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import type { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
 
+import type { FileRevisionStore } from "./reading/fileRevisions.js";
+
 export interface ToolContext {
+  readonly fileRevisions: FileRevisionStore;
   readonly configuration: ServerConfiguration;
   readonly projectRegistry: OverleafProjectRegistry;
 }
@@ -38,7 +41,13 @@ export function runToolSafely(
       const message = error instanceof Error ? error.message : String(error);
       return {
         content: [
-          { type: "text" as const, text: redactSecrets(message, [context.configuration.overleafGitToken]) },
+          {
+            type: "text" as const,
+            text: redactSecrets(message, [
+              context.configuration.overleafGitToken,
+              ...context.configuration.registeredProjects.map((project) => project.overleafGitToken ?? ""),
+            ]),
+          },
         ],
         isError: true,
       };

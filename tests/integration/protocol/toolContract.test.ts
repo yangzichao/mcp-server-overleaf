@@ -36,6 +36,7 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
       "show_diff",
       "discard_local_changes",
       "project_status",
+      "project_summary",
       "sync_project",
       "compile_project",
       "push_changes",

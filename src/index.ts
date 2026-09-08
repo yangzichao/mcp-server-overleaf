@@ -21,16 +21,21 @@ const USAGE = `mcp-server-overleaf - read and safely edit Overleaf projects over
   mcp-server-overleaf --version             print the installed package version
 
 Environment:
-  OVERLEAF_GIT_TOKEN        required, from https://www.overleaf.com/user/settings
+  OVERLEAF_GIT_TOKEN        default token, from https://www.overleaf.com/user/settings
+  OVERLEAF_GIT_TOKEN_FILE   absolute path to a default token file
+  OVERLEAF_PROJECTS_CONFIG  absolute path to JSON projects with individual credentials
+  OVERLEAF_PROJECT_ID       single-project alternative (optional OVERLEAF_PROJECT_NAME)
   OVERLEAF_PROJECTS         name=projectId pairs, e.g. paper=64a1b2c3d4e5f6a7b8c9d0e1,thesis=...
   OVERLEAF_DEFAULT_PROJECT  which registered name to use when a tool omits 'project'
   OVERLEAF_MCP_ENV_FILE     absolute path to an external configuration file (recommended for npx)
   OVERLEAF_MCP_WORKSPACE_DIR   where clones live (default ~/.overleaf-mcp/projects)
+  OVERLEAF_MCP_CHECKOUT_MODE   full (default) or text-only sparse checkout
   OVERLEAF_MCP_HTTP_AUTH_TOKEN bearer token required by --http unless --allow-anonymous
 
 With OVERLEAF_MCP_ENV_FILE, read that file and let process environment values override it.
-Otherwise use the process environment, or the install's .env when neither the token nor
-the project list is supplied. Configuration files are never discovered from the current directory.
+Otherwise use the process environment, or the install's .env when the client supplies no
+project/token configuration. A per-user overleaf-mcp/projects.json is a final fallback.
+Configuration files are never discovered from the current directory.
 `;
 
 function parseCommandLine(argv: readonly string[]): CommandLineOptions {

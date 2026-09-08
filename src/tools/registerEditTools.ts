@@ -3,7 +3,16 @@ import * as z from "zod/v4";
 import { findSectionByTitle, parseLatexSections, replaceSectionText } from "../latex/parseLatexSections.js";
 import { replaceTextOccurrences } from "../latex/replaceTextOccurrences.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { requireFileRevision } from "./reading/fileRevisions.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
+
+const expectedRevisionArgument = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/)
+  .optional()
+  .describe(
+    "Require the SHA-256 revision from read_file mode=full/smart before writing; refuses stale edits after synchronization.",
+  );
 
 const projectArgument = z
   .string()
@@ -30,6 +39,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
         "This is the safest way to make a surgical edit without disturbing surrounding notation.",
       inputSchema: z.object({
         project: projectArgument,
+        expectedRevision: expectedRevisionArgument,
         path: z.string().describe("Path relative to the project root."),
         findText: z.string().describe("Exact text to find, including whitespace."),
         replaceWith: z.string().describe("Replacement text."),
@@ -40,12 +50,13 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    async ({ project, path, findText, replaceWith, replaceAll }) =>
+    async ({ project, path, findText, replaceWith, replaceAll, expectedRevision }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
           await requireSynchronizedWithOverleaf(repository);
 
           const originalContent = await repository.readTextFile(path);
+          requireFileRevision(originalContent, expectedRevision);
           const replacement = replaceTextOccurrences(
             originalContent,
             findText,
@@ -79,6 +90,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
         "Replace the whole body of one section of a .tex file, located by its title. Include the sectioning command itself in newContent.",
       inputSchema: z.object({
         project: projectArgument,
+        expectedRevision: expectedRevisionArgument,
         path: z.string().describe("Path to the .tex file relative to the project root."),
         sectionTitle: z.string().describe("Title of the section to replace."),
         newContent: z
@@ -87,12 +99,13 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async ({ project, path, sectionTitle, newContent }) =>
+    async ({ project, path, sectionTitle, newContent, expectedRevision }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
           await requireSynchronizedWithOverleaf(repository);
 
           const originalContent = await repository.readTextFile(path);
+          requireFileRevision(originalContent, expectedRevision);
           const sections = parseLatexSections(originalContent);
           const section = findSectionByTitle(sections, sectionTitle);
           if (!section) {
@@ -117,17 +130,23 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
         "Overwrite a project file with new content, creating it if it does not exist. Prefer replace_text or edit_section for changes to an existing file.",
       inputSchema: z.object({
         project: projectArgument,
+        expectedRevision: expectedRevisionArgument,
         path: z.string().describe("Path relative to the project root."),
         content: z.string().describe("Full new file content."),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
-    async ({ project, path, content }) =>
+    async ({ project, path, content, expectedRevision }) =>
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
           await requireSynchronizedWithOverleaf(repository);
 
           const existedBefore = await repository.fileExists(path);
+          if (expectedRevision !== undefined) {
+            if (!existedBefore)
+              throw new Error("File no longer exists. Nothing was written; read the current project again.");
+            requireFileRevision(await repository.readTextFile(path), expectedRevision);
+          }
           await repository.writeTextFile(path, content);
           return textResult(
             `${existedBefore ? "Overwrote" : "Created"} ${path}. ${EDITS_ARE_LOCAL_UNTIL_PUSHED}`,

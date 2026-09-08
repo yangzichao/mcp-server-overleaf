@@ -18,6 +18,8 @@ the server. Both expose the same tools and keep edits local until an explicit pu
 
 ## Guides
 
+- [Project configuration and efficient reads](docs/project-workflows.md) covers independent credentials,
+  sparse checkout, revision reads, and guarded edits.
 - [Related projects](docs/related-projects.md) describes existing alternatives and this
   project's focus on collaborator safety and recovery.
 - [Release process and verification](docs/releasing.md) describes the tested artifact,
@@ -32,7 +34,7 @@ the server. Both expose the same tools and keep edits local until an explicit pu
 
 ## What you are installing
 
-An MCP server exposing 15 tools over stdio or Streamable HTTP. One core, two transports;
+An MCP server exposing 16 tools over stdio or Streamable HTTP. One core, two transports;
 the tool implementations are identical and only the framing differs.
 
 Requires Node 22.14+ and git on PATH; Node 24 LTS is recommended. `compile_project` additionally needs `latexmk` and a TeX
@@ -94,8 +96,9 @@ installation examples and client-specific configuration locations.
 Alternatively, set both `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECTS` in the client's `env`.
 With `OVERLEAF_MCP_ENV_FILE`, environment variables override individual file values; an
 unreadable or relative explicit file path is an error. Without it, the install's `.env` is
-used only when neither the token nor project list is supplied. The current working directory
-is never searched for configuration.
+used only when the client supplies no project or credential settings (including file paths).
+A JSON projects file can provide independent credentials; see the [configuration guide](docs/project-workflows.md).
+The current working directory is never searched for configuration.
 
 After restarting the client, call `list_projects` to check configuration and `list_files`
 to verify access to the real project. Tool discovery alone does not prove Overleaf access.
@@ -142,7 +145,7 @@ OVERLEAF_PROJECTS=paper=64a1b2c3d4e5f6a7b8c9d0e1
 `OVERLEAF_PROJECTS` is a comma-separated list of `name=projectId` pairs. The names are
 arbitrary labels the user picks. A bare project id with no name is also accepted and
 registers under its own id. With exactly one project registered it becomes the default; with
-several, set `OVERLEAF_DEFAULT_PROJECT` or every tool call must name a project.
+several, set `OVERLEAF_DEFAULT_PROJECT`, use an alias named `default`, or name the project in each call.
 
 Verify the credentials reach Overleaf before configuring any client:
 
@@ -229,13 +232,14 @@ and the client connection. If it fails, the error text says which.
 ## The tools
 
 Every tool takes an optional `project`, either a name from `OVERLEAF_PROJECTS` or a raw
-24-character project id. Omit it to use the default.
+24-character project id. Omit it to use the default. An unregistered id requires a default
+Git token; registered ids use their configured project credentials.
 
 | Tool | What it does |
 | --- | --- |
 | `list_projects` | The projects this server can reach |
-| `list_files` | Tracked files, grouped by kind |
-| `read_file` | Read a text file, optionally a line range |
+| `list_files` | Files grouped by kind; extension filter and optional new local files |
+| `read_file` | Text or line ranges; optional revision-aware full/unchanged/delta reads |
 | `list_sections` | Sectioning commands in a `.tex` file, with line ranges |
 | `read_section` | The body of one section, found by title |
 | `search_project` | Search tracked text files |
@@ -245,6 +249,7 @@ Every tool takes an optional `project`, either a name from `OVERLEAF_PROJECTS` o
 | `show_diff` | The diff of everything not yet pushed |
 | `discard_local_changes` | Throw away unpushed edits and commits, back to Overleaf's version |
 | `project_status` | Sync state, pending edits, recent history |
+| `project_summary` | JSON file counts, main document, sections and pending changes |
 | `sync_project` | Pull from Overleaf |
 | `compile_project` | Compile with latexmk and report errors |
 | `push_changes` | Commit and publish, with the collaborator check |
@@ -274,6 +279,11 @@ the first. Add surrounding context to make it unique, or pass `replaceAll` delib
 Prefer `replace_text` and `edit_section` over `write_file`. `write_file` replaces an entire
 file, so a partial reconstruction of a document silently deletes the rest of it.
 
+For a read–edit cycle, request `read_file` with `mode: "full"` or `"smart"` and pass its
+`revision` as `expectedRevision` to any edit tool. The edit then refuses to overwrite a
+file changed by a collaborator or another client since that read. See the
+[revision protocol](docs/project-workflows.md#revision-reads-and-guarded-edits).
+
 Compilation is optional and is not a gate. `push_changes` never checks that the document
 builds, so a broken document can be published if you do not check first.
 
@@ -281,10 +291,14 @@ builds, so a broken document can be published if you do not check first.
 
 | Variable | Meaning |
 | --- | --- |
-| `OVERLEAF_GIT_TOKEN` | Required. From Overleaf account settings. |
+| `OVERLEAF_GIT_TOKEN` | Default credential; required unless supplied by a token file or per project. |
+| `OVERLEAF_GIT_TOKEN_FILE` | Absolute path to a default token file. |
+| `OVERLEAF_PROJECTS_CONFIG` | Absolute path to a JSON projects file with independent credentials. |
+| `OVERLEAF_PROJECT_ID` / `OVERLEAF_PROJECT_NAME` | Single-project alternative to `OVERLEAF_PROJECTS`. |
 | `OVERLEAF_MCP_ENV_FILE` | Absolute path to an external config file; recommended for npm/npx. |
-| `OVERLEAF_PROJECTS` | Required. `name=projectId` pairs, comma separated. |
+| `OVERLEAF_PROJECTS` | `name=projectId` pairs; optional with JSON or raw-id access. |
 | `OVERLEAF_DEFAULT_PROJECT` | Which registered name to use when a call omits `project`. |
+| `OVERLEAF_MCP_CHECKOUT_MODE` | `full` (default) or `text-only`; see expansion behavior in the configuration guide. |
 | `OVERLEAF_MCP_WORKSPACE_DIR` | Where clones live. Default `~/.overleaf-mcp/projects`. |
 | `OVERLEAF_GIT_BASE_URL` | Default `https://git.overleaf.com`. |
 | `OVERLEAF_MCP_COMPILE_TIMEOUT_MS` | Compile timeout. Must be a positive integer. |
@@ -309,9 +323,10 @@ publishing are separate:
    that landed in the meantime. If that cannot be applied cleanly the push is refused and
    the conflict reported, rather than resolved by guessing.
 
-The token is handed to git through a credential helper, so it never appears in argv, never
-lands in `.git/config`, and never enters the model's context. It is stripped from every
-string leaving the process, including from error messages.
+Git credentials are handed to git through a credential helper, so authentication tokens
+are absent from argv and `.git/config`. Git diagnostics redact the selected credential;
+tool errors redact every configured project credential. Keep secrets out of project files,
+which are intentionally readable by the connected client.
 
 Compilation writes outside the clone, so `.aux`, `.log` and `.pdf` files are never staged
 and pushed back. Clones also carry a local exclude list, so a `.DS_Store` never reaches a

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { PACKAGE_NAME, PACKAGE_VERSION } from "../config/packageMetadata.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
+import { FileRevisionStore } from "../tools/reading/fileRevisions.js";
 import { registerEditTools } from "../tools/registerEditTools.js";
 import { registerReadTools } from "../tools/registerReadTools.js";
 import { registerSyncTools } from "../tools/registerSyncTools.js";
@@ -16,7 +17,11 @@ export const SERVER_VERSION = PACKAGE_VERSION;
  * cache. Over HTTP a fresh McpServer is created per request, but it closes over this.
  */
 export function createToolContext(configuration: ServerConfiguration): ToolContext {
-  return { configuration, projectRegistry: new OverleafProjectRegistry(configuration) };
+  return {
+    configuration,
+    projectRegistry: new OverleafProjectRegistry(configuration),
+    fileRevisions: new FileRevisionStore(),
+  };
 }
 
 export function createOverleafMcpServer(context: ToolContext): McpServer {

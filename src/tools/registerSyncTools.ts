@@ -121,6 +121,7 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
             );
           }
 
+          await repository.materializeAllFiles();
           const result = await compileLatexProject({
             repositoryDirectory: repository.repositoryDirectory,
             buildDirectory: buildDirectoryForProject(context.configuration, repository.repositoryDirectory),

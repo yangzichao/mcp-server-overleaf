@@ -1,9 +1,14 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { assertRealPathInsideRepository } from "./assertRealPathInsideRepository.js";
+import {
+  type CheckoutMode,
+  configureSparseCheckout,
+  materializeFullCheckout,
+} from "./checkout/sparseCheckout.js";
 import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
-import { resolvePathInsideRepository } from "./repositoryPaths.js";
+import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -33,6 +38,7 @@ export interface OverleafGitRepositoryOptions {
   readonly overleafGitToken: string;
   readonly commitAuthorName: string;
   readonly commitAuthorEmail: string;
+  readonly checkoutMode?: CheckoutMode;
 }
 
 export class DetachedHeadError extends Error {}
@@ -93,13 +99,19 @@ export class OverleafGitRepository {
     if (await this.directoryExists(`${this.options.repositoryDirectory}/.git`)) {
       await this.git(["remote", "set-url", "origin", this.remoteUrl]);
       await this.writeLocalExcludes();
+      await this.configureCheckout();
       return;
     }
 
     await mkdir(dirname(this.options.repositoryDirectory), { recursive: true });
     await runGitCommand({
       workingDirectory: dirname(this.options.repositoryDirectory),
-      args: ["clone", this.remoteUrl, this.options.repositoryDirectory],
+      args: [
+        "clone",
+        ...(this.options.checkoutMode === "text-only" ? ["--sparse"] : []),
+        this.remoteUrl,
+        this.options.repositoryDirectory,
+      ],
       overleafGitToken: this.options.overleafGitToken,
       timeoutMs: 300_000,
     });
@@ -107,6 +119,7 @@ export class OverleafGitRepository {
     await this.git(["config", "user.name", this.options.commitAuthorName]);
     await this.git(["config", "user.email", this.options.commitAuthorEmail]);
     await this.writeLocalExcludes();
+    await this.configureCheckout();
   }
 
   private async writeLocalExcludes(): Promise<void> {
@@ -180,11 +193,41 @@ export class OverleafGitRepository {
   }
 
   async listTrackedFiles(): Promise<string[]> {
-    const { stdout } = await this.git(["ls-files"]);
-    return stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line !== "");
+    const { stdout } = await this.git(["ls-files", "-z"]);
+    return stdout.split("\0").filter(Boolean);
+  }
+
+  async listUntrackedFiles(): Promise<string[]> {
+    const { stdout } = await this.git(["ls-files", "--others", "--exclude-standard", "-z"]);
+    return stdout.split("\0").filter(Boolean);
+  }
+
+  async getPendingDiffStatistics(): Promise<string> {
+    const branchName = await this.getBranchName();
+    const { stdout } = await this.git(["diff", "--stat", `origin/${branchName}`, "--"]);
+    return stdout.trim();
+  }
+
+  private async configureCheckout(): Promise<void> {
+    await configureSparseCheckout(
+      (args, options) => this.git(args, options),
+      this.options.checkoutMode ?? "full",
+    );
+  }
+
+  async materializeAllFiles(): Promise<void> {
+    await materializeFullCheckout((args, options) => this.git(args, options));
+  }
+
+  private async materializePathIfNeeded(relativePath: string): Promise<void> {
+    const absolutePath = await this.resolveClientPath(relativePath);
+    try {
+      await stat(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      // Expansion lets Git restore skipped files without overwriting local edits.
+      await this.materializeAllFiles();
+    }
   }
 
   /**
@@ -198,6 +241,7 @@ export class OverleafGitRepository {
   }
 
   async readTextFile(relativePath: string): Promise<string> {
+    await this.materializePathIfNeeded(relativePath);
     const contents = await readFile(await this.resolveClientPath(relativePath));
 
     // Figures and PDFs decode to pages of mojibake that would go straight into the
@@ -211,6 +255,7 @@ export class OverleafGitRepository {
   }
 
   async writeTextFile(relativePath: string, content: string): Promise<void> {
+    await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content, "utf8");
@@ -218,10 +263,13 @@ export class OverleafGitRepository {
 
   async fileExists(relativePath: string): Promise<boolean> {
     try {
+      await this.materializePathIfNeeded(relativePath);
       const entry = await stat(await this.resolveClientPath(relativePath));
       return entry.isFile();
-    } catch {
-      return false;
+    } catch (error) {
+      if (error instanceof UnsafeRepositoryPathError || (error as NodeJS.ErrnoException).code === "ENOENT")
+        return false;
+      throw error;
     }
   }
 

@@ -44,7 +44,13 @@ export function packageRootDirectory(): string {
  * configuration nobody wrote: a client that passes its own OVERLEAF_PROJECTS would
  * inherit a stale OVERLEAF_DEFAULT_PROJECT from the file and fail to start.
  */
-const CLIENT_OWNS_CONFIGURATION_VARIABLES = ["OVERLEAF_GIT_TOKEN", "OVERLEAF_PROJECTS"] as const;
+const CLIENT_OWNS_CONFIGURATION_VARIABLES = [
+  "OVERLEAF_GIT_TOKEN",
+  "OVERLEAF_PROJECTS",
+  "OVERLEAF_GIT_TOKEN_FILE",
+  "OVERLEAF_PROJECTS_CONFIG",
+  "OVERLEAF_PROJECT_ID",
+] as const;
 
 export function clientSuppliedConfiguration(environment: NodeJS.ProcessEnv): boolean {
   return CLIENT_OWNS_CONFIGURATION_VARIABLES.some((name) => (environment[name] ?? "").trim() !== "");

@@ -14,7 +14,8 @@ audit, Windows support, or availability of the real Overleaf service.
   the tarball into a temporary directory with spaces, disables install scripts, checks the
   npm command, and runs every integration suite against the installed entry point.
 - Installed-package tests cover both MCP transports, edits, collaborator conflicts,
-  rejected pushes, restarts, concurrent clients, and external configuration files.
+  rejected pushes, restarts, concurrent clients, external and per-project configuration,
+  revision reads and guarded edits, sparse checkout, and compilation after expansion.
 - Source checks run on macOS and Linux with Node 22.14, 24, and 26. A Linux job requires TeX,
   tests compilation in the installed package, and produces the release candidate.
 - Dependency audits block on any reported severity. npm and GitHub Actions updates are

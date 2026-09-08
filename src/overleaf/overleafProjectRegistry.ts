@@ -1,6 +1,10 @@
 import { join } from "node:path";
 
-import { looksLikeOverleafProjectId, type ServerConfiguration } from "../config/serverConfiguration.js";
+import {
+  looksLikeOverleafProjectId,
+  type RegisteredOverleafProject,
+  type ServerConfiguration,
+} from "../config/serverConfiguration.js";
 import { OverleafGitRepository } from "./overleafGitRepository.js";
 import { withProjectDirectoryLock } from "./projectDirectoryLock.js";
 
@@ -29,10 +33,7 @@ export class OverleafProjectRegistry {
     return this.configuration.registeredProjects.map((project) => project.projectName);
   }
 
-  private resolveProjectId(requestedProject: string | undefined): {
-    projectName: string;
-    overleafProjectId: string;
-  } {
+  private resolveProjectId(requestedProject: string | undefined): RegisteredOverleafProject {
     const requested = requestedProject?.trim();
 
     if (!requested) {
@@ -46,12 +47,17 @@ export class OverleafProjectRegistry {
     }
 
     const registered = this.configuration.registeredProjects.find(
-      (project) => project.projectName === requested,
+      (project) => project.projectName === requested || project.overleafProjectId === requested.toLowerCase(),
     );
     if (registered) return registered;
 
+    if (looksLikeOverleafProjectId(requested) && this.configuration.overleafGitToken) {
+      return { projectName: requested, overleafProjectId: requested.toLowerCase() };
+    }
     if (looksLikeOverleafProjectId(requested)) {
-      return { projectName: requested, overleafProjectId: requested };
+      throw new UnknownProjectError(
+        "This project id is not registered and no default Git credential is configured. Add its credentials to OVERLEAF_PROJECTS_CONFIG.",
+      );
     }
 
     const knownNames = this.listRegisteredProjectNames();
@@ -105,7 +111,7 @@ export class OverleafProjectRegistry {
   // Deliberately async: resolveProjectId throws, and a method that returns a Promise must
   // reject rather than throw synchronously, or callers' .catch() misses it.
   async openRepository(requestedProject: string | undefined): Promise<OverleafGitRepository> {
-    const { overleafProjectId } = this.resolveProjectId(requestedProject);
+    const { overleafProjectId, overleafGitToken } = this.resolveProjectId(requestedProject);
 
     const cached = this.repositoryCache.get(overleafProjectId);
     if (cached) {
@@ -118,7 +124,8 @@ export class OverleafProjectRegistry {
       overleafProjectId,
       repositoryDirectory: join(this.configuration.workspaceDirectory, overleafProjectId),
       overleafGitBaseUrl: this.configuration.overleafGitBaseUrl,
-      overleafGitToken: this.configuration.overleafGitToken,
+      overleafGitToken: overleafGitToken || this.configuration.overleafGitToken,
+      checkoutMode: this.configuration.checkoutMode ?? "full",
       commitAuthorName: this.configuration.gitCommitAuthorName,
       commitAuthorEmail: this.configuration.gitCommitAuthorEmail,
     });
