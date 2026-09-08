@@ -11,11 +11,17 @@ picking a winner. Losing someone else's work is the one outcome it is built to p
 
 ---
 
-The rest of this file is written for an AI agent installing the server. It is meant to be
-read top to bottom and followed literally.
+Independent community project; not affiliated with or endorsed by Overleaf.
+
+Choose the npm installation below, or the source checkout instructions if you are developing
+the server. Both expose the same tools and keep edits local until an explicit push.
 
 ## Guides
 
+- [Related projects](docs/related-projects.md) describes existing alternatives and this
+  project's focus on collaborator safety and recovery.
+- [Release process and verification](docs/releasing.md) describes the tested artifact,
+  provenance, first publication, and subsequent trusted publishing.
 - [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
   desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
   verification, and troubleshooting.
@@ -29,16 +35,77 @@ read top to bottom and followed literally.
 An MCP server exposing 15 tools over stdio or Streamable HTTP. One core, two transports;
 the tool implementations are identical and only the framing differs.
 
-Requires Node 20+ and git on PATH. `compile_project` additionally needs `latexmk` and a TeX
+Requires Node 22.14+ and git on PATH; Node 24 LTS is recommended. `compile_project` additionally needs `latexmk` and a TeX
 distribution; every other tool works without them.
+
+The release test matrix covers macOS and Linux. Windows Git and TeX workflows are not yet
+validated. This server is a command-line application, not an importable JavaScript library.
 
 The user needs an Overleaf account whose plan includes Git integration. Do not assert
 whether their specific plan qualifies. Verify it directly in step 3 instead.
 
+## Install from npm
+
+The commands below select version `0.1.0` explicitly so a client restart does not silently
+upgrade the server. If that version has not been published yet, use the source installation
+below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
+
+```bash
+npx --yes mcp-server-overleaf@0.1.0 --version
+```
+
+Keep configuration outside the npm installation and npx cache. Create a private file:
+
+```bash
+mkdir -p "$HOME/.config/overleaf-mcp"
+touch "$HOME/.config/overleaf-mcp/env"
+chmod 600 "$HOME/.config/overleaf-mcp/env"
+```
+
+Edit that file locally to contain your token and project ID:
+
+```dotenv
+OVERLEAF_GIT_TOKEN=olp_your_token_here
+OVERLEAF_PROJECTS=paper=64a1b2c3d4e5f6a7b8c9d0e1
+```
+
+For clients using the `mcpServers` JSON format:
+
+```json
+{
+  "mcpServers": {
+    "overleaf": {
+      "command": "npx",
+      "args": ["--yes", "mcp-server-overleaf@0.1.0", "--stdio"],
+      "env": {
+        "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
+      }
+    }
+  }
+}
+```
+
+Replace the file path with its actual absolute path; JSON does not expand `~` or `$HOME`.
+Clients with another configuration format should launch the same command and arguments with
+the same environment variable. If a desktop app cannot find `npx`, use its absolute path
+from `command -v npx`. See the [client guide](docs/connect-local-mcp-clients.md) for source
+installation examples and client-specific configuration locations.
+
+Alternatively, set both `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECTS` in the client's `env`.
+With `OVERLEAF_MCP_ENV_FILE`, environment variables override individual file values; an
+unreadable or relative explicit file path is an error. Without it, the install's `.env` is
+used only when neither the token nor project list is supplied. The current working directory
+is never searched for configuration.
+
+After restarting the client, call `list_projects` to check configuration and `list_files`
+to verify access to the real project. Tool discovery alone does not prove Overleaf access.
+
+## Install from a source checkout
+
 ## Step 1: build
 
 ```bash
-npm install && npm run build
+npm ci && npm run build
 ```
 
 Confirm `dist/index.js` exists before continuing. Record the absolute path of the
@@ -215,6 +282,7 @@ builds, so a broken document can be published if you do not check first.
 | Variable | Meaning |
 | --- | --- |
 | `OVERLEAF_GIT_TOKEN` | Required. From Overleaf account settings. |
+| `OVERLEAF_MCP_ENV_FILE` | Absolute path to an external config file; recommended for npm/npx. |
 | `OVERLEAF_PROJECTS` | Required. `name=projectId` pairs, comma separated. |
 | `OVERLEAF_DEFAULT_PROJECT` | Which registered name to use when a call omits `project`. |
 | `OVERLEAF_MCP_WORKSPACE_DIR` | Where clones live. Default `~/.overleaf-mcp/projects`. |
@@ -289,6 +357,8 @@ including focused runs and coverage, so the subprocess tests cannot use an old `
 | `npm run lint` | Biome lint and format check |
 | `npm run format` | Biome, applying fixes |
 | `npm test` | Build, then Vitest, whole suite |
+| `npm run package:check` | Build twice, compare tarballs, install without lifecycle scripts, and test the installed server |
+| `npm run check:release` | Source checks, package checks, and dependency audit |
 | `npm run test:coverage` | Build, then Vitest with v8 coverage |
 
 The suites cover the same tool contract over stdio and HTTP, including schemas, error
@@ -301,8 +371,13 @@ without needing a network connection or TeX installation.
 TeX-dependent tests share one availability check. Set `OVERLEAF_TEST_TEX=skip` to run
 without TeX, or `OVERLEAF_TEST_TEX=required` to fail if `latexmk` or `pdflatex` is missing.
 The default, `auto`, runs those tests when both executables are available. GitHub Actions
-runs core checks on Linux and macOS with Node 20 and 24, plus a Linux job that installs
+runs core checks on Linux and macOS with Node 22.14, 24, and 26, plus a Linux job that installs
 TeX and requires the compilation tests to run.
+
+`npm-shrinkwrap.json` is the canonical dependency lock and is shipped to npm so CLI users
+receive the tested dependency versions. Update it with npm and commit it with `package.json`.
+Release package tests reuse the integration suites against an installed tarball from an
+unrelated working directory, covering stdio, HTTP, edits, conflicts, and recovery.
 
 Tests never touch the real Overleaf. `tests/integration/fakeOverleafRemote.ts` stands up a
 bare git repository plus a second clone acting as a co-author, which reproduces everything

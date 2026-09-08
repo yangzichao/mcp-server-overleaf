@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/server";
 
+import { PACKAGE_NAME, PACKAGE_VERSION } from "../config/packageMetadata.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
 import { registerEditTools } from "../tools/registerEditTools.js";
@@ -7,8 +8,8 @@ import { registerReadTools } from "../tools/registerReadTools.js";
 import { registerSyncTools } from "../tools/registerSyncTools.js";
 import type { ToolContext } from "../tools/toolContext.js";
 
-export const SERVER_NAME = "mcp-server-overleaf";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_NAME = PACKAGE_NAME;
+export const SERVER_VERSION = PACKAGE_VERSION;
 
 /**
  * Built once per process and shared by every transport, because it owns the clone

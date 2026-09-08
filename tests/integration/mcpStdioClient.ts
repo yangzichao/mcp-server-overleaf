@@ -1,9 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { serverEntryPoint, serverWorkingDirectory } from "../support/serverUnderTest.js";
 import { type JsonRpcResponse, responseText } from "./support/mcpProtocol.js";
-
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
  * Speaks MCP to the compiled server over stdio, the way a real client does. Tests drive
@@ -20,11 +17,11 @@ export class McpStdioClient {
   private constructor(private readonly child: ChildProcessWithoutNullStreams) {}
 
   static async start(environment: NodeJS.ProcessEnv): Promise<McpStdioClient> {
-    const child = spawn("node", [resolve(packageRoot, "dist", "index.js"), "--stdio"], {
+    const child = spawn(process.execPath, [serverEntryPoint, "--stdio"], {
       // A bare environment, minus PATH: an MCP client does not pass a shell through.
       env: { PATH: process.env.PATH, HOME: process.env.HOME, ...environment },
       stdio: ["pipe", "pipe", "pipe"],
-      cwd: packageRoot,
+      cwd: serverWorkingDirectory,
     });
 
     const client = new McpStdioClient(child);

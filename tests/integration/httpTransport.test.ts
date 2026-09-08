@@ -1,15 +1,13 @@
 import { spawn } from "node:child_process";
 import { request } from "node:http";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { loadHttpTransportConfiguration } from "../../src/config/httpTransportConfiguration.js";
 import { ConfigurationError } from "../../src/config/serverConfiguration.js";
+import { serverEntryPoint, serverWorkingDirectory } from "../support/serverUnderTest.js";
 import { FakeOverleafRemote } from "./fakeOverleafRemote.js";
 import { httpTestToken, McpHttpClient } from "./support/mcpHttpClient.js";
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const bearerToken = httpTestToken;
 
 describe("loadHttpTransportConfiguration", () => {
@@ -149,10 +147,10 @@ describe("the HTTP endpoint", () => {
 describe("refusing to start", () => {
   it("exits rather than serving the projects unauthenticated", async () => {
     const remote = await FakeOverleafRemote.create("84a1b2c3d4e5f6a7b8c9d0e1");
-    const attempt = spawn("node", [resolve(packageRoot, "dist", "index.js"), "--http", "--port", "3198"], {
+    const attempt = spawn(process.execPath, [serverEntryPoint, "--http", "--port", "3198"], {
       env: { PATH: process.env.PATH, HOME: process.env.HOME, ...remote.environment() },
       stdio: ["pipe", "pipe", "pipe"],
-      cwd: packageRoot,
+      cwd: serverWorkingDirectory,
     });
 
     const [exitCode, stderr] = await new Promise<[number | null, string]>((resolvePromise) => {

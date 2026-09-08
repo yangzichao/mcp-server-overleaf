@@ -114,4 +114,32 @@ describe("loadEnvironmentFileIfPresent", () => {
     loadEnvironmentFileIfPresent(environment, missingFilePath);
     expect(environment).toEqual({});
   });
+
+  it("loads an explicit external file even when a client overrides one variable", () => {
+    const environment: NodeJS.ProcessEnv = {
+      OVERLEAF_MCP_ENV_FILE: environmentFilePath,
+      OVERLEAF_GIT_TOKEN: "olp_override",
+    };
+    loadEnvironmentFileIfPresent(environment, missingFilePath);
+    expect(environment.OVERLEAF_GIT_TOKEN).toBe("olp_override");
+    expect(environment.OVERLEAF_PROJECTS).toBe("paper=aaaaaaaaaaaaaaaaaaaaaaaa");
+  });
+
+  it("fails for an explicitly selected missing file instead of silently falling back", () => {
+    expect(() =>
+      loadEnvironmentFileIfPresent({ OVERLEAF_MCP_ENV_FILE: missingFilePath }, environmentFilePath),
+    ).toThrow("Cannot read OVERLEAF_MCP_ENV_FILE");
+  });
+
+  it("rejects a relative explicit path because MCP clients have arbitrary working directories", () => {
+    expect(() =>
+      loadEnvironmentFileIfPresent({ OVERLEAF_MCP_ENV_FILE: "./.env" }, environmentFilePath),
+    ).toThrow("must be an absolute path");
+  });
+
+  it("rejects an unreadable explicit directory instead of ignoring it", () => {
+    expect(() =>
+      loadEnvironmentFileIfPresent({ OVERLEAF_MCP_ENV_FILE: `${environmentFilePath}/..` }),
+    ).toThrow("Cannot read OVERLEAF_MCP_ENV_FILE");
+  });
 });

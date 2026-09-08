@@ -1,9 +1,23 @@
 {
   "name": "mcp-server-overleaf",
   "version": "0.1.0",
-  "private": true,
   "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
   "license": "MIT",
+  "author": "Zichao Yang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yangzichao/mcp-server-overleaf.git"
+  },
+  "homepage": "https://github.com/yangzichao/mcp-server-overleaf#readme",
+  "bugs": {
+    "url": "https://github.com/yangzichao/mcp-server-overleaf/issues"
+  },
+  "files": ["dist/**/*.js", "docs/*.md", "npm-shrinkwrap.json", ".env.example", "CHANGELOG.md", "SECURITY.md"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "provenance": true
+  },
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -17,19 +31,22 @@
     "mcp-server-overleaf": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/compilation/cleanOutput.mjs && tsc -p tsconfig.json",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.tests.json",
-    "lint": "biome check src tests",
-    "format": "biome check src tests --write",
+    "lint": "biome check src tests scripts",
+    "format": "biome check src tests scripts --write",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm run test",
+    "package:check": "node scripts/release/verifyPackage.mjs",
+    "check:release": "npm run check && npm run package:check && npm audit --audit-level=low",
     "start:stdio": "node dist/index.js --stdio",
     "start:http": "node dist/index.js --http"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.14.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

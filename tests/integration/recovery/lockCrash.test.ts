@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 import { withProjectDirectoryLock } from "../../../src/overleaf/projectDirectoryLock.js";
+import { serverEntryPoint } from "../../support/serverUnderTest.js";
 import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
 
@@ -12,7 +13,9 @@ it("recovers the actual lock left by a killed process and preserves its saved dr
   const directory = await mkdtemp(join(tmpdir(), "overleaf-lock-crash-"));
   const lockDirectory = join(directory, "project.lock");
   const draftFile = join(directory, "draft.tex");
-  const moduleUrl = pathToFileURL(resolve("dist/overleaf/projectDirectoryLock.js")).href;
+  const moduleUrl = pathToFileURL(
+    resolve(dirname(serverEntryPoint), "overleaf/projectDirectoryLock.js"),
+  ).href;
   const child = spawn(
     process.execPath,
     [

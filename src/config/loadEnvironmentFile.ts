@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { ConfigurationError } from "./serverConfiguration.js";
 
 /**
  * An MCP client spawns this server as a bare subprocess, so the shell environment a
@@ -49,19 +51,32 @@ export function clientSuppliedConfiguration(environment: NodeJS.ProcessEnv): boo
 }
 
 /**
- * Loads `<package root>/.env` when, and only when, the client left configuration to us.
- * A missing or unreadable file is not an error: the environment alone is a valid setup.
+ * An explicit external file opts into per-variable environment overrides. Otherwise,
+ * preserve the legacy whole-file fallback only when the client configures nothing.
  */
 export function loadEnvironmentFileIfPresent(
   environment: NodeJS.ProcessEnv = process.env,
   environmentFilePath: string = resolve(packageRootDirectory(), ".env"),
 ): void {
-  if (clientSuppliedConfiguration(environment)) return;
+  const explicitFilePath = environment.OVERLEAF_MCP_ENV_FILE?.trim();
+  if (explicitFilePath) {
+    if (!isAbsolute(explicitFilePath)) {
+      throw new ConfigurationError("OVERLEAF_MCP_ENV_FILE must be an absolute path.");
+    }
+    environmentFilePath = explicitFilePath;
+  } else if (clientSuppliedConfiguration(environment)) {
+    return;
+  }
 
   let fileContents: string;
   try {
     fileContents = readFileSync(environmentFilePath, "utf8");
   } catch {
+    if (explicitFilePath) {
+      throw new ConfigurationError(
+        "Cannot read OVERLEAF_MCP_ENV_FILE. Check that it exists and is readable.",
+      );
+    }
     return;
   }
 

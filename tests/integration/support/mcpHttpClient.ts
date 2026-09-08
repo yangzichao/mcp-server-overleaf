@@ -1,10 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createServer } from "node:net";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { serverEntryPoint, serverWorkingDirectory } from "../../support/serverUnderTest.js";
 import { type JsonRpcResponse, responseText } from "./mcpProtocol.js";
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const httpTestToken = "test-bearer-token-not-a-real-secret";
 
 async function findAvailablePort(): Promise<number> {
@@ -30,20 +28,16 @@ export class McpHttpClient {
 
   static async start(environment: NodeJS.ProcessEnv): Promise<McpHttpClient> {
     const port = await findAvailablePort();
-    const child = spawn(
-      process.execPath,
-      [resolve(packageRoot, "dist/index.js"), "--http", "--port", String(port)],
-      {
-        env: {
-          PATH: process.env.PATH,
-          HOME: process.env.HOME,
-          ...environment,
-          OVERLEAF_MCP_HTTP_AUTH_TOKEN: httpTestToken,
-        },
-        stdio: ["pipe", "pipe", "pipe"],
-        cwd: packageRoot,
+    const child = spawn(process.execPath, [serverEntryPoint, "--http", "--port", String(port)], {
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        ...environment,
+        OVERLEAF_MCP_HTTP_AUTH_TOKEN: httpTestToken,
       },
-    );
+      stdio: ["pipe", "pipe", "pipe"],
+      cwd: serverWorkingDirectory,
+    });
     const client = new McpHttpClient(`http://127.0.0.1:${port}/`, child);
     try {
       await new Promise<void>((resolvePromise, rejectPromise) => {

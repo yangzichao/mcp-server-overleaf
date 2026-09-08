@@ -1,5 +1,9 @@
 # Connect ChatGPT to Overleaf with Secure MCP Tunnel
 
+This guide uses a source checkout. An npm installation can use the same stdio transport:
+see [Install from npm](../README.md#install-from-npm), keep configuration outside the npx
+cache, and use the pinned npm command as the local server command in your wrapper.
+
 This guide connects ChatGPT to a private, local instance of `mcp-server-overleaf` without
 publishing an MCP endpoint or opening an inbound firewall port. It uses OpenAI Secure MCP
 Tunnel to carry MCP requests from ChatGPT to a `tunnel-client` process on your computer,
@@ -323,7 +327,7 @@ an explicit push with a meaningful commit message before publishing changes to O
 | App creation finds no tools | Keep `tunnel-client` running, run `tunnel-client doctor --profile overleaf-local --explain`, and inspect `/readyz` and `/ui`. |
 | Status is locally healthy but remote lookup fails | Check the runtime key's organization and permissions, then check outbound HTTPS and proxy inheritance. |
 | `401` or `403` from the tunnel control plane | Rotate or recreate the runtime key in the correct Platform organization with `Tunnels: Read + Use`. |
-| The stdio process exits immediately | Run the wrapper directly, use absolute paths, confirm Node 20+, rebuild `dist/index.js`, and inspect `.env`. |
+| The stdio process exits immediately | Run the wrapper directly, use absolute paths, confirm Node 22.14+, rebuild `dist/index.js`, and inspect `.env`. |
 | Overleaf returns `403` or `Repository not found` | Recheck the project ID, Overleaf Git token, account access, and plan support with `git ls-remote`. |
 | Tool calls worked and later stopped | Check `tunnel-client runtimes status overleaf-local --json`; the runtime must remain online for discovery and every call. |
 

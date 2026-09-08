@@ -1,5 +1,10 @@
 # Connect Local MCP Clients to Overleaf
 
+For the npm/npx installation, start with [Install from npm](../README.md#install-from-npm).
+Use `npx --yes mcp-server-overleaf@0.1.0 --stdio` and set `OVERLEAF_MCP_ENV_FILE` to an
+absolute external configuration path. The commands below document the source checkout
+installation; its absolute `node dist/index.js` entry point remains supported.
+
 This guide connects `mcp-server-overleaf` directly to MCP clients running on the same
 computer. It covers Codex desktop and CLI, Claude Code, Claude Desktop, Cursor, and Visual
 Studio Code.

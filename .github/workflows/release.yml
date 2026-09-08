@@ -1,0 +1,81 @@
+name: Publish npm
+
+# Select a reviewed vX.Y.Z tag in the Actions UI. A push alone never publishes.
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: First publication only (temporary NPM_BOOTSTRAP_TOKEN in npm-production)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+
+jobs:
+  release-tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: node scripts/release/verifyReleaseTag.mjs
+
+  checks:
+    needs: release-tag
+    uses: ./.github/workflows/check.yml
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.19.1 --ignore-scripts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-release-candidate
+          path: release-artifacts/
+      # No project dependencies, build steps, or package lifecycle scripts in this job.
+      - run: node scripts/release/publishVerifiedArtifact.mjs
+        env:
+          NPM_BOOTSTRAP: ${{ inputs.bootstrap }}
+          NODE_AUTH_TOKEN: ${{ inputs.bootstrap && secrets.NPM_BOOTSTRAP_TOKEN || '' }}
+
+  verify-publication:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.19.1 --ignore-scripts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-release-candidate
+          path: release-artifacts/
+      - run: node scripts/release/verifyPublishedPackage.mjs

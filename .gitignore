@@ -20,6 +20,8 @@ bower_components/
 # Build output (tsconfig outDir is dist/)
 # ---------------------------------------------------------------------------
 dist/
+release-artifacts/
+*.tgz
 build/
 out/
 *.tsbuildinfo

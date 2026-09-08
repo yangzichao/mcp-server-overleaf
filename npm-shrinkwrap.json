@@ -7,6 +7,7 @@
     "": {
       "name": "mcp-server-overleaf",
       "version": "0.1.0",
+      "license": "MIT",
       "dependencies": {
         "@modelcontextprotocol/node": "^2.0.0",
         "@modelcontextprotocol/server": "^2.0.0",
@@ -23,7 +24,7 @@
         "vitest": "^3.2.7"
       },
       "engines": {
-        "node": ">=20"
+        "node": ">=22.14.0"
       }
     },
     "node_modules/@ampproject/remapping": {
