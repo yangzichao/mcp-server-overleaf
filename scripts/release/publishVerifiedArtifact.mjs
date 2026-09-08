@@ -20,7 +20,7 @@ if (process.env.NPM_BOOTSTRAP === "true") {
 }
 execFileSync(
   "npm",
-  ["publish", artifact, "--ignore-scripts", "--access", "public", "--provenance", "--tag", "latest"],
+  ["publish", `./${artifact}`, "--ignore-scripts", "--access", "public", "--provenance", "--tag", "latest"],
   {
     stdio: "inherit",
     timeout: 180_000,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Fix the release publisher so npm receives the verified archive as an explicit local path.
+
 ## 0.1.0
 
 Initial release candidate:

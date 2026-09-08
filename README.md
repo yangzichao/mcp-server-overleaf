@@ -48,12 +48,12 @@ whether their specific plan qualifies. Verify it directly in step 3 instead.
 
 ## Install from npm
 
-The commands below select version `0.1.0` explicitly so a client restart does not silently
+The commands below select version `0.1.1` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.1.0 --version
+npx --yes mcp-server-overleaf@0.1.1 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -78,7 +78,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.1.0", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.1.1", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
