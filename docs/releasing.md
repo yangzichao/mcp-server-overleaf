@@ -42,9 +42,10 @@ actionlint
 ```
 
 `release-artifacts/` contains the verified tarball, `package-manifest.json`, and
-`sbom.cdx.json`. This directory is ignored by Git. Do not publish a stale artifact from a
-previous failed check. `npm-shrinkwrap.json` is the canonical lockfile; do not add a parallel
-`package-lock.json`. Dependency upgrades must pass both the source and package checks.
+`sbom.cdx.json`. This directory is ignored by Git and rebuilt from nothing on every check,
+so it holds one version at a time and a stale archive cannot be published or uploaded.
+`npm-shrinkwrap.json` is the canonical lockfile; do not add a parallel `package-lock.json`.
+Dependency upgrades must pass both the source and package checks.
 
 Before tagging, update `package.json`, its shrinkwrap, `CHANGELOG.md`, and the pinned
 installation examples. CLI and MCP version reporting read `package.json` directly.
