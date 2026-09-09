@@ -30,6 +30,35 @@ describe("loadHttpTransportConfiguration", () => {
     );
   });
 
+  // Node reads an empty host as "unspecified" and binds every interface, so a variable
+  // that is exported but empty, or a `--host ""`, would silently turn the loopback
+  // default into a port the whole network can reach.
+  it("treats a blank host as no host at all rather than as every interface", () => {
+    for (const blank of ["", "   "]) {
+      expect(
+        loadHttpTransportConfiguration(
+          {},
+          { OVERLEAF_MCP_HTTP_AUTH_TOKEN: "abc", OVERLEAF_MCP_HTTP_HOST: blank },
+        ).host,
+      ).toBe("127.0.0.1");
+      expect(
+        loadHttpTransportConfiguration({ host: blank }, { OVERLEAF_MCP_HTTP_AUTH_TOKEN: "abc" }).host,
+      ).toBe("127.0.0.1");
+    }
+  });
+
+  it("still honours a host that was actually given", () => {
+    expect(
+      loadHttpTransportConfiguration(
+        {},
+        { OVERLEAF_MCP_HTTP_AUTH_TOKEN: "abc", OVERLEAF_MCP_HTTP_HOST: "0.0.0.0" },
+      ).host,
+    ).toBe("0.0.0.0");
+    expect(
+      loadHttpTransportConfiguration({ host: "::1" }, { OVERLEAF_MCP_HTTP_AUTH_TOKEN: "abc" }).host,
+    ).toBe("::1");
+  });
+
   it("prefers a command-line port over the environment", () => {
     const configuration = loadHttpTransportConfiguration(
       { port: 4000 },
