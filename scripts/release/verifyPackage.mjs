@@ -73,7 +73,11 @@ try {
     packageMetadata,
     JSON.parse(readFileSync(join(packageRoot, "npm-shrinkwrap.json"), "utf8")),
   );
+  // Rebuilt from nothing on every run. Copying into whatever happened to be there left
+  // one tarball per version piling up, and the release candidate CI uploads is this whole
+  // directory, so a stale archive would travel alongside the one that was actually tested.
   const artifactDirectory = join(packageRoot, "release-artifacts");
+  rmSync(artifactDirectory, { recursive: true, force: true });
   mkdirSync(artifactDirectory, { recursive: true });
   copyFileSync(archivePath, join(artifactDirectory, firstPack.filename));
   writeFileSync(join(artifactDirectory, "package-manifest.json"), `${JSON.stringify(firstPack, null, 2)}\n`);
