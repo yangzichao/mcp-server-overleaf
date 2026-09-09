@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { RegularExpressionBudgetExceededError } from "../../src/latex/boundedRegexSearch.js";
 import {
   formatSearchMatches,
   isSearchableFile,
@@ -81,19 +82,63 @@ describe("searchProjectFiles", () => {
 });
 
 describe("a pathological regular expression", () => {
-  // (a+)+$ backtracks superlinearly, so an unbounded line would hang the whole server.
-  // The searcher truncates each line before matching, which keeps the work bounded.
-  it("returns instead of hanging on a long line", async () => {
-    const longLine = "a".repeat(60_000);
-    const startedAt = Date.now();
-    await searchProjectFiles({
+  const BUDGET_MS = 1500;
+
+  /**
+   * `(a+)+$` backtracks exponentially in the length of the line: 24 characters take about
+   * 150ms and 30 characters take ten seconds. The trailing "b" is the whole point. It is
+   * what forces the match to fail and the backtracking to happen; against a line of
+   * nothing but "a" the same pattern succeeds on the first greedy pass in no time at all
+   * and proves nothing, however long the line is.
+   *
+   * Two hundred characters, well inside the line-length cap, is already unbounded. That
+   * cap limits wasted work; it is not what makes this safe.
+   */
+  const catastrophicLine = `${"a".repeat(200)}b`;
+
+  const searchCatastrophically = () =>
+    searchProjectFiles({
       trackedFiles: ["main.tex"],
-      readTextFile: () => Promise.resolve(longLine),
+      readTextFile: () => Promise.resolve(catastrophicLine),
       query: "(a+)+$",
       isRegularExpression: true,
       maximumMatches: 10,
+      regularExpressionBudgetMs: BUDGET_MS,
     });
-    expect(Date.now() - startedAt).toBeLessThan(10_000);
+
+  it("is abandoned at its deadline rather than running forever", async () => {
+    const startedAt = Date.now();
+    const failure = await searchCatastrophically().catch((caught: unknown) => caught);
+
+    expect(failure).toBeInstanceOf(RegularExpressionBudgetExceededError);
+    // The lower bound matters as much as the upper one: a pattern that failed instantly
+    // for some unrelated reason would satisfy the upper bound on its own.
+    const elapsed = Date.now() - startedAt;
+    expect(elapsed).toBeGreaterThanOrEqual(BUDGET_MS - 200);
+    expect(elapsed).toBeLessThan(BUDGET_MS + 8000);
+  }, 30_000);
+
+  it("leaves the main thread responsive while it burns its budget", async () => {
+    let timerFirings = 0;
+    const ticker = setInterval(() => {
+      timerFirings += 1;
+    }, 20);
+
+    try {
+      await searchCatastrophically().catch(() => undefined);
+    } finally {
+      clearInterval(ticker);
+    }
+
+    // Matched on this thread, the regex would block every timer and this would be 0.
+    // This is the assertion that the work really is off the event loop.
+    expect(timerFirings).toBeGreaterThan(10);
+  }, 30_000);
+
+  it("still reports a malformed pattern as an ordinary argument error", async () => {
+    await expect(search("(unclosed", { isRegularExpression: true })).rejects.toThrow(
+      /Invalid regular expression/,
+    );
   });
 });
 
