@@ -53,6 +53,27 @@ describe("text-only checkout", () => {
     expect(existsSync(clonePath("figure.png"))).toBe(true);
   });
 
+  /**
+   * Expansion is permanent, so it must be reserved for the case it exists for: a file Git
+   * is tracking that sparse checkout skipped. A path that is not in the index at all is
+   * either a typo or a file about to be created, and expanding for either of those turns
+   * text-only mode off for the whole project without anyone asking for it.
+   */
+  it("does not expand for a path Git is not tracking", async () => {
+    await client.call("list_files");
+    expect(existsSync(clonePath("figure.png"))).toBe(false);
+
+    expect((await client.callRaw("read_file", { path: "main.txe" })).result?.isError).toBe(true);
+    expect(existsSync(clonePath("figure.png"))).toBe(false);
+
+    await client.call("write_file", { path: "notes.tex", content: "A new local note.\n" });
+    expect(existsSync(clonePath("figure.png"))).toBe(false);
+
+    expect(await client.call("push_changes", { commitMessage: "Add a note" })).toContain("Pushed");
+    expect(await remote.readPublishedFile("notes.tex")).toBe("A new local note.\n");
+    expect(await remote.readPublishedFile("figure.png")).toBe("\0unchanged image data");
+  });
+
   it("refuses contraction of a dirty full checkout and can recover with the previous configuration", async () => {
     await client.stop();
     client = await McpStdioClient.start(remote.environment());

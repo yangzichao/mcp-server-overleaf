@@ -1,5 +1,5 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, relative, sep } from "node:path";
 import { assertRealPathInsideRepository } from "./assertRealPathInsideRepository.js";
 import {
   type CheckoutMode,
@@ -219,15 +219,38 @@ export class OverleafGitRepository {
     await materializeFullCheckout((args, options) => this.git(args, options));
   }
 
+  /**
+   * True when Git has this path in the index, whatever the working tree looks like. A
+   * sparse checkout leaves skipped files tracked, so this is what separates "hidden by
+   * sparse checkout" from "does not exist".
+   *
+   * `:(literal)` stops a name containing `*` or `[` from being read as a glob, and any
+   * output at all means the pathspec matched, which also covers a tracked directory whose
+   * files are all skipped.
+   */
+  private async isTrackedInIndex(absolutePath: string): Promise<boolean> {
+    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPath}`]);
+    return stdout.split("\0").some((entry) => entry !== "");
+  }
+
   private async materializePathIfNeeded(relativePath: string): Promise<void> {
     const absolutePath = await this.resolveClientPath(relativePath);
     try {
       await stat(absolutePath);
+      return;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      // Expansion lets Git restore skipped files without overwriting local edits.
-      await this.materializeAllFiles();
     }
+
+    // Absent from the working tree means one of two different things, and expanding for
+    // the wrong one is a silent, permanent change to the whole project: expansion is
+    // sticky, so a mistyped path or a brand-new file would turn text-only checkout off
+    // for good and materialize every figure in the project. Expand only for a file Git is
+    // actually tracking, which is the case sparse checkout created.
+    if (!(await this.isTrackedInIndex(absolutePath))) return;
+    // Expansion lets Git restore skipped files without overwriting local edits.
+    await this.materializeAllFiles();
   }
 
   /**
