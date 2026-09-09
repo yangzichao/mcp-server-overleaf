@@ -34,7 +34,11 @@ export function loadHttpTransportConfiguration(
   }
 
   return {
-    host: overrides.host ?? environment.OVERLEAF_MCP_HTTP_HOST?.trim() ?? "127.0.0.1",
+    // Every step of this fallback rejects a blank value rather than passing it on.
+    // Node reads an empty host as "unspecified" and binds every interface, so a
+    // `--host ""` or an exported-but-empty OVERLEAF_MCP_HTTP_HOST would otherwise turn a
+    // loopback-only default into a port the whole network can reach.
+    host: overrides.host?.trim() || environment.OVERLEAF_MCP_HTTP_HOST?.trim() || "127.0.0.1",
     port,
     bearerToken,
   };
