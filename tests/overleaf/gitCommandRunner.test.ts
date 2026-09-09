@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +15,7 @@ const token = "olp_test_token_not_a_real_secret";
 const HUNG_GIT_TIMEOUT_MS = 5000;
 
 let workingDirectory: string;
+const temporaryHomeDirectories: string[] = [];
 
 const git = (args: string[], options: { tolerateFailure?: boolean; timeoutMs?: number } = {}) =>
   runGitCommand({ workingDirectory, args, overleafGitToken: token, ...options });
@@ -29,7 +30,32 @@ beforeEach(async () => {
 afterEach(() => {
   vi.unstubAllEnvs();
   rmSync(workingDirectory, { recursive: true, force: true });
+  while (temporaryHomeDirectories.length > 0) {
+    rmSync(temporaryHomeDirectories.pop() as string, { recursive: true, force: true });
+  }
 });
+
+/**
+ * A HOME whose `.gitconfig` holds the given lines. It has to sit outside the repository,
+ * or `git add --all` would stage it.
+ */
+async function stubHomeWithGlobalGitConfiguration(
+  buildConfiguration: (homeDirectory: string) => string,
+): Promise<string> {
+  const homeDirectory = mkdtempSync(join(tmpdir(), "overleaf-mcp-home-"));
+  temporaryHomeDirectories.push(homeDirectory);
+  await writeFile(join(homeDirectory, ".gitconfig"), buildConfiguration(homeDirectory), "utf8");
+  vi.stubEnv("HOME", homeDirectory);
+  // Git reads this one first where it is set, so an inherited value would mask the test.
+  vi.stubEnv("XDG_CONFIG_HOME", join(homeDirectory, ".config"));
+  return homeDirectory;
+}
+
+async function commitOneFile(message: string): Promise<void> {
+  await writeFile(join(workingDirectory, "a.tex"), "x", "utf8");
+  await git(["add", "--all"]);
+  await git(["commit", "-m", message]);
+}
 
 describe("running a command", () => {
   it("returns stdout", async () => {
@@ -104,5 +130,35 @@ describe("keeping the token out of everything that leaves the process", () => {
   it("never writes the token into .git/config", async () => {
     await git(["remote", "add", "origin", "https://git.example.com/64a1b2c3d4e5f6a7b8c9d0e1"]);
     expect(readFileSync(join(workingDirectory, ".git", "config"), "utf8")).not.toContain(token);
+  });
+});
+
+/**
+ * GIT_CONFIG_NOSYSTEM only silences /etc/gitconfig. The user's own ~/.gitconfig still
+ * applies to every command this server runs, and two settings that are perfectly
+ * reasonable for a human break the server: the commit inside push_changes fails to sign,
+ * or a hook written for another repository refuses it.
+ */
+describe("not inheriting global git settings that would break a commit", () => {
+  it("commits even when the user signs every commit globally", async () => {
+    await stubHomeWithGlobalGitConfiguration(
+      () => "[commit]\n\tgpgsign = true\n[gpg]\n\tprogram = /nonexistent-gpg\n",
+    );
+
+    await commitOneFile("signed by nobody");
+    expect((await git(["log", "--pretty=format:%s"])).stdout.trim()).toBe("signed by nobody");
+  });
+
+  it("commits without running hooks the user configured globally", async () => {
+    const homeDirectory = await stubHomeWithGlobalGitConfiguration(
+      (home) => `[core]\n\thooksPath = ${join(home, "hooks")}\n`,
+    );
+    const hookPath = join(homeDirectory, "hooks", "pre-commit");
+    mkdirSync(join(homeDirectory, "hooks"));
+    await writeFile(hookPath, "#!/bin/sh\necho refused by a global hook >&2\nexit 1\n", "utf8");
+    chmodSync(hookPath, 0o755);
+
+    await commitOneFile("no hook ran");
+    expect((await git(["log", "--pretty=format:%s"])).stdout.trim()).toBe("no hook ran");
   });
 });

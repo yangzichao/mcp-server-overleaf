@@ -13,6 +13,27 @@ const execFileAsync = promisify(execFile);
 const CREDENTIAL_HELPER_SHELL_SNIPPET =
   '!f() { test "$1" = get && echo username=git && echo "password=$OVERLEAF_GIT_TOKEN"; }; f';
 
+/**
+ * Configuration this server must own rather than inherit.
+ *
+ * `GIT_CONFIG_NOSYSTEM` below only silences `/etc/gitconfig`; the user's own
+ * `~/.gitconfig` still applies to every command we run. Two settings there break this
+ * server outright. `commit.gpgsign=true` makes the commit inside push_changes fail with
+ * "gpg failed to sign the data", or block on a passphrase prompt no MCP client can
+ * answer. A global `core.hooksPath` runs someone's hooks against a clone they have never
+ * seen, and a non-zero hook refuses the commit.
+ *
+ * The rest of the user's global configuration is deliberately left alone, because an
+ * `http.proxy` or `url.*.insteadOf` they need to reach Overleaf at all also lives there.
+ */
+const OVERRIDDEN_GIT_CONFIGURATION = [
+  "credential.helper=",
+  `credential.helper=${CREDENTIAL_HELPER_SHELL_SNIPPET}`,
+  "core.askPass=",
+  "commit.gpgsign=false",
+  "core.hooksPath=",
+] as const;
+
 export interface GitCommandResult {
   readonly stdout: string;
   readonly stderr: string;
@@ -43,15 +64,7 @@ export interface RunGitCommandOptions {
 export async function runGitCommand(options: RunGitCommandOptions): Promise<GitCommandResult> {
   const { workingDirectory, args, overleafGitToken, timeoutMs = 120_000, tolerateFailure = false } = options;
 
-  const gitArguments = [
-    "-c",
-    "credential.helper=",
-    "-c",
-    `credential.helper=${CREDENTIAL_HELPER_SHELL_SNIPPET}`,
-    "-c",
-    "core.askPass=",
-    ...args,
-  ];
+  const gitArguments = [...OVERRIDDEN_GIT_CONFIGURATION.flatMap((setting) => ["-c", setting]), ...args];
 
   try {
     const { stdout, stderr } = await execFileAsync("git", gitArguments, {
