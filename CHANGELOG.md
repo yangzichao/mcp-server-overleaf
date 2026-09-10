@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- List the server in the official MCP registry. The release workflow now authenticates with
+  GitHub OIDC and publishes `server.json` under `io.github.yangzichao/mcp-server-overleaf`,
+  describing both the npm package and the `.mcpb` bundle, with the bundle hash taken from the
+  exact file the same job attached to the release.
+- Add `mcpName` to `package.json`, which is how the registry proves npm package ownership.
+
 ## 0.3.0
 
 - Package the server as a Claude Desktop bundle: `npm run mcpb:build` produces a `.mcpb`
