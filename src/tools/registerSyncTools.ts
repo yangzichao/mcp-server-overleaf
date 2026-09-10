@@ -146,7 +146,7 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
           .string()
           .describe("Commit message describing the change, e.g. 'Rewrite Section 4 discussion'."),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async ({ project, commitMessage }) =>
       runToolSafely(context, () =>

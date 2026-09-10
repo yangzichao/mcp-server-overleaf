@@ -24,6 +24,8 @@ developing the server. Both expose the same tools and keep edits local until an 
   project's focus on collaborator safety and recovery.
 - [Release process and verification](docs/releasing.md) describes the tested artifact,
   provenance, first publication, and subsequent trusted publishing.
+- [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md) covers the
+  one-click `.mcpb` extension: what is inside it, how to build it, and how to remove it.
 - [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
   desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
   verification, and troubleshooting.
@@ -47,10 +49,26 @@ validated. This server is a command-line application, not an importable JavaScri
 The user needs an Overleaf account whose plan includes Git integration. Do not assert
 whether their specific plan qualifies. Verify it directly in step 3 instead.
 
+## Install into Claude Desktop with one click
+
+Download **[mcp-server-overleaf.mcpb](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
+and double-click it. Claude Desktop opens an install panel, asks for the two values below,
+and starts the server itself. No terminal, no Node installation, no build.
+
+- **Overleaf project address** — open the project in Overleaf and copy the whole URL from
+  the address bar.
+- **Overleaf Git token** — generate one at <https://www.overleaf.com/user/settings> under
+  Git integration. Claude Desktop stores it in the operating system keychain.
+
+The bundle carries the same server npm publishes, with its locked runtime dependencies and
+nothing else. It is macOS and Windows only, because that is where Claude Desktop runs. For
+any other client, use the command below. Details in
+[Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md).
+
 ## Install with one command
 
 ```bash
-npx --yes mcp-server-overleaf@0.2.0 setup
+npx --yes mcp-server-overleaf@0.3.0 setup
 ```
 
 It checks Node and git, asks for the project and a token, proves the token reaches Overleaf
@@ -78,7 +96,7 @@ run. Then ask the assistant to list the files in the project.
 Setup can also run unattended:
 
 ```bash
-printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.2.0 setup \
+printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.3.0 setup \
   --project paper=https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1 \
   --token-stdin --yes
 ```
@@ -90,12 +108,12 @@ project or to replace an expired token; the previous file is kept alongside it.
 ## Install from npm by hand
 
 Use this when you want to see every step, or to configure a client setup does not cover.
-The commands below select version `0.2.0` explicitly so a client restart does not silently
+The commands below select version `0.3.0` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.2.0 --version
+npx --yes mcp-server-overleaf@0.3.0 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -120,7 +138,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.2.0", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.3.0", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
@@ -447,6 +465,18 @@ the safety contract depends on: fetch, rebase, and a rejected push.
 Coverage under-reports. The integration tests spawn `node dist/index.js` as a separate
 process, and v8 cannot instrument a child, so `src/tools/` and `src/server/` report 0% while
 being driven end to end over the real MCP wire protocol.
+
+## Privacy Policy
+
+The server runs entirely on your computer. It has no analytics, no telemetry, and no
+service behind it. Its only outbound traffic is Git over HTTPS to Overleaf. Your token is
+stored either in the operating system keychain, when Claude Desktop installs the bundle, or
+in a mode `600` file written by `setup`, and it is redacted from error output.
+
+Whatever a tool returns becomes part of the conversation with the MCP client you connected,
+and is handled under that client's own policy.
+
+Full text: [docs/privacy-policy.md](docs/privacy-policy.md).
 
 ## License
 

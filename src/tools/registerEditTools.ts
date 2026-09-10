@@ -48,7 +48,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
           .optional()
           .describe("Replace every occurrence instead of requiring a unique match."),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async ({ project, path, findText, replaceWith, replaceAll, expectedRevision }) =>
       runToolSafely(context, () =>

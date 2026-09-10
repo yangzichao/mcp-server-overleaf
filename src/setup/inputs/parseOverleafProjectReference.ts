@@ -1,7 +1,6 @@
+import { extractOverleafProjectId } from "../../config/projects/projectIdentity.js";
 import { SetupError } from "../setupError.js";
 
-const BARE_PROJECT_ID = /^[0-9a-f]{24}$/i;
-const PROJECT_URL = /\/project\/([0-9a-f]{24})/i;
 const READ_ONLY_SHARE_LINK = /overleaf\.com\/(read|:?\w+)\/[A-Za-z]{8,}/i;
 
 /**
@@ -10,10 +9,8 @@ const READ_ONLY_SHARE_LINK = /overleaf\.com\/(read|:?\w+)\/[A-Za-z]{8,}/i;
  */
 export function parseOverleafProjectReference(reference: string): string {
   const trimmed = reference.trim();
-  if (BARE_PROJECT_ID.test(trimmed)) return trimmed.toLowerCase();
-
-  const matchedUrl = PROJECT_URL.exec(trimmed);
-  if (matchedUrl?.[1]) return matchedUrl[1].toLowerCase();
+  const overleafProjectId = extractOverleafProjectId(trimmed);
+  if (overleafProjectId) return overleafProjectId;
 
   if (READ_ONLY_SHARE_LINK.test(trimmed)) {
     throw new SetupError(

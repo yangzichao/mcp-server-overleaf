@@ -158,3 +158,34 @@ describe("optional settings", () => {
     ).toThrow(/positive integer/);
   });
 });
+
+describe("OVERLEAF_PROJECT_ID", () => {
+  it("accepts a bare project id", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      OVERLEAF_GIT_TOKEN: "olp_test",
+      OVERLEAF_PROJECT_ID: paperId,
+    });
+    expect(configuration.registeredProjects).toEqual([
+      { projectName: "default", overleafProjectId: paperId },
+    ]);
+  });
+
+  it("accepts the address bar URL, which is what a desktop install panel can ask for", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      OVERLEAF_GIT_TOKEN: "olp_test",
+      OVERLEAF_PROJECT_ID: `https://www.overleaf.com/project/${paperId.toUpperCase()}?foo=1`,
+      OVERLEAF_PROJECT_NAME: "paper",
+    });
+    expect(configuration.registeredProjects).toEqual([{ projectName: "paper", overleafProjectId: paperId }]);
+    expect(configuration.defaultProjectName).toBe("paper");
+  });
+
+  it("names the variable when the value holds no project id", () => {
+    expect(() =>
+      loadServerConfigurationFromEnvironment({
+        OVERLEAF_GIT_TOKEN: "olp_test",
+        OVERLEAF_PROJECT_ID: "https://www.overleaf.com/read/abcdefghijkl",
+      }),
+    ).toThrow(ConfigurationError);
+  });
+});

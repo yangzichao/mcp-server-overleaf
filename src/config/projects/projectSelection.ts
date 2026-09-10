@@ -2,7 +2,7 @@ import { ConfigurationError } from "../configurationError.js";
 import type { RegisteredOverleafProject } from "../serverConfiguration.js";
 import { parseRegisteredProjects } from "./parseRegisteredProjects.js";
 import { loadProjectConfigurationFile } from "./projectConfigurationFile.js";
-import { looksLikeOverleafProjectId } from "./projectIdentity.js";
+import { extractOverleafProjectId, looksLikeOverleafProjectId } from "./projectIdentity.js";
 
 function validateProjectCredentials(
   registeredProjects: readonly RegisteredOverleafProject[],
@@ -39,6 +39,22 @@ function validateProjectCredentials(
   }
 }
 
+/**
+ * A desktop extension asks its user for one value, and what they can copy is the address
+ * bar. Taking the URL here means every client that sets a single project gets the same
+ * leniency the setup command already gives.
+ */
+function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
+  const reference = environment.OVERLEAF_PROJECT_ID?.trim() ?? "";
+  const overleafProjectId = extractOverleafProjectId(reference);
+  if (!overleafProjectId) {
+    throw new ConfigurationError(
+      `OVERLEAF_PROJECT_ID="${reference}" is neither a 24-character project id nor an Overleaf project URL.`,
+    );
+  }
+  return `${environment.OVERLEAF_PROJECT_NAME?.trim() || "default"}=${overleafProjectId}`;
+}
+
 export function selectProjects(environment: NodeJS.ProcessEnv, overleafGitToken: string) {
   // Explicit environment project selection wins as a whole, without merging credentials by position.
   const hasEnvironmentProjects = Boolean(
@@ -46,10 +62,7 @@ export function selectProjects(environment: NodeJS.ProcessEnv, overleafGitToken:
   );
   const projectFile = hasEnvironmentProjects ? undefined : loadProjectConfigurationFile(environment);
   const registeredProjects = hasEnvironmentProjects
-    ? parseRegisteredProjects(
-        environment.OVERLEAF_PROJECTS?.trim() ||
-          `${environment.OVERLEAF_PROJECT_NAME?.trim() || "default"}=${environment.OVERLEAF_PROJECT_ID?.trim()}`,
-      )
+    ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS?.trim() || singleProjectEntry(environment))
     : (projectFile?.projects ?? []);
   validateProjectCredentials(registeredProjects, overleafGitToken);
   const explicitDefault = environment.OVERLEAF_DEFAULT_PROJECT?.trim() || projectFile?.defaultProject;
