@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "overleaf": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "mcp-server-overleaf@0.3.1",
+        "--stdio"
+      ]
+    }
+  }
+}

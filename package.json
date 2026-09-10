@@ -52,6 +52,7 @@
     "package:check": "node scripts/release/verifyPackage.mjs",
     "mcpb:build": "node scripts/mcpb/buildMcpbBundle.mjs",
     "registry:build": "node scripts/registry/buildServerJson.mjs",
+    "codex:build": "node scripts/codex/writeCodexPluginFiles.mjs",
     "check:release": "npm run check && npm run package:check && npm audit --audit-level=low",
     "start:stdio": "node dist/index.js --stdio",
     "start:http": "node dist/index.js --http"

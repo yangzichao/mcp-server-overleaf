@@ -26,6 +26,9 @@ developing the server. Both expose the same tools and keep edits local until an 
   provenance, first publication, and subsequent trusted publishing.
 - [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md) covers the
   one-click `.mcpb` extension: what is inside it, how to build it, and how to remove it.
+- [Install the Codex plugin](docs/install-codex-plugin.md) covers the Codex marketplace
+  entry: what the plugin contains, how it gets a token without holding one, and how to
+  update, remove, or build it.
 - [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
   desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
   verification, and troubleshooting.
@@ -64,6 +67,23 @@ The bundle carries the same server npm publishes, with its locked runtime depend
 nothing else. It is macOS and Windows only, because that is where Claude Desktop runs. For
 any other client, use the command below. Details in
 [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md).
+
+## Install into Codex as a plugin
+
+```bash
+npx --yes mcp-server-overleaf@0.3.1 setup --clients none
+codex plugin marketplace add yangzichao/mcp-server-overleaf
+codex plugin add overleaf@mcp-server-overleaf
+```
+
+Restart Codex, then ask it to list the files in your project. `codex plugin list` shows the
+plugin, and `codex mcp list` shows the server it brought with it.
+
+Codex has no central plugin directory. A marketplace is just a Git repository, so this one
+is its own: `.agents/plugins/marketplace.json` lists one plugin and that plugin carries this
+server. The plugin holds no token and sets no environment variable, because the first
+command writes the token to `~/.config/overleaf-mcp/projects.json` and the server finds it
+there. Details in [Install the Codex plugin](docs/install-codex-plugin.md).
 
 ## Install with one command
 
@@ -113,7 +133,8 @@ Desktop bundle, and clients and catalogues that read the registry pick it up fro
 release workflow publishes the listing itself, so it can never point at a version npm does
 not have.
 
-Codex has no directory of its own; `setup` registers the server with it directly, or:
+Codex does not read that registry. It has its own plugin marketplaces, which is the section
+above, or the server can be added by hand:
 
 ```bash
 codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.3.1 --stdio
