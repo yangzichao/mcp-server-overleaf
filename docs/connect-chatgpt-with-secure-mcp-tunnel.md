@@ -1,7 +1,7 @@
 # Connect ChatGPT to Overleaf with Secure MCP Tunnel
 
 This guide uses a source checkout. An npm installation can use the same stdio transport:
-see [Install from npm](../README.md#install-from-npm), keep configuration outside the npx
+see [Install from npm by hand](../README.md#install-from-npm-by-hand), keep configuration outside the npx
 cache, and use the pinned npm command as the local server command in your wrapper.
 
 This guide connects ChatGPT to a private, local instance of `mcp-server-overleaf` without

@@ -13,8 +13,27 @@ picking a winner. Losing someone else's work is the one outcome it is built to p
 
 Independent community project; not affiliated with or endorsed by Overleaf.
 
-Run the one-command installation below, or the source checkout instructions if you are
-developing the server. Both expose the same tools and keep edits local until an explicit push.
+## Where it installs
+
+Every route below reaches the same server and the same 16 tools, and every one of them
+keeps edits local until an explicit push. Pick the row for your client.
+
+| Client | How to install it |
+| --- | --- |
+| Claude Desktop | Download the bundle and double-click it. [One click](#install-into-claude-desktop-with-one-click) |
+| Claude Code | Add this repository as a plugin marketplace. [Two commands](#install-as-a-claude-code-or-codex-plugin) |
+| Codex CLI, desktop, and IDE extension | The same, with the Codex commands. [Two commands](#install-as-a-claude-code-or-codex-plugin) |
+| Cursor | `npx --yes mcp-server-overleaf setup`. [One command](#install-with-one-command) |
+| Visual Studio Code | A `.vscode/mcp.json` entry. [Guide](docs/connect-local-mcp-clients.md#6-visual-studio-code) |
+| ChatGPT on the web and desktop | An outbound-only Secure MCP Tunnel, no public endpoint and no open port. [Guide](docs/connect-chatgpt-with-secure-mcp-tunnel.md) |
+| A catalogue that reads the MCP registry | Already listed as `io.github.yangzichao/mcp-server-overleaf`. [Details](#find-it-in-the-mcp-registry) |
+| Any other MCP client | `npx --yes mcp-server-overleaf --stdio`, or Streamable HTTP. [By hand](#install-from-npm-by-hand) |
+| A machine you are developing on | A source checkout. [From source](#install-from-a-source-checkout) |
+
+Claude Desktop takes a packaged bundle; Claude Code and Codex each take a plugin.
+Everywhere else `setup` does the equivalent. All four routes end the same way: the token is
+verified against Overleaf, written to one file at mode 600, and no client configuration
+holds the secret.
 
 ## Guides
 
@@ -26,9 +45,9 @@ developing the server. Both expose the same tools and keep edits local until an 
   provenance, first publication, and subsequent trusted publishing.
 - [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md) covers the
   one-click `.mcpb` extension: what is inside it, how to build it, and how to remove it.
-- [Install the Codex plugin](docs/install-codex-plugin.md) covers the Codex marketplace
-  entry: what the plugin contains, how it gets a token without holding one, and how to
-  update, remove, or build it.
+- [Install the Claude Code and Codex plugins](docs/install-plugins.md) covers the two
+  marketplace entries: what the plugin contains, how it gets a token without holding one,
+  and how to update, remove, or build it.
 - [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
   desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
   verification, and troubleshooting.
@@ -68,22 +87,37 @@ nothing else. It is macOS and Windows only, because that is where Claude Desktop
 any other client, use the command below. Details in
 [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md).
 
-## Install into Codex as a plugin
+## Install as a Claude Code or Codex plugin
+
+Store the token once:
 
 ```bash
 npx --yes mcp-server-overleaf@0.3.1 setup --clients none
+```
+
+Then, in Claude Code:
+
+```bash
+claude plugin marketplace add yangzichao/mcp-server-overleaf
+claude plugin install overleaf@mcp-server-overleaf
+```
+
+Or in Codex:
+
+```bash
 codex plugin marketplace add yangzichao/mcp-server-overleaf
 codex plugin add overleaf@mcp-server-overleaf
 ```
 
-Restart Codex, then ask it to list the files in your project. `codex plugin list` shows the
-plugin, and `codex mcp list` shows the server it brought with it.
+Restart the client, then ask it to list the files in your project.
 
-Codex has no central plugin directory. A marketplace is just a Git repository, so this one
-is its own: `.agents/plugins/marketplace.json` lists one plugin and that plugin carries this
-server. The plugin holds no token and sets no environment variable, because the first
-command writes the token to `~/.config/overleaf-mcp/projects.json` and the server finds it
-there. Details in [Install the Codex plugin](docs/install-codex-plugin.md).
+Neither client has a central plugin directory. In both, a marketplace is just a Git
+repository, so this one is its own: Claude Code reads `.claude-plugin/marketplace.json` out
+of it and Codex reads `.agents/plugins/marketplace.json`, and both point at the same
+`plugins/overleaf` directory. That plugin holds no token and sets no environment variable,
+because the first command writes the token to `~/.config/overleaf-mcp/projects.json` and the
+server finds it there. Details in
+[Install the Claude Code and Codex plugins](docs/install-plugins.md).
 
 ## Install with one command
 
@@ -133,14 +167,15 @@ Desktop bundle, and clients and catalogues that read the registry pick it up fro
 release workflow publishes the listing itself, so it can never point at a version npm does
 not have.
 
-Codex does not read that registry. It has its own plugin marketplaces, which is the section
-above, or the server can be added by hand:
+Claude Code and Codex do not read that registry. They have their own plugin marketplaces,
+which is the section above, or the server can be added by hand:
 
 ```bash
+claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.3.1 --stdio
 codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.3.1 --stdio
 ```
 
-That form needs `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECT_ID` in the environment, which is
+Both forms need `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECT_ID` in the environment, which is
 why `setup` writes a `projects.json` instead and registers an absolute path.
 
 ## Install from npm by hand

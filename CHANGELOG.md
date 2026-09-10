@@ -2,12 +2,16 @@
 
 ## Unreleased
 
-- Ship this repository as a Codex plugin marketplace. `codex plugin marketplace add
-  yangzichao/mcp-server-overleaf` followed by `codex plugin add overleaf@mcp-server-overleaf`
-  installs the server without a hand-written `config.toml` entry. The plugin declares no
-  environment variables, so the public marketplace cannot carry a credential; the server
-  reads the `projects.json` that `setup` writes. `npm run codex:build` regenerates the
-  plugin from `package.json`, and the check suite fails if the committed files drift.
+- Ship this repository as a plugin marketplace for both Claude Code and Codex. Adding it
+  with `claude plugin marketplace add yangzichao/mcp-server-overleaf` or the matching
+  `codex` command, then installing `overleaf@mcp-server-overleaf`, replaces a hand-written
+  client configuration entry. One `plugins/overleaf` directory serves both clients, so they
+  cannot drift apart. The plugin declares no environment variables, so a public marketplace
+  cannot carry a credential; the server reads the `projects.json` that `setup` writes.
+  `npm run plugins:build` regenerates both manifests and both marketplaces from
+  `package.json`, and the check suite fails if the committed files drift.
+- Lead the README with a table of every client and the route that installs it, and fix a
+  stale link from the ChatGPT tunnel guide into the README.
 
 ## 0.3.1
 

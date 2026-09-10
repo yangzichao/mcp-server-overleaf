@@ -1,0 +1,20 @@
+{
+  "name": "overleaf",
+  "description": "Read and safely edit Overleaf projects over the Overleaf Git bridge. Edits stay in a local clone until you approve a push, and a co-author's conflicting change stops the push rather than being overwritten.",
+  "version": "0.3.1",
+  "author": {
+    "name": "Zichao Yang",
+    "url": "https://github.com/yangzichao"
+  },
+  "homepage": "https://github.com/yangzichao/mcp-server-overleaf#readme",
+  "repository": "https://github.com/yangzichao/mcp-server-overleaf",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "overleaf",
+    "latex",
+    "git",
+    "ai"
+  ]
+}
