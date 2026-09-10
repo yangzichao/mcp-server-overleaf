@@ -4,6 +4,7 @@ import { loadEnvironmentFileIfPresent } from "./config/loadEnvironmentFile.js";
 import { PACKAGE_VERSION } from "./config/packageMetadata.js";
 import { ConfigurationError, loadServerConfigurationFromEnvironment } from "./config/serverConfiguration.js";
 import { createToolContext } from "./server/createOverleafMcpServer.js";
+import { SetupError } from "./setup/setupError.js";
 import { serveOverStdio } from "./transport/serveOverStdio.js";
 import { serveOverStreamableHttp } from "./transport/serveOverStreamableHttp.js";
 
@@ -16,6 +17,7 @@ interface CommandLineOptions {
 
 const USAGE = `mcp-server-overleaf - read and safely edit Overleaf projects over the Overleaf git bridge
 
+  mcp-server-overleaf setup                   connect this computer's AI clients to Overleaf
   mcp-server-overleaf --stdio                 serve on stdio (ChatGPT desktop, Codex, Claude Desktop, Cursor)
   mcp-server-overleaf --http [--port 3017]    serve Streamable HTTP (remote MCP clients)
   mcp-server-overleaf --version             print the installed package version
@@ -83,7 +85,15 @@ function parseCommandLine(argv: readonly string[]): CommandLineOptions {
 }
 
 async function main(): Promise<void> {
-  const options = parseCommandLine(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  // Loaded only when asked for, so starting the server stays a straight line to the transport.
+  if (argv[0] === "setup") {
+    const { runSetupCommand } = await import("./setup/runSetupCommand.js");
+    await runSetupCommand(argv.slice(1));
+    return;
+  }
+
+  const options = parseCommandLine(argv);
 
   // Resolve explicit configuration independently of the client's working directory.
   loadEnvironmentFileIfPresent();
@@ -107,6 +117,11 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
+  if (error instanceof SetupError) {
+    process.stderr.write(`setup: ${error.message}\n`);
+    if (error.remedy) process.stderr.write(`${error.remedy}\n`);
+    process.exit(1);
+  }
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(
     `${error instanceof ConfigurationError ? "configuration error" : "fatal"}: ${message}\n`,

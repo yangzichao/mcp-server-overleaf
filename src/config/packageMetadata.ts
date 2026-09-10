@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 const metadata = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
   name: string;
   version: string;
+  engines?: { node?: string };
 };
 
 export const PACKAGE_NAME = metadata.name;
 export const PACKAGE_VERSION = metadata.version;
+export const PACKAGE_SUPPORTED_NODE_RANGE = metadata.engines?.node ?? ">=22.14.0";
