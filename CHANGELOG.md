@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
+- Publish a runtime-only shrinkwrap. npm builds a dependency's tree from the lock inside the
+  tarball, so the development entries in the shipped one made `npm install mcp-server-overleaf`
+  fetch the compiler, the linter and the test runner as well: 208 packages and 1.4 GB where 7
+  packages and 19 MB are needed. A first `npx` run took long enough to exceed an MCP client's
+  startup timeout. The package check now fails if the shipped shrinkwrap still describes
+  development dependencies.
+- Move the locked `zod` to 4.6.1, within the declared range. The release check installs the
+  newest resolution of the declared ranges, so the lock has to keep up with it.
 - Stop inheriting the user's global Git settings that break a commit. A `commit.gpgsign`
   or `core.hooksPath` in `~/.gitconfig` made `push_changes` fail to sign or be refused by
   someone else's hook; `http.proxy` and `url.*.insteadOf` are still inherited on purpose.

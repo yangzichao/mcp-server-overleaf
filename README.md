@@ -48,12 +48,12 @@ whether their specific plan qualifies. Verify it directly in step 3 instead.
 
 ## Install from npm
 
-The commands below select version `0.1.1` explicitly so a client restart does not silently
+The commands below select version `0.1.2` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.1.1 --version
+npx --yes mcp-server-overleaf@0.1.2 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -78,7 +78,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.1.1", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.1.2", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
@@ -372,7 +372,7 @@ including focused runs and coverage, so the subprocess tests cannot use an old `
 | `npm run lint` | Biome lint and format check |
 | `npm run format` | Biome, applying fixes |
 | `npm test` | Build, then Vitest, whole suite |
-| `npm run package:check` | Build twice, compare tarballs, install without lifecycle scripts, and test the installed server |
+| `npm run package:check` | Build twice, compare tarballs, install as a user would, and test the installed server |
 | `npm run check:release` | Source checks, package checks, and dependency audit |
 | `npm run test:coverage` | Build, then Vitest with v8 coverage |
 
@@ -389,8 +389,12 @@ The default, `auto`, runs those tests when both executables are available. GitHu
 runs core checks on Linux and macOS with Node 22.14, 24, and 26, plus a Linux job that installs
 TeX and requires the compilation tests to run.
 
-`npm-shrinkwrap.json` is the canonical dependency lock and is shipped to npm so CLI users
-receive the tested dependency versions. Update it with npm and commit it with `package.json`.
+`npm-shrinkwrap.json` is the canonical dependency lock. Update it with npm and commit it with
+`package.json`. The copy inside the published package is the runtime half of that file:
+`prepack` removes the development entries and `postpack` restores the full lock, because npm
+builds a dependency's tree from the shipped lock and would otherwise install the compiler,
+the linter and the test runner on every user's machine. The package check fails if the
+shrinkwrap inside the tarball still describes development dependencies.
 Release package tests reuse the integration suites against an installed tarball from an
 unrelated working directory, covering stdio, HTTP, edits, conflicts, and recovery.
 

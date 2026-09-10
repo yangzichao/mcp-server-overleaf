@@ -1,11 +1,21 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyPackageContents } from "./packageContents.mjs";
 import { createRuntimeSbom } from "./runtimeSbom.mjs";
+import { restoreDevelopmentShrinkwrap } from "./shrinkwrap/developmentShrinkwrapSwap.mjs";
+import { countDevelopmentEntries } from "./shrinkwrap/pruneDevelopmentEntries.mjs";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "overleaf-package-check-"));
@@ -35,14 +45,31 @@ try {
     `Verified ${firstPack.entryCount} allowlisted files and reproducible package bytes.\n`,
   );
 
-  npm(
-    ["install", "--ignore-scripts", "--omit=dev", "--no-fund", "--no-audit", archivePath],
-    consumerDirectory,
-  );
+  // No --omit=dev, because a user does not pass it. npm resolves a local archive's
+  // dependencies itself instead of from the archive's shrinkwrap, so this tree is the newest
+  // resolution of the declared ranges and proves the server runs on it. What a registry
+  // install actually builds is decided by the shipped shrinkwrap, checked next.
+  npm(["install", "--ignore-scripts", "--no-fund", "--no-audit", archivePath], consumerDirectory);
   const installedRoot = join(consumerDirectory, "node_modules", packageMetadata.name);
   const installedMetadata = JSON.parse(readFileSync(join(installedRoot, "package.json"), "utf8"));
   assert.equal(installedMetadata.version, packageMetadata.version);
   assert.ok(!installedMetadata.private);
+  // The guard that matters. npm builds a registry dependency's subtree from this file, and
+  // a development entry in it puts the compiler, the linter and the test runner on every
+  // user's machine: 1.4 GB and a first npx run slow enough to time out an MCP client.
+  assert.equal(
+    countDevelopmentEntries(JSON.parse(readFileSync(join(installedRoot, "npm-shrinkwrap.json"), "utf8"))),
+    0,
+    "The published shrinkwrap still describes development dependencies",
+  );
+  for (const developmentDependency of Object.keys(packageMetadata.devDependencies)) {
+    for (const treeRoot of [installedRoot, consumerDirectory]) {
+      assert.ok(
+        !existsSync(join(treeRoot, "node_modules", developmentDependency)),
+        `A default install pulled in the development dependency ${developmentDependency}`,
+      );
+    }
+  }
   const version = npm(
     ["exec", "--offline", "--", packageMetadata.name, "--version"],
     consumerDirectory,
@@ -87,4 +114,6 @@ try {
   );
 } finally {
   rmSync(temporaryDirectory, { recursive: true, force: true });
+  // npm skips postpack when a pack fails, so close that window here as well.
+  restoreDevelopmentShrinkwrap();
 }

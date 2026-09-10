@@ -7,12 +7,18 @@ audit, Windows support, or availability of the real Overleaf service.
 
 ## What is enforced in the repository
 
-- `prepack` clears `dist` and compiles from source. The package contains compiled JavaScript,
-  a dependency shrinkwrap, documentation, and the license; source, tests, CI, and local
+- `prepack` clears `dist`, compiles from source, and swaps in a runtime-only shrinkwrap that
+  `postpack` swaps back. npm builds a dependency's tree from the lock inside the tarball, so a
+  shipped development lock is a shipped toolchain. The package contains compiled JavaScript,
+  that shrinkwrap, documentation, and the license; source, tests, CI, and local
   configuration are excluded by an allowlist checked against the actual archive.
 - `npm run package:check` builds twice and compares the archives byte for byte. It installs
-  the tarball into a temporary directory with spaces, disables install scripts, checks the
-  npm command, and runs every integration suite against the installed entry point.
+  the tarball into a temporary directory with spaces, without `--omit=dev`, and fails if the
+  shrinkwrap inside that tarball still describes development dependencies. It disables
+  install scripts, checks the npm command, and runs every integration suite against the
+  installed entry point. npm resolves a local archive's dependencies itself rather than from
+  the archive's shrinkwrap, so the tested tree is the newest resolution of the declared
+  ranges; only a registry install is governed by the shipped lock.
 - Installed-package tests cover both MCP transports, edits, collaborator conflicts,
   rejected pushes, restarts, concurrent clients, external and per-project configuration,
   revision reads and guarded edits, sparse checkout, and compilation after expansion.
@@ -45,6 +51,9 @@ actionlint
 `sbom.cdx.json`. This directory is ignored by Git and rebuilt from nothing on every check,
 so it holds one version at a time and a stale archive cannot be published or uploaded.
 `npm-shrinkwrap.json` is the canonical lockfile; do not add a parallel `package-lock.json`.
+If a pack fails, `npm-shrinkwrap.development.json` is left in the working tree and the next
+pack or package check puts it back; commit `npm-shrinkwrap.json` only with its development
+entries present.
 Dependency upgrades must pass both the source and package checks.
 
 Before tagging, update `package.json`, its shrinkwrap, `CHANGELOG.md`, and the pinned

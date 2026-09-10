@@ -21,6 +21,11 @@ bower_components/
 # ---------------------------------------------------------------------------
 dist/
 release-artifacts/
+
+# `prepack` moves the development lock here while the runtime-only copy is packed, and
+# `postpack` moves it back. It exists only inside that window and must never be committed.
+npm-shrinkwrap.development.json
+
 *.tgz
 build/
 out/
