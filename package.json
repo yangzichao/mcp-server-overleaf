@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-overleaf",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
   "license": "MIT",
   "author": "Zichao Yang",
@@ -49,6 +49,7 @@
     "test:coverage": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm run test",
     "package:check": "node scripts/release/verifyPackage.mjs",
+    "mcpb:build": "node scripts/mcpb/buildMcpbBundle.mjs",
     "check:release": "npm run check && npm run package:check && npm audit --audit-level=low",
     "start:stdio": "node dist/index.js --stdio",
     "start:http": "node dist/index.js --http"
@@ -56,7 +57,11 @@
   "engines": {
     "node": ">=22.14.0"
   },
+  "overrides": {
+    "tmp": "^0.2.7"
+  },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "2.1.2",
     "@biomejs/biome": "^2.5.12",
     "@types/node": "^26.4.1",
     "@vitest/coverage-v8": "^5.0.0",

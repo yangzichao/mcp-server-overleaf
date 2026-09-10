@@ -1,5 +1,16 @@
 const OVERLEAF_PROJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
+const OVERLEAF_PROJECT_URL_PATTERN = /\/project\/([0-9a-f]{24})/i;
 
 export function looksLikeOverleafProjectId(candidate: string): boolean {
   return OVERLEAF_PROJECT_ID_PATTERN.test(candidate.trim());
+}
+
+/**
+ * The address bar URL is the thing a user already has; the id is the part they would have
+ * to know how to cut out of it. Accept either and return the id, or null for neither.
+ */
+export function extractOverleafProjectId(candidate: string): string | null {
+  const trimmed = candidate.trim();
+  if (OVERLEAF_PROJECT_ID_PATTERN.test(trimmed)) return trimmed.toLowerCase();
+  return OVERLEAF_PROJECT_URL_PATTERN.exec(trimmed)?.[1]?.toLowerCase() ?? null;
 }

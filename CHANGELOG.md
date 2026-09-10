@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+- Package the server as a Claude Desktop bundle: `npm run mcpb:build` produces a `.mcpb`
+  archive holding the published npm tarball, its runtime dependencies, a generated
+  icon, and a manifest whose tool list is read back from the staged server over stdio. The
+  release workflow attaches it to the GitHub release, so Claude Desktop users install by
+  double-clicking one file.
+- Accept an Overleaf project URL wherever `OVERLEAF_PROJECT_ID` is read, not only a bare
+  24-character id. The desktop install panel can now ask for the address bar.
+- Mark `replace_text` and `push_changes` with `destructiveHint: true`. Both change the user's
+  paper, and the Connectors Directory requires the applicable hint on every tool.
+- Add a privacy policy covering what the server stores, where it sends it, and what it never
+  collects.
+
 ## 0.2.0
 
 - Add `mcp-server-overleaf setup`. One command checks Node and git, takes the project
