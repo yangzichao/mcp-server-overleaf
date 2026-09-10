@@ -68,8 +68,11 @@ distribution; every other tool works without them.
 The release test matrix covers macOS and Linux. Windows Git and TeX workflows are not yet
 validated. This server is a command-line application, not an importable JavaScript library.
 
-The user needs an Overleaf account whose plan includes Git integration. Do not assert
-whether their specific plan qualifies. Verify it directly in step 3 instead.
+Git integration has to be available for the project. Overleaf documents it as a premium
+feature gated on the **project owner's** subscription, so a free account invited to a
+project owned by someone with a subscription can still use it, and that subscription can be
+individual, group, or institutional. Do not tell a user their own plan disqualifies them.
+Verify it directly in step 3 instead.
 
 ## Install into Claude Desktop with one click
 
@@ -364,9 +367,11 @@ and the client connection. If it fails, the error text says which.
 
 ## The tools
 
-Every tool takes an optional `project`, either a name from `OVERLEAF_PROJECTS` or a raw
-24-character project id. Omit it to use the default. An unregistered id requires a default
-Git token; registered ids use their configured project credentials.
+Every tool takes an optional `project`: a project's Overleaf address, its raw 24-character
+id, or a name from `OVERLEAF_PROJECTS`. Omit it to use the default. The address is accepted
+because it is the form you already have, so a paper that was never configured can be reached
+by pasting it. An unregistered project requires a default Git token; registered ones use
+their configured project credentials.
 
 | Tool | What it does |
 | --- | --- |

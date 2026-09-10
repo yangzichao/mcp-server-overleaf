@@ -3,16 +3,10 @@ import * as z from "zod/v4";
 import { extractSectionText, findSectionByTitle, parseLatexSections } from "../latex/parseLatexSections.js";
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { ANY_OTHER_PROJECT, projectArgument } from "./projectArgument.js";
 import { registerProjectInventoryTools } from "./reading/projectInventoryTools.js";
 import { registerReadFileTool } from "./reading/readFileTool.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
-
-const projectArgument = z
-  .string()
-  .optional()
-  .describe(
-    "Registered project name, or a 24-character Overleaf project id. Omit to use the default project.",
-  );
 
 export function registerReadTools(server: McpServer, context: ToolContext): void {
   server.registerTool(
@@ -28,21 +22,18 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
       runToolSafely(context, () => {
         const names = context.projectRegistry.listRegisteredProjectNames();
         if (names.length === 0) {
-          return textResult(
-            "No projects are registered. Set OVERLEAF_PROJECTS (for example `paper=64a1b2c3d4e5f6a7b8c9d0e1`), " +
-              "or pass a 24-character Overleaf project id directly as the `project` argument.",
-          );
+          return textResult(`No projects are registered.\n${ANY_OTHER_PROJECT}`);
         }
         const defaultName = context.configuration.defaultProjectName;
         return textResult(
-          names
+          `${names
             .map((name) => {
               const displayName = context.configuration.registeredProjects.find(
                 (project) => project.projectName === name,
               )?.displayName;
               return `- ${name}${name === defaultName ? "  (default)" : ""}${displayName ? ` — ${displayName}` : ""}`;
             })
-            .join("\n"),
+            .join("\n")}\n\n${ANY_OTHER_PROJECT}`,
         );
       }),
   );

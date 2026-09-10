@@ -67,6 +67,26 @@ export class FakeOverleafRemote {
     await execFileAsync("git", ["push", "origin", "main"], { cwd: this.collaboratorDirectory });
   }
 
+  /**
+   * A second paper in the same account, reachable at the same base url.
+   *
+   * Needed to test what someone does after installing: the client is configured with one
+   * project, and the other papers are addressed as they come up.
+   */
+  async addSiblingProject(projectId: string, relativePath: string, content: string): Promise<string> {
+    const bareDirectory = join(this.gitBaseUrl, projectId);
+    const authorDirectory = join(this.rootDirectory, `author-${projectId}`);
+    await mkdir(bareDirectory, { recursive: true });
+    await execFileAsync("git", ["init", "--bare", "--initial-branch=main", bareDirectory]);
+    await execFileAsync("git", ["clone", bareDirectory, authorDirectory]);
+    await this.configureIdentity(authorDirectory, "A Collaborator", "collaborator@example.com");
+    await writeFile(join(authorDirectory, relativePath), content, "utf8");
+    await execFileAsync("git", ["add", "--all"], { cwd: authorDirectory });
+    await execFileAsync("git", ["commit", "-m", "Initial draft"], { cwd: authorDirectory });
+    await execFileAsync("git", ["push", "origin", "main"], { cwd: authorDirectory });
+    return projectId;
+  }
+
   /** The content of a file as it currently stands "on Overleaf". */
   async readPublishedFile(relativePath: string): Promise<string> {
     const { stdout } = await execFileAsync("git", ["show", `main:${relativePath}`], {

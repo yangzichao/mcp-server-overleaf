@@ -19,7 +19,7 @@ function explainFailure(diagnostics: string): SetupError {
   if (/authentication failed|403|401|invalid username or password/i.test(diagnostics)) {
     return new SetupError(
       "Overleaf refused the token.",
-      "Either the token is wrong, or this account's plan does not include Git integration. Generate a new token at https://www.overleaf.com/user/settings under Git integration, and confirm the plan includes Git.",
+      "Either the token is wrong, or Git integration is not available for this project. Generate a new token at https://www.overleaf.com/user/settings under Git integration. Overleaf gates Git on the project owner's subscription rather than yours, so check who owns the project if you are a collaborator on it.",
     );
   }
   if (/repository not found|does not appear to be a git repository|not found|404/i.test(diagnostics)) {

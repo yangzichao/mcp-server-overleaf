@@ -41,6 +41,24 @@ describe("resolving which project a call means", () => {
     expect(repository.repositoryDirectory).toContain(remote.projectId);
   });
 
+  it("accepts the address bar URL of a project that was never registered", async () => {
+    const registry = registryWith({ OVERLEAF_PROJECTS: `paper=${thesisId}` });
+    const repository = await registry.openRepository(`https://www.overleaf.com/project/${remote.projectId}`);
+    expect(repository.repositoryDirectory).toContain(remote.projectId);
+  });
+
+  it("resolves a URL for an already registered project to that registration", async () => {
+    const registry = registryWith({ OVERLEAF_PROJECTS: `paper=${remote.projectId}` });
+    const repository = await registry.openRepository(
+      `https://www.overleaf.com/project/${remote.projectId.toUpperCase()}`,
+    );
+    expect(repository.repositoryDirectory).toContain(remote.projectId);
+  });
+
+  it("tells an unknown name that an Overleaf address is also accepted", async () => {
+    await expect(registryWith().openRepository("nope")).rejects.toThrow(/by its Overleaf address/);
+  });
+
   it("rejects an unregistered name and says what is configured", async () => {
     await expect(registryWith().openRepository("nope")).rejects.toThrow(/Configured projects: paper/);
   });

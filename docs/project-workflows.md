@@ -22,7 +22,7 @@ It accepts the project shape used by both Git-based peers:
 }
 ```
 
-`name` is a display label; the object key is the tool's `project` argument. A token file
+`name` is a display label; the object key is the tool's `project` argument. A project that is not listed here can still be reached by giving its Overleaf address or its 24-character id as `project`, as long as a default token is configured. A token file
 contains only the token, optionally followed by a newline. All token file paths must be
 absolute. Keep the JSON and token files private, for example with `chmod 600` on macOS/Linux.
 Do not paste credentials into a chat or commit them to Git.
