@@ -3,6 +3,7 @@ import * as z from "zod/v4";
 import { findSectionByTitle, parseLatexSections, replaceSectionText } from "../latex/parseLatexSections.js";
 import { replaceTextOccurrences } from "../latex/replaceTextOccurrences.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { projectArgument } from "./projectArgument.js";
 import { requireFileRevision } from "./reading/fileRevisions.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
@@ -12,13 +13,6 @@ const expectedRevisionArgument = z
   .optional()
   .describe(
     "Require the SHA-256 revision from read_file mode=full/smart before writing; refuses stale edits after synchronization.",
-  );
-
-const projectArgument = z
-  .string()
-  .optional()
-  .describe(
-    "Registered project name, or a 24-character Overleaf project id. Omit to use the default project.",
   );
 
 const EDITS_ARE_LOCAL_UNTIL_PUSHED =

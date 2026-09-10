@@ -1,10 +1,7 @@
 import { join } from "node:path";
 
-import {
-  looksLikeOverleafProjectId,
-  type RegisteredOverleafProject,
-  type ServerConfiguration,
-} from "../config/serverConfiguration.js";
+import { extractOverleafProjectId } from "../config/projects/projectIdentity.js";
+import type { RegisteredOverleafProject, ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafGitRepository } from "./overleafGitRepository.js";
 import { withProjectDirectoryLock } from "./projectDirectoryLock.js";
 
@@ -46,26 +43,38 @@ export class OverleafProjectRegistry {
       return this.resolveProjectId(this.configuration.defaultProjectName);
     }
 
-    const registered = this.configuration.registeredProjects.find(
-      (project) => project.projectName === requested || project.overleafProjectId === requested.toLowerCase(),
+    const registeredByName = this.configuration.registeredProjects.find(
+      (project) => project.projectName === requested,
     );
-    if (registered) return registered;
+    if (registeredByName) return registeredByName;
 
-    if (looksLikeOverleafProjectId(requested) && this.configuration.overleafGitToken) {
-      return { projectName: requested, overleafProjectId: requested.toLowerCase() };
+    /**
+     * Someone naming a second paper has what their address bar holds, not a bare id.
+     * `setup` and OVERLEAF_PROJECT_ID both take the address, so this path takes it too:
+     * a client whose whole configuration is one project would otherwise be able to reach
+     * the rest of the account only through a form of the id nobody has to hand.
+     */
+    const overleafProjectId = extractOverleafProjectId(requested);
+    if (!overleafProjectId) {
+      const knownNames = this.listRegisteredProjectNames();
+      throw new UnknownProjectError(
+        `Unknown project "${requested}". Configured projects: ${
+          knownNames.length > 0 ? knownNames.join(", ") : "(none)"
+        }. You can also name any other project by its Overleaf address, or its 24-character id.`,
+      );
     }
-    if (looksLikeOverleafProjectId(requested)) {
+
+    const registeredById = this.configuration.registeredProjects.find(
+      (project) => project.overleafProjectId === overleafProjectId,
+    );
+    if (registeredById) return registeredById;
+
+    if (!this.configuration.overleafGitToken) {
       throw new UnknownProjectError(
         "This project id is not registered and no default Git credential is configured. Add its credentials to OVERLEAF_PROJECTS_CONFIG.",
       );
     }
-
-    const knownNames = this.listRegisteredProjectNames();
-    throw new UnknownProjectError(
-      `Unknown project "${requested}". Configured projects: ${
-        knownNames.length > 0 ? knownNames.join(", ") : "(none)"
-      }. You can also pass a 24-character Overleaf project id directly.`,
-    );
+    return { projectName: overleafProjectId, overleafProjectId };
   }
 
   /**

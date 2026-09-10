@@ -5,6 +5,7 @@ import { containsDocumentEnvironment, guessMainTexFile } from "../latex/latexPro
 import { compileLatexProject } from "../workflow/compileLatexProject.js";
 import { publishToOverleaf } from "../workflow/publishToOverleaf.js";
 import { synchronizeWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { projectArgument } from "./projectArgument.js";
 import {
   buildDirectoryForProject,
   runToolSafely,
@@ -12,13 +13,6 @@ import {
   textResult,
   truncateForModel,
 } from "./toolContext.js";
-
-const projectArgument = z
-  .string()
-  .optional()
-  .describe(
-    "Registered project name, or a 24-character Overleaf project id. Omit to use the default project.",
-  );
 
 export function registerSyncTools(server: McpServer, context: ToolContext): void {
   server.registerTool(

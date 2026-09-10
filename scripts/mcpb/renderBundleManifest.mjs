@@ -70,7 +70,7 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         type: "string",
         title: "Overleaf Git token",
         description:
-          "Create one at https://www.overleaf.com/user/settings under Git integration. Overleaf issues these only on plans that include Git, and they expire after one year.",
+          "Create one at https://www.overleaf.com/user/settings under Git integration. Any account can generate one, and it expires after a year. Whether Git works for a given paper depends on the subscription of whoever owns it.",
         required: true,
         sensitive: true,
       },

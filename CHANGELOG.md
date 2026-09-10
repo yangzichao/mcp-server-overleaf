@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Accept a project's Overleaf address wherever a tool takes `project`, not just its raw
+  24-character id. Someone reaching for a second paper has what the address bar holds, and
+  the id-only form meant a client configured with one project could reach the rest of the
+  account only through a string nobody has to hand. `setup` and `OVERLEAF_PROJECT_ID`
+  already took an address; the tools now agree with them.
+- Have `list_projects` say that any other project can be named by its address, so the
+  configured list stops reading as the only choice. Its empty state no longer leads with
+  `OVERLEAF_PROJECTS`, an environment variable a bundle or plugin user never sets.
+
 - Ship this repository as a plugin marketplace for both Claude Code and Codex. Adding it
   with `claude plugin marketplace add yangzichao/mcp-server-overleaf` or the matching
   `codex` command, then installing `overleaf@mcp-server-overleaf`, replaces a hand-written
