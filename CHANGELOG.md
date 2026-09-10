@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
 - Accept a project's Overleaf address wherever a tool takes `project`, not just its raw
   24-character id. Someone reaching for a second paper has what the address bar holds, and
@@ -10,7 +10,10 @@
 - Have `list_projects` say that any other project can be named by its address, so the
   configured list stops reading as the only choice. Its empty state no longer leads with
   `OVERLEAF_PROJECTS`, an environment variable a bundle or plugin user never sets.
-
+- Correct what this project says about Overleaf plans. Overleaf documents Git integration
+  as gated on the project owner's subscription rather than the caller's, and documents no
+  plan restriction on generating a token. The README, the `setup` failure message, and the
+  Claude Desktop install panel each claimed the user's own plan had to include Git.
 - Ship this repository as a plugin marketplace for both Claude Code and Codex. Adding it
   with `claude plugin marketplace add yangzichao/mcp-server-overleaf` or the matching
   `codex` command, then installing `overleaf@mcp-server-overleaf`, replaces a hand-written
@@ -21,6 +24,7 @@
   `package.json`, and the check suite fails if the committed files drift.
 - Lead the README with a table of every client and the route that installs it, and fix a
   stale link from the ChatGPT tunnel guide into the README.
+- Refresh the shrinkwrap for zod 4.6.2.
 
 ## 0.3.1
 

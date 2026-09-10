@@ -1,13 +1,13 @@
 # Connect Local MCP Clients to Overleaf
 
-Most of this is done for you by `npx --yes mcp-server-overleaf@0.3.1 setup`, which verifies
+Most of this is done for you by `npx --yes mcp-server-overleaf@0.3.2 setup`, which verifies
 the token, writes the per-user configuration, and registers the server with Codex, Claude
 Code, Claude Desktop and Cursor. Read on when you want to do it by hand, when your client is
 not one of those, or when a registration needs checking.
 
 For the manual npm/npx installation, start with
 [Install from npm by hand](../README.md#install-from-npm-by-hand).
-Use `npx --yes mcp-server-overleaf@0.3.1 --stdio` and set `OVERLEAF_MCP_ENV_FILE` to an
+Use `npx --yes mcp-server-overleaf@0.3.2 --stdio` and set `OVERLEAF_MCP_ENV_FILE` to an
 absolute external configuration path. The commands below document the source checkout
 installation; its absolute `node dist/index.js` entry point remains supported.
 
