@@ -13,8 +13,8 @@ picking a winner. Losing someone else's work is the one outcome it is built to p
 
 Independent community project; not affiliated with or endorsed by Overleaf.
 
-Choose the npm installation below, or the source checkout instructions if you are developing
-the server. Both expose the same tools and keep edits local until an explicit push.
+Run the one-command installation below, or the source checkout instructions if you are
+developing the server. Both expose the same tools and keep edits local until an explicit push.
 
 ## Guides
 
@@ -35,7 +35,8 @@ the server. Both expose the same tools and keep edits local until an explicit pu
 ## What you are installing
 
 An MCP server exposing 16 tools over stdio or Streamable HTTP. One core, two transports;
-the tool implementations are identical and only the framing differs.
+the tool implementations are identical and only the framing differs. `setup` connects it
+to the AI clients on this computer and is the only command most people need.
 
 Requires Node 22.14+ and git on PATH; Node 24 LTS is recommended. `compile_project` additionally needs `latexmk` and a TeX
 distribution; every other tool works without them.
@@ -46,14 +47,55 @@ validated. This server is a command-line application, not an importable JavaScri
 The user needs an Overleaf account whose plan includes Git integration. Do not assert
 whether their specific plan qualifies. Verify it directly in step 3 instead.
 
-## Install from npm
+## Install with one command
 
-The commands below select version `0.1.2` explicitly so a client restart does not silently
+```bash
+npx --yes mcp-server-overleaf@0.2.0 setup
+```
+
+It checks Node and git, asks for the project and a token, proves the token reaches Overleaf
+before writing anything, and registers the server with the clients it finds on this
+computer: Claude Code, Codex, Claude Desktop and Cursor. A failed run leaves no
+half-configuration behind, because nothing is written until Overleaf accepts the token.
+
+Two things are needed, both from the browser:
+
+- **The project address.** Open the project in Overleaf and copy the whole URL from the
+  address bar. A read-only share link is a different thing, and setup says so rather than
+  failing later.
+- **A git authentication token**, generated at <https://www.overleaf.com/user/settings>
+  under Git integration. It is not echoed as you type.
+
+The token is written to `~/.config/overleaf-mcp/projects.json` at mode 600 and nowhere
+else. The server finds that file on its own, so no client configuration holds the secret,
+a path to it, or any environment variable. Clients are registered with an absolute Node
+path and an absolute entry point rather than `npx`, because a desktop application starts
+with a much smaller PATH than a terminal.
+
+Restart Claude Desktop, Cursor, or Codex afterwards; Claude Code picks it up on the next
+run. Then ask the assistant to list the files in the project.
+
+Setup can also run unattended:
+
+```bash
+printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.2.0 setup \
+  --project paper=https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1 \
+  --token-stdin --yes
+```
+
+`--clients claude-code,codex` limits which clients are touched, and `--clients none`
+writes the configuration without registering anything. Run it again to add another
+project or to replace an expired token; the previous file is kept alongside it.
+
+## Install from npm by hand
+
+Use this when you want to see every step, or to configure a client setup does not cover.
+The commands below select version `0.2.0` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.1.2 --version
+npx --yes mcp-server-overleaf@0.2.0 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -78,7 +120,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.1.2", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.2.0", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }

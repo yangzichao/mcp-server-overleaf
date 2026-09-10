@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+- Add `mcp-server-overleaf setup`. One command checks Node and git, takes the project
+  address and a git token, proves the token reaches Overleaf, and registers the server with
+  the clients installed on the computer: Claude Code, Codex, Claude Desktop and Cursor.
+  Nothing is written until Overleaf accepts the token, so a failed run leaves nothing behind.
+- Keep the Overleaf token in one file. Setup writes the per-user `projects.json` the server
+  already discovers, at mode 600, so no client configuration holds the secret or a path to it.
+- Register clients with absolute paths rather than `npx`. A desktop application starts with
+  a much smaller PATH than a terminal and often cannot find `npx`; resolving a package on
+  every launch also competes with the client's own startup timeout. Run from an npx cache,
+  which npx may prune, setup installs a pinned copy under `~/.overleaf-mcp` first.
+
 ## 0.1.2
 
 - Publish a runtime-only shrinkwrap. npm builds a dependency's tree from the lock inside the
