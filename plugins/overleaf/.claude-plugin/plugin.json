@@ -1,7 +1,7 @@
 {
   "name": "overleaf",
   "description": "Read and safely edit Overleaf projects over the Overleaf Git bridge. Edits stay in a local clone until you approve a push, and a co-author's conflicting change stops the push rather than being overwritten.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": {
     "name": "Zichao Yang",
     "url": "https://github.com/yangzichao"
