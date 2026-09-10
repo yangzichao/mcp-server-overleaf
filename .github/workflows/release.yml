@@ -80,14 +80,15 @@ jobs:
           path: release-artifacts/
       - run: node scripts/release/verifyPublishedPackage.mjs
 
-  desktop-bundle:
-    # Attached only after npm accepted the same server code, so the one-click download and
-    # the published package can never describe different builds.
+  distribute:
+    # Runs only after npm accepted the same server code, so the one-click download, the
+    # registry listing and the published package can never describe different builds.
     needs: verify-publication
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,3 +103,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/release/publishDesktopBundle.mjs
+      # The hash must come from the file the step above uploaded. A zip records modification
+      # times, so a rebuild anywhere else would not have these bytes.
+      - run: npm run registry:build
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+      - name: List the server in the official MCP registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish build/registry/server.json
