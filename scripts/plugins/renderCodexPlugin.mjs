@@ -1,15 +1,15 @@
 /**
- * Builds the Codex plugin that ships this server, and the marketplace entry that lists it.
+ * Builds the Codex half of the plugin: its manifest, and the marketplace entry listing it.
  *
- * Codex has no directory to submit to: `codex plugin marketplace add` takes a Git repository
- * and reads `.agents/plugins/marketplace.json` out of it, so this repository is its own
- * marketplace. The three documents below are committed rather than built into `build/`,
+ * Codex has no directory to submit to. `codex plugin marketplace add` takes a Git
+ * repository and reads `.agents/plugins/marketplace.json` out of it, so this repository is
+ * its own marketplace. Both documents are committed rather than built into `build/`,
  * because Codex clones the repository and reads them where they lie.
  */
 
-const PLUGIN_NAME = "overleaf";
+import { pluginName } from "./renderSharedMcpServers.mjs";
+
 const MARKETPLACE_NAME = "mcp-server-overleaf";
-const MCP_SERVER_NAME = "overleaf";
 const BRAND_COLOR = "#1F2937";
 const PRIVACY_POLICY_URL =
   "https://github.com/yangzichao/mcp-server-overleaf/blob/main/docs/privacy-policy.md";
@@ -31,27 +31,11 @@ const DEFAULT_PROMPTS = [
   "Compile the project and report any LaTeX errors.",
 ];
 
-export const codexPluginName = PLUGIN_NAME;
 export const codexMarketplaceName = MARKETPLACE_NAME;
 
-/**
- * No environment variables on purpose. The server finds its own per-user `projects.json`,
- * which is where `setup` writes the token, so a committed plugin never holds a secret.
- */
-export function renderPluginMcpServers(packageMetadata) {
+export function renderCodexPluginManifest(packageMetadata) {
   return {
-    mcpServers: {
-      [MCP_SERVER_NAME]: {
-        command: "npx",
-        args: ["--yes", `${packageMetadata.name}@${packageMetadata.version}`, "--stdio"],
-      },
-    },
-  };
-}
-
-export function renderPluginManifest(packageMetadata) {
-  return {
-    name: PLUGIN_NAME,
+    name: pluginName,
     version: packageMetadata.version,
     description: packageMetadata.description,
     author: {
@@ -81,14 +65,14 @@ export function renderPluginManifest(packageMetadata) {
 }
 
 /** `path` is resolved against the marketplace root, which is the repository root here. */
-export function renderMarketplace() {
+export function renderCodexMarketplace() {
   return {
     name: MARKETPLACE_NAME,
     interface: { displayName: "Overleaf MCP server" },
     plugins: [
       {
-        name: PLUGIN_NAME,
-        source: { source: "local", path: `./plugins/${PLUGIN_NAME}` },
+        name: pluginName,
+        source: { source: "local", path: `./plugins/${pluginName}` },
         policy: { installation: "AVAILABLE", authentication: "ON_USE" },
         category: "Productivity",
       },
