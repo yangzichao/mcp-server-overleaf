@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-overleaf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
   "license": "MIT",
   "author": "Zichao Yang",
@@ -12,7 +12,14 @@
   "bugs": {
     "url": "https://github.com/yangzichao/mcp-server-overleaf/issues"
   },
-  "files": ["dist/**/*.js", "docs/*.md", "npm-shrinkwrap.json", ".env.example", "CHANGELOG.md", "SECURITY.md"],
+  "files": [
+    "dist/**/*.js",
+    "docs/*.md",
+    "npm-shrinkwrap.json",
+    ".env.example",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/",
@@ -32,7 +39,8 @@
   },
   "scripts": {
     "build": "node scripts/compilation/cleanOutput.mjs && tsc -p tsconfig.json",
-    "prepack": "npm run build",
+    "prepack": "npm run build && node scripts/release/shrinkwrap/installShippedShrinkwrapBeforePack.mjs",
+    "postpack": "node scripts/release/shrinkwrap/restoreDevelopmentShrinkwrapAfterPack.mjs",
     "typecheck": "tsc -p tsconfig.tests.json",
     "lint": "biome check src tests scripts",
     "format": "biome check src tests scripts --write",

@@ -1,12 +1,12 @@
 {
   "name": "mcp-server-overleaf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "mcp-server-overleaf",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "license": "MIT",
       "dependencies": {
         "@modelcontextprotocol/node": "^2.0.0",
@@ -1926,9 +1926,9 @@
       }
     },
     "node_modules/zod": {
-      "version": "4.5.4",
-      "resolved": "https://registry.npmjs.org/zod/-/zod-4.5.4.tgz",
-      "integrity": "sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==",
+      "version": "4.6.1",
+      "resolved": "https://registry.npmjs.org/zod/-/zod-4.6.1.tgz",
+      "integrity": "sha512-341aRWQsve0rvronKNTqZpjmzdbUDlFuzHaI/XLg/Ej82qffDJRRfBTCuv7+9q/rMjB6LSLyEBnW4InJeMtt/Q==",
       "license": "MIT",
       "funding": {
         "url": "https://github.com/sponsors/colinhacks"
