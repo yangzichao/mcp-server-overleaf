@@ -1,0 +1,42 @@
+{
+  "name": "overleaf",
+  "version": "0.3.1",
+  "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
+  "author": {
+    "name": "Zichao Yang",
+    "url": "https://github.com/yangzichao"
+  },
+  "homepage": "https://github.com/yangzichao/mcp-server-overleaf#readme",
+  "repository": "https://github.com/yangzichao/mcp-server-overleaf",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "overleaf",
+    "latex",
+    "git",
+    "ai"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Overleaf",
+    "shortDescription": "Read and safely edit Overleaf projects.",
+    "longDescription": "Read and safely edit Overleaf projects from Codex.\n\nThe plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.\nCodex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches\nOverleaf until you approve push_changes, and every edit can be inspected with show_diff first.\n\nRun `npx --yes mcp-server-overleaf setup` once before installing. It stores your Overleaf Git\ntoken outside this plugin, so the plugin itself carries no credential.",
+    "developerName": "Zichao Yang",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/yangzichao/mcp-server-overleaf",
+    "privacyPolicyURL": "https://github.com/yangzichao/mcp-server-overleaf/blob/main/docs/privacy-policy.md",
+    "defaultPrompt": [
+      "List my Overleaf projects and summarise the default one.",
+      "Rewrite the Introduction section, then show me the diff.",
+      "Compile the project and report any LaTeX errors."
+    ],
+    "brandColor": "#1F2937",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

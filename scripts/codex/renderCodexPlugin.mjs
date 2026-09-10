@@ -1,0 +1,97 @@
+/**
+ * Builds the Codex plugin that ships this server, and the marketplace entry that lists it.
+ *
+ * Codex has no directory to submit to: `codex plugin marketplace add` takes a Git repository
+ * and reads `.agents/plugins/marketplace.json` out of it, so this repository is its own
+ * marketplace. The three documents below are committed rather than built into `build/`,
+ * because Codex clones the repository and reads them where they lie.
+ */
+
+const PLUGIN_NAME = "overleaf";
+const MARKETPLACE_NAME = "mcp-server-overleaf";
+const MCP_SERVER_NAME = "overleaf";
+const BRAND_COLOR = "#1F2937";
+const PRIVACY_POLICY_URL =
+  "https://github.com/yangzichao/mcp-server-overleaf/blob/main/docs/privacy-policy.md";
+const ICON_PATH = "./assets/icon.png";
+
+const LONG_DESCRIPTION = `Read and safely edit Overleaf projects from Codex.
+
+The plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.
+Codex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches
+Overleaf until you approve push_changes, and every edit can be inspected with show_diff first.
+
+Run \`npx --yes mcp-server-overleaf setup\` once before installing. It stores your Overleaf Git
+token outside this plugin, so the plugin itself carries no credential.`;
+
+/** Codex renders at most three starter prompts, so only three are worth writing. */
+const DEFAULT_PROMPTS = [
+  "List my Overleaf projects and summarise the default one.",
+  "Rewrite the Introduction section, then show me the diff.",
+  "Compile the project and report any LaTeX errors.",
+];
+
+export const codexPluginName = PLUGIN_NAME;
+export const codexMarketplaceName = MARKETPLACE_NAME;
+
+/**
+ * No environment variables on purpose. The server finds its own per-user `projects.json`,
+ * which is where `setup` writes the token, so a committed plugin never holds a secret.
+ */
+export function renderPluginMcpServers(packageMetadata) {
+  return {
+    mcpServers: {
+      [MCP_SERVER_NAME]: {
+        command: "npx",
+        args: ["--yes", `${packageMetadata.name}@${packageMetadata.version}`, "--stdio"],
+      },
+    },
+  };
+}
+
+export function renderPluginManifest(packageMetadata) {
+  return {
+    name: PLUGIN_NAME,
+    version: packageMetadata.version,
+    description: packageMetadata.description,
+    author: {
+      name: packageMetadata.author,
+      url: "https://github.com/yangzichao",
+    },
+    homepage: packageMetadata.homepage,
+    repository: "https://github.com/yangzichao/mcp-server-overleaf",
+    license: packageMetadata.license,
+    keywords: packageMetadata.keywords,
+    mcpServers: "./.mcp.json",
+    interface: {
+      displayName: "Overleaf",
+      shortDescription: "Read and safely edit Overleaf projects.",
+      longDescription: LONG_DESCRIPTION,
+      developerName: packageMetadata.author,
+      category: "Productivity",
+      capabilities: ["Read", "Write"],
+      websiteURL: "https://github.com/yangzichao/mcp-server-overleaf",
+      privacyPolicyURL: PRIVACY_POLICY_URL,
+      defaultPrompt: DEFAULT_PROMPTS,
+      brandColor: BRAND_COLOR,
+      composerIcon: ICON_PATH,
+      logo: ICON_PATH,
+    },
+  };
+}
+
+/** `path` is resolved against the marketplace root, which is the repository root here. */
+export function renderMarketplace() {
+  return {
+    name: MARKETPLACE_NAME,
+    interface: { displayName: "Overleaf MCP server" },
+    plugins: [
+      {
+        name: PLUGIN_NAME,
+        source: { source: "local", path: `./plugins/${PLUGIN_NAME}` },
+        policy: { installation: "AVAILABLE", authentication: "ON_USE" },
+        category: "Productivity",
+      },
+    ],
+  };
+}
