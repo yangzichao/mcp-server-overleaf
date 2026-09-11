@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Open the README with what distinguishes this server, since the answer to "which Overleaf
+  MCP server" was previously only reachable by reading a comparison document.
+- Extend the related-projects comparison to the two servers that do not use the Git bridge,
+  including the tracked-changes support this one cannot offer and the reason why.
+
 ## 0.3.2
 
 - Accept a project's Overleaf address wherever a tool takes `project`, not just its raw

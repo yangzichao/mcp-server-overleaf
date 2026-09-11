@@ -13,6 +13,25 @@ picking a winner. Losing someone else's work is the one outcome it is built to p
 
 Independent community project; not affiliated with or endorsed by Overleaf.
 
+## Why this one
+
+Several Overleaf MCP servers exist. Of the ones built on Overleaf's official Git bridge,
+this is the most complete, and it is the only one that stops instead of overwriting when a
+co-author has already changed the lines you are editing.
+
+- **A conflict ends the push, not your co-author's paragraph.** Every read and every push
+  first checks what changed on Overleaf. When two edits touch the same lines, `push_changes`
+  refuses and shows you both versions.
+- **16 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
+  section or by exact text, compile locally, inspect the diff, then publish deliberately.
+- **No terminal, if you do not want one.** Claude Desktop installs it from a downloaded
+  bundle; Claude Code and Codex install it as a plugin.
+- **The token is written once, to one file, at mode 600.** No client configuration holds
+  it, and the published plugin declares no environment variables at all.
+
+[Related projects](docs/related-projects.md) compares the alternatives tool by tool, and is
+equally direct about the things this server cannot do.
+
 ## Where it installs
 
 Every route below reaches the same server and the same 16 tools, and every one of them

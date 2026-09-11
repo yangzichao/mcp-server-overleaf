@@ -88,6 +88,32 @@ controls, tracked suggestions and screenshots. This Git server does not implemen
 features. They need a separate authenticated browser integration; Git cannot expose that
 editor state. No browser feature parity is claimed.
 
+### Servers that do not use the Git bridge
+
+Reviewed on 2026-09-11 from published npm metadata and READMEs. Neither was run, and
+neither was read as source, so these are their own claims rather than verified behaviour.
+
+[`@netique/overleaf-mcp`](https://github.com/netique/overleaf-mcp) drives Overleaf's
+Socket.IO web API with a captured session cookie. It documents `list_tracked_changes`,
+`accept_changes` and `reject_changes`, so its edits can land as review suggestions rather
+than as text, and it reads review-panel comments. Its README states plainly that Git-bridge
+writes bypass tracked changes even when track-changes mode is on. That is true of this
+server: an edit published here arrives as ordinary content, never as a suggestion. Because
+it authenticates as a browser session, it also does not need the Git bridge, and therefore
+does not need the project owner's paid subscription.
+
+[`@youzhijc/overleaf-paper-mcp`](https://www.npmjs.com/package/@youzhijc/overleaf-paper-mcp)
+automates a browser session. It documents creating projects, uploading a ZIP, creating
+folders, renaming and deleting files, and downloading the compiled PDF, none of which exist
+here. It reads `OVERLEAF_EMAIL` and `OVERLEAF_PASSWORD` from the environment, which is a
+materially different credential exposure from a scoped Git token.
+
+So this server is not a superset of everything available. It is the most complete of the
+Git-bridge servers, and the trade is deliberate: the Git bridge is what makes a conflicting
+co-author edit detectable and a push refusable. Tracked-change suggestions and working
+without a paid plan are the two capabilities that would require a second, non-Git
+integration to reach.
+
 Release validation covers macOS and Linux, not Windows. Git integration requires a qualifying
 Overleaf account; local compilation requires TeX. There are no latency, bandwidth or user
 study results establishing overall superiority, and npm publication remains distinct from
