@@ -9,6 +9,11 @@ read and before every push it checks what your collaborators have done, and if y
 and theirs touch the same lines it refuses to push and shows you both versions rather than
 picking a winner. Losing someone else's work is the one outcome it is built to prevent.
 
+It also writes suggestions rather than only text. With an Overleaf session cookie, an edit
+arrives in the review panel as a tracked change for a co-author to accept or reject, and the
+comments already sitting there become readable. A Git push is plain text and can express
+neither.
+
 ---
 
 Independent community project; not affiliated with or endorsed by Overleaf.

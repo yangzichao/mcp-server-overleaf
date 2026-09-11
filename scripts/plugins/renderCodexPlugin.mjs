@@ -15,11 +15,16 @@ const PRIVACY_POLICY_URL =
   "https://github.com/yangzichao/mcp-server-overleaf/blob/main/docs/privacy-policy.md";
 const ICON_PATH = "./assets/icon.png";
 
-const LONG_DESCRIPTION = `Read and safely edit Overleaf projects from Codex.
+const LONG_DESCRIPTION = `Read and edit your Overleaf papers from Codex.
 
 The plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.
 Codex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches
 Overleaf until you approve push_changes, and every edit can be inspected with show_diff first.
+If a co-author changed the same lines, the push stops and shows you both versions.
+
+Add an Overleaf session cookie and three more tools appear. An edit then arrives in the editor
+as a tracked-change suggestion your co-authors accept or reject, you can read what the review
+panel already holds, and you can leave a comment on a passage.
 
 Run \`npx --yes mcp-server-overleaf setup\` once before installing. It stores your Overleaf Git
 token outside this plugin, so the plugin itself carries no credential.`;
@@ -49,7 +54,7 @@ export function renderCodexPluginManifest(packageMetadata) {
     mcpServers: "./.mcp.json",
     interface: {
       displayName: "Overleaf",
-      shortDescription: "Read and safely edit Overleaf projects.",
+      shortDescription: "Read and edit Overleaf papers, with tracked changes.",
       longDescription: LONG_DESCRIPTION,
       developerName: packageMetadata.author,
       category: "Productivity",

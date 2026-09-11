@@ -15,7 +15,7 @@ interface CommandLineOptions {
   readonly allowAnonymous: boolean;
 }
 
-const USAGE = `mcp-server-overleaf - read and safely edit Overleaf projects over the Overleaf git bridge
+const USAGE = `mcp-server-overleaf - read and edit Overleaf papers, as tracked-change suggestions when you want them
 
   mcp-server-overleaf setup                   connect this computer's AI clients to Overleaf
   mcp-server-overleaf --stdio                 serve on stdio (ChatGPT desktop, Codex, Claude Desktop, Cursor)
@@ -33,6 +33,11 @@ Environment:
   OVERLEAF_MCP_WORKSPACE_DIR   where clones live (default ~/.overleaf-mcp/projects)
   OVERLEAF_MCP_CHECKOUT_MODE   full (default) or text-only sparse checkout
   OVERLEAF_MCP_HTTP_AUTH_TOKEN bearer token required by --http unless --allow-anonymous
+
+Tracked changes (optional; these three tools appear only once a cookie is set):
+  OVERLEAF_SESSION_COOKIE      your overleaf_session2 cookie, copied from a signed-in browser
+  OVERLEAF_SESSION_COOKIE_FILE absolute path to a file holding that cookie instead
+  OVERLEAF_WEB_BASE_URL        Overleaf instance to connect to (default https://www.overleaf.com)
 
 With OVERLEAF_MCP_ENV_FILE, read that file and let process environment values override it.
 Otherwise use the process environment, or the install's .env when the client supplies no

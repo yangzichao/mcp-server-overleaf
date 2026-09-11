@@ -12,7 +12,7 @@ import { pluginName } from "./renderSharedMcpServers.mjs";
 const MARKETPLACE_NAME = "mcp-server-overleaf";
 
 const PLUGIN_DESCRIPTION =
-  "Read and safely edit Overleaf projects over the Overleaf Git bridge. Edits stay in a local clone until you approve a push, and a co-author's conflicting change stops the push rather than being overwritten.";
+  "Read and edit Overleaf papers from Claude Code. Edits stay in a local clone until you approve a push, and a co-author's conflicting change stops the push rather than being overwritten. With an Overleaf session cookie an edit can arrive as a tracked-change suggestion instead of plain text.";
 
 export const claudeCodeMarketplaceName = MARKETPLACE_NAME;
 

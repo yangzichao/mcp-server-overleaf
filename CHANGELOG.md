@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Describe this server by what makes it different. Every storefront line, on npm, in the MCP
+  registry, and in both plugin marketplaces, said "over the Overleaf Git bridge", which is the
+  positioning of every competing Overleaf server and omits the one capability none of them
+  has. The package description, the plugin and bundle copy, and the README's opening now name
+  tracked changes.
+- List `OVERLEAF_SESSION_COOKIE` in the registry record and in `--help`. Neither mentioned it,
+  so nothing a user could read before installing said the tracked-changes tools existed.
+
 ## 0.3.3
 
 - Add three optional tools that reach Overleaf's editor instead of its Git bridge, so an edit
