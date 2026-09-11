@@ -42,6 +42,13 @@ function npmPackage(packageMetadata) {
         isRequired: true,
         isSecret: false,
       },
+      {
+        name: "OVERLEAF_SESSION_COOKIE",
+        description:
+          "Optional. An Overleaf browser session cookie, which turns on the tracked-changes tools: suggest an edit, read the review panel, leave a comment.",
+        isRequired: false,
+        isSecret: true,
+      },
     ],
   };
 }

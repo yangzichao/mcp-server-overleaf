@@ -2,7 +2,7 @@
   "name": "mcp-server-overleaf",
   "mcpName": "io.github.yangzichao/mcp-server-overleaf",
   "version": "0.3.3",
-  "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
+  "description": "Read and edit Overleaf papers from any AI client. Edits can arrive as tracked-change suggestions.",
   "license": "MIT",
   "author": "Zichao Yang",
   "repository": {
@@ -31,6 +31,9 @@
     "model-context-protocol",
     "overleaf",
     "latex",
+    "tracked-changes",
+    "academic-writing",
+    "research",
     "git",
     "ai"
   ],

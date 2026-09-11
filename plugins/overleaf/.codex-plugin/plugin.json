@@ -1,7 +1,7 @@
 {
   "name": "overleaf",
   "version": "0.3.3",
-  "description": "MCP server that lets AI clients read and safely edit Overleaf projects over the Overleaf Git bridge.",
+  "description": "Read and edit Overleaf papers from any AI client. Edits can arrive as tracked-change suggestions.",
   "author": {
     "name": "Zichao Yang",
     "url": "https://github.com/yangzichao"
@@ -14,14 +14,17 @@
     "model-context-protocol",
     "overleaf",
     "latex",
+    "tracked-changes",
+    "academic-writing",
+    "research",
     "git",
     "ai"
   ],
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Overleaf",
-    "shortDescription": "Read and safely edit Overleaf projects.",
-    "longDescription": "Read and safely edit Overleaf projects from Codex.\n\nThe plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.\nCodex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches\nOverleaf until you approve push_changes, and every edit can be inspected with show_diff first.\n\nRun `npx --yes mcp-server-overleaf setup` once before installing. It stores your Overleaf Git\ntoken outside this plugin, so the plugin itself carries no credential.",
+    "shortDescription": "Read and edit Overleaf papers, with tracked changes.",
+    "longDescription": "Read and edit your Overleaf papers from Codex.\n\nThe plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.\nCodex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches\nOverleaf until you approve push_changes, and every edit can be inspected with show_diff first.\nIf a co-author changed the same lines, the push stops and shows you both versions.\n\nAdd an Overleaf session cookie and three more tools appear. An edit then arrives in the editor\nas a tracked-change suggestion your co-authors accept or reject, you can read what the review\npanel already holds, and you can leave a comment on a passage.\n\nRun `npx --yes mcp-server-overleaf setup` once before installing. It stores your Overleaf Git\ntoken outside this plugin, so the plugin itself carries no credential.",
     "developerName": "Zichao Yang",
     "category": "Productivity",
     "capabilities": [
