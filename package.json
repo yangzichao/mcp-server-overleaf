@@ -67,9 +67,11 @@
     "@anthropic-ai/mcpb": "2.1.2",
     "@biomejs/biome": "^2.5.12",
     "@types/node": "^26.4.1",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^5.0.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "ws": "^8.21.3"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.0.0",

@@ -24,6 +24,10 @@ co-author has already changed the lines you are editing.
   refuses and shows you both versions.
 - **16 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
   section or by exact text, compile locally, inspect the diff, then publish deliberately.
+- **An edit can arrive as a suggestion, not as finished text.** Three optional tools talk to
+  Overleaf's editor rather than the Git bridge, so a change lands in the review panel for a
+  co-author to accept or reject. A Git push cannot express that.
+  [Tracked changes](docs/tracked-changes.md)
 - **No terminal, if you do not want one.** Claude Desktop installs it from a downloaded
   bundle; Claude Code and Codex install it as a plugin.
 - **The token is written once, to one file, at mode 600.** No client configuration holds
@@ -35,7 +39,9 @@ equally direct about the things this server cannot do.
 ## Where it installs
 
 Every route below reaches the same server and the same 16 tools, and every one of them
-keeps edits local until an explicit push. Pick the row for your client.
+keeps edits local until an explicit push. Pick the row for your client. The three
+[tracked-changes tools](docs/tracked-changes.md) are extra, and appear only once a session
+cookie is configured.
 
 | Client | How to install it |
 | --- | --- |
@@ -77,7 +83,8 @@ holds the secret.
 
 ## What you are installing
 
-An MCP server exposing 16 tools over stdio or Streamable HTTP. One core, two transports;
+An MCP server exposing 16 tools over stdio or Streamable HTTP, plus 3 more when a session
+cookie turns on [tracked changes](docs/tracked-changes.md). One core, two transports;
 the tool implementations are identical and only the framing differs. `setup` connects it
 to the AI clients on this computer and is the only command most people need.
 
@@ -461,6 +468,9 @@ builds, so a broken document can be published if you do not check first.
 | `OVERLEAF_MCP_COMPILE_TIMEOUT_MS` | Compile timeout. Must be a positive integer. |
 | `OVERLEAF_MCP_HTTP_AUTH_TOKEN` | Bearer token required by `--http`. |
 | `OVERLEAF_MCP_HTTP_PORT` | Port for `--http`. `--port` overrides it. |
+| `OVERLEAF_SESSION_COOKIE` | Overleaf session cookie. Turns on the three [tracked-changes tools](docs/tracked-changes.md). |
+| `OVERLEAF_SESSION_COOKIE_FILE` | Absolute path to a file holding the same value. Preferred over the variable. |
+| `OVERLEAF_WEB_BASE_URL` | Overleaf's web address for those tools. Default `https://www.overleaf.com`. |
 
 ## Why it behaves the way it does
 

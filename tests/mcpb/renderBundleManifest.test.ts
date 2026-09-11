@@ -46,12 +46,13 @@ describe("renderBundleManifest", () => {
     expect(manifest.server.mcp_config.args).toEqual(["${__dirname}/server/dist/index.js", "--stdio"]);
   });
 
-  it("passes both user answers as environment variables rather than files", () => {
+  it("passes every user answer as an environment variable rather than a file", () => {
     const manifest = render();
     // biome-ignore-start lint/suspicious/noTemplateCurlyInString: MCPB substitution syntax.
     expect(manifest.server.mcp_config.env).toEqual({
       OVERLEAF_GIT_TOKEN: "${user_config.overleaf_git_token}",
       OVERLEAF_PROJECT_ID: "${user_config.overleaf_project_url}",
+      OVERLEAF_SESSION_COOKIE: "${user_config.overleaf_session_cookie}",
     });
     // biome-ignore-end lint/suspicious/noTemplateCurlyInString: end of MCPB syntax
   });
@@ -59,6 +60,11 @@ describe("renderBundleManifest", () => {
   it("marks the token as sensitive so the install panel masks it", () => {
     expect(render().user_config.overleaf_git_token.sensitive).toBe(true);
     expect(render().user_config.overleaf_git_token.required).toBe(true);
+  });
+
+  it("leaves the session cookie optional, so the bundle still installs without one", () => {
+    expect(render().user_config.overleaf_session_cookie.required).toBe(false);
+    expect(render().user_config.overleaf_session_cookie.sensitive).toBe(true);
   });
 
   it("declares an HTTPS privacy policy, which the directory rejects a bundle without", () => {

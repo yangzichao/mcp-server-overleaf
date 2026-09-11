@@ -1,6 +1,7 @@
 import { basename, join } from "node:path";
 
 import type { CallToolResult } from "@modelcontextprotocol/server";
+import { reviewCredentialSecrets } from "../config/review/reviewCredentials.js";
 import { redactSecrets } from "../config/secretRedaction.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import type { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
@@ -46,6 +47,9 @@ export function runToolSafely(
             text: redactSecrets(message, [
               context.configuration.overleafGitToken,
               ...context.configuration.registeredProjects.map((project) => project.overleafGitToken ?? ""),
+              // The session cookie is the review tools' credential and covers the whole
+              // account, so it must not travel back to the model inside a failure message.
+              ...reviewCredentialSecrets(context.configuration.reviewCredentials),
             ]),
           },
         ],

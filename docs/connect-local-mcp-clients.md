@@ -115,7 +115,9 @@ You can also configure the server through the desktop or IDE MCP settings:
 1. Open **Settings → MCP servers**.
 2. Choose **Add server** and select **STDIO**.
 3. Enter the absolute Node command and the two arguments from the configuration above.
-4. Save, restart the client, and confirm that 16 tools are available.
+4. Save, restart the client, and confirm that 16 tools are available. It is 19 if you also
+   set `OVERLEAF_SESSION_COOKIE`, which turns on the
+   [tracked-changes tools](tracked-changes.md).
 
 Reference: [Codex MCP documentation](https://developers.openai.com/codex/mcp).
 
