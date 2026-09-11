@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.4
 
 - Describe this server by what makes it different. Every storefront line, on npm, in the MCP
   registry, and in both plugin marketplaces, said "over the Overleaf Git bridge", which is the
