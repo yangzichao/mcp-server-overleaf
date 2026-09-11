@@ -11,6 +11,9 @@ import { spawn } from "node:child_process";
 const PROBE_ENVIRONMENT = {
   OVERLEAF_GIT_TOKEN: "manifest-probe-token",
   OVERLEAF_PROJECT_ID: "0".repeat(24),
+  // The review tools are registered only when a session cookie is configured, and the manifest
+  // should list every tool the bundle can offer, not only the ones an unconfigured server has.
+  OVERLEAF_SESSION_COOKIE: "manifest-probe-cookie",
 };
 
 const REQUESTS = [

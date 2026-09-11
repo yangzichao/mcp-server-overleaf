@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { ConfigurationError } from "./configurationError.js";
 import { resolveGitToken } from "./projects/projectCredentials.js";
 import { selectProjects } from "./projects/projectSelection.js";
+import { loadReviewCredentials, type OverleafReviewCredentials } from "./review/reviewCredentials.js";
 
 export { ConfigurationError } from "./configurationError.js";
 export { looksLikeOverleafProjectId } from "./projects/projectIdentity.js";
@@ -24,6 +25,8 @@ export interface ServerConfiguration {
   readonly checkoutMode?: "full" | "text-only";
   readonly gitCommitAuthorName: string;
   readonly gitCommitAuthorEmail: string;
+  /** Absent unless a session cookie is configured; only the review tools need it. */
+  readonly reviewCredentials?: OverleafReviewCredentials;
 }
 
 function parsePositiveInteger(rawValue: string | undefined, fallback: number, variableName: string): number {
@@ -71,5 +74,6 @@ export function loadServerConfigurationFromEnvironment(
     gitCommitAuthorName: environment.OVERLEAF_MCP_GIT_AUTHOR_NAME?.trim() || "mcp-server-overleaf",
     gitCommitAuthorEmail:
       environment.OVERLEAF_MCP_GIT_AUTHOR_EMAIL?.trim() || "mcp-server-overleaf@localhost",
+    reviewCredentials: loadReviewCredentials(environment),
   };
 }

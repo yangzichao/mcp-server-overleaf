@@ -5,7 +5,20 @@
 - Open the README with what distinguishes this server, since the answer to "which Overleaf
   MCP server" was previously only reachable by reading a comparison document.
 - Extend the related-projects comparison to the two servers that do not use the Git bridge,
-  including the tracked-changes support this one cannot offer and the reason why.
+  and record which of their capabilities this one now has.
+- Add three optional tools that reach Overleaf's editor instead of its Git bridge, so an edit
+  can arrive as a suggestion in the review panel rather than as finished text. `suggest_edit`
+  sets the tracked-changes flag on an editor operation, which a Git push cannot express;
+  `list_tracked_changes` reads the suggestions and comment-thread anchors on a document;
+  `add_comment` anchors a thread to a passage. They need an Overleaf session cookie, which is
+  a different and broader credential than the Git token, so they are registered only when one
+  is configured and the other sixteen tools are unchanged without it. See
+  [Tracked changes](docs/tracked-changes.md) for what they cannot do and why the protocol they
+  use is less stable than the bridge.
+- Implement Overleaf's Socket.IO 0.9 wire format directly rather than depending on the
+  browser client it is forked from, and use the WebSocket built into Node, so the new tools
+  add no runtime dependency. The codec is verified packet by packet against Overleaf's own
+  parser.
 
 ## 0.3.2
 

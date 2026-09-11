@@ -59,6 +59,7 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         env: {
           OVERLEAF_GIT_TOKEN: "${user_config.overleaf_git_token}",
           OVERLEAF_PROJECT_ID: "${user_config.overleaf_project_url}",
+          OVERLEAF_SESSION_COOKIE: "${user_config.overleaf_session_cookie}",
         },
         // biome-ignore-end lint/suspicious/noTemplateCurlyInString: end of MCPB syntax
       },
@@ -81,6 +82,14 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
           "Open the project in Overleaf and copy the address from the browser, for example https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1",
         required: true,
         sensitive: false,
+      },
+      overleaf_session_cookie: {
+        type: "string",
+        title: "Overleaf session cookie (optional)",
+        description:
+          "Leave empty unless you want edits to arrive as suggestions in Overleaf's review panel. That needs your browser session rather than the Git token, so it covers your whole account and stops working when you sign out. Copy the value of the overleaf_session2 cookie from a browser where you are signed in to Overleaf.",
+        required: false,
+        sensitive: true,
       },
     },
     compatibility: {

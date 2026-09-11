@@ -97,10 +97,20 @@ neither was read as source, so these are their own claims rather than verified b
 Socket.IO web API with a captured session cookie. It documents `list_tracked_changes`,
 `accept_changes` and `reject_changes`, so its edits can land as review suggestions rather
 than as text, and it reads review-panel comments. Its README states plainly that Git-bridge
-writes bypass tracked changes even when track-changes mode is on. That is true of this
-server: an edit published here arrives as ordinary content, never as a suggestion. Because
-it authenticates as a browser session, it also does not need the Git bridge, and therefore
-does not need the project owner's paid subscription.
+writes bypass tracked changes even when track-changes mode is on, which is correct.
+
+This server now does the same thing over the same protocol, as of the tracked-changes tools
+described in [Tracked changes](tracked-changes.md): `suggest_edit` sets `meta.tc` on an
+editor operation, so the edit arrives in the review panel, and `list_tracked_changes` reads
+the suggestions and comment anchors back. Two gaps remain against that peer. Accepting and
+rejecting a suggestion are not implemented. Reading the messages inside a comment thread is
+not either, because the route that serves them is not in Overleaf's open-source tree and
+nothing here would be written against a verified contract.
+
+Because it authenticates as a browser session throughout, that peer also does not need the
+Git bridge, and therefore does not need the project owner's paid subscription. Here the
+session cookie turns on three tools; the other sixteen still go through the bridge, so the
+subscription requirement is unchanged for them.
 
 [`@youzhijc/overleaf-paper-mcp`](https://www.npmjs.com/package/@youzhijc/overleaf-paper-mcp)
 automates a browser session. It documents creating projects, uploading a ZIP, creating
@@ -110,9 +120,10 @@ materially different credential exposure from a scoped Git token.
 
 So this server is not a superset of everything available. It is the most complete of the
 Git-bridge servers, and the trade is deliberate: the Git bridge is what makes a conflicting
-co-author edit detectable and a push refusable. Tracked-change suggestions and working
-without a paid plan are the two capabilities that would require a second, non-Git
-integration to reach.
+co-author edit detectable and a push refusable. Of the two capabilities that needed a
+second, non-Git integration, tracked-change suggestions are now implemented; working without
+a paid plan is not, and neither is accepting or rejecting a suggestion, reading comment
+thread messages, or anything in the browser-automation list above.
 
 Release validation covers macOS and Linux, not Windows. Git integration requires a qualifying
 Overleaf account; local compilation requires TeX. There are no latency, bandwidth or user

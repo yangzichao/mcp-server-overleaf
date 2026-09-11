@@ -292,7 +292,8 @@ Leave the tunnel runtime online while creating and testing the app.
    does not authenticate directly to Overleaf.
 8. Review the risk acknowledgement, create the app, and connect it to the workspace.
 
-ChatGPT should discover 16 tools. If the tunnel is absent from the selector, return to
+ChatGPT should discover 16 tools, or 19 with a session cookie configured. If the tunnel is
+absent from the selector, return to
 steps 3–5 instead of creating a second tunnel immediately.
 
 ## 10. Verify the complete path with read-only calls

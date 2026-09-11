@@ -30,7 +30,11 @@ export class OverleafProjectRegistry {
     return this.configuration.registeredProjects.map((project) => project.projectName);
   }
 
-  private resolveProjectId(requestedProject: string | undefined): RegisteredOverleafProject {
+  /**
+   * Public because the review tools reach Overleaf's editor rather than a clone, so they need
+   * the project id without opening a repository.
+   */
+  resolveProjectId(requestedProject: string | undefined): RegisteredOverleafProject {
     const requested = requestedProject?.trim();
 
     if (!requested) {
