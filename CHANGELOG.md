@@ -1,11 +1,7 @@
 # Changelog
 
-## Unreleased
+## 0.3.3
 
-- Open the README with what distinguishes this server, since the answer to "which Overleaf
-  MCP server" was previously only reachable by reading a comparison document.
-- Extend the related-projects comparison to the two servers that do not use the Git bridge,
-  and record which of their capabilities this one now has.
 - Add three optional tools that reach Overleaf's editor instead of its Git bridge, so an edit
   can arrive as a suggestion in the review panel rather than as finished text. `suggest_edit`
   sets the tracked-changes flag on an editor operation, which a Git push cannot express;
@@ -19,6 +15,10 @@
   browser client it is forked from, and use the WebSocket built into Node, so the new tools
   add no runtime dependency. The codec is verified packet by packet against Overleaf's own
   parser.
+- Open the README with what distinguishes this server, since the answer to "which Overleaf
+  MCP server" was previously only reachable by reading a comparison document.
+- Extend the related-projects comparison to the two servers that do not use the Git bridge,
+  and record which of their capabilities this one now has.
 
 ## 0.3.2
 
