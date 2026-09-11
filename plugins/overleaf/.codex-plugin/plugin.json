@@ -1,6 +1,6 @@
 {
   "name": "overleaf",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Read and edit Overleaf papers from any AI client. Edits can arrive as tracked-change suggestions.",
   "author": {
     "name": "Zichao Yang",

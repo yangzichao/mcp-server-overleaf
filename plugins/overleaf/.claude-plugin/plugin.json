@@ -1,7 +1,7 @@
 {
   "name": "overleaf",
   "description": "Read and edit Overleaf papers from Claude Code. Edits stay in a local clone until you approve a push, and a co-author's conflicting change stops the push rather than being overwritten. With an Overleaf session cookie an edit can arrive as a tracked-change suggestion instead of plain text.",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "author": {
     "name": "Zichao Yang",
     "url": "https://github.com/yangzichao"
