@@ -1,24 +1,34 @@
-# mcp-server-overleaf
+# Overleaf MCP Server — Safe AI Editing for LaTeX Papers
 
-Your papers live on Overleaf, and the model you want to write with cannot reach them.
-Copy-pasting sections into a chat window works until you paste something back and quietly
-flatten a change your co-author made ten minutes ago. This is an MCP server that gives an
-AI client real access to your Overleaf projects over the official git bridge: it reads the
-actual files, edits them in a local clone, and publishes only when you say so. Before every
-read and before every push it checks what your collaborators have done, and if your edit
-and theirs touch the same lines it refuses to push and shows you both versions rather than
-picking a winner. Losing someone else's work is the one outcome it is built to prevent.
+[![npm version](https://img.shields.io/npm/v/mcp-server-overleaf?logo=npm&label=npm)](https://www.npmjs.com/package/mcp-server-overleaf)
+[![Build](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml/badge.svg)](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-16A34A)](#find-it-in-the-mcp-registry)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-It also writes suggestions rather than only text. With an Overleaf session cookie, an edit
-arrives in the review panel as a tracked change for a co-author to accept or reject, and the
-comments already sitting there become readable. A Git push is plain text and can express
-neither.
+Connect **Claude Code, Claude Desktop, Codex, ChatGPT, Cursor, VS Code, or any MCP client**
+to Overleaf. Read, search, edit, compile, and review real LaTeX projects without
+copy-pasting your paper into a chat window.
+
+```bash
+npx --yes mcp-server-overleaf@0.3.4 setup
+```
+
+Edits stay in a local clone until you explicitly publish them. Before every read and every
+push, this Overleaf MCP server checks what your collaborators changed. If both of you touch
+the same lines, it stops the push and shows both versions instead of choosing a winner.
+
+With an optional Overleaf session cookie, edits can also arrive as tracked-change
+suggestions for co-authors to accept or reject, and the existing review panel becomes
+readable. A plain Git push cannot express either.
+
+**[Download the one-click Claude Desktop bundle](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
+or use the setup command above for Claude Code, Codex, Cursor, and other local AI clients.
 
 ---
 
 Independent community project; not affiliated with or endorsed by Overleaf.
 
-## Why this one
+## Why choose this Overleaf MCP server?
 
 Several Overleaf MCP servers exist. Of the ones built on Overleaf's official Git bridge,
 this is the most complete, and it is the only one that stops instead of overwriting when a
@@ -40,6 +50,10 @@ co-author has already changed the lines you are editing.
 
 [Related projects](docs/related-projects.md) compares the alternatives tool by tool, and is
 equally direct about the things this server cannot do.
+
+Common workflows include revising an academic paper by section, searching a large LaTeX
+project, checking a bibliography, compiling before publication, reviewing the exact diff,
+and sending an edit to Overleaf as a tracked suggestion.
 
 ## Where it installs
 
@@ -578,6 +592,38 @@ the safety contract depends on: fetch, rebase, and a rejected push.
 Coverage under-reports. The integration tests spawn `node dist/index.js` as a separate
 process, and v8 cannot instrument a child, so `src/tools/` and `src/server/` report 0% while
 being driven end to end over the real MCP wire protocol.
+
+## Frequently asked questions
+
+### Can Claude Code or Claude Desktop edit an Overleaf project?
+
+Yes. Claude Desktop can install the one-click `.mcpb` bundle, while Claude Code can install
+the repository as a plugin or run the npm package over stdio. Both expose the same safe
+read, edit, compile, diff, and push workflow.
+
+### Can Codex, ChatGPT, Cursor, or VS Code connect to Overleaf?
+
+Yes. Codex can install the included plugin, Cursor and other local clients can run the npm
+package, VS Code can use `.vscode/mcp.json`, and ChatGPT can connect through an outbound-only
+Secure MCP Tunnel. Start with [the client table](#where-it-installs) for the shortest route.
+
+### Will an AI edit overwrite my co-author's work?
+
+Not silently. The server synchronizes before reads and writes, keeps edits local until an
+explicit `push_changes`, and checks Overleaf again immediately before publishing. If a
+co-author changed the same lines, the push is refused and both versions are preserved.
+
+### Does this work with a free Overleaf account?
+
+The 16 Git-backed tools require Git integration on the project. Overleaf gates that feature
+on the project owner's qualifying subscription, so an invited free account can use it when
+the project owner has access through an individual, group, or institutional plan.
+
+### Can it compile LaTeX and show tracked changes?
+
+Yes. `compile_project` runs locally when `latexmk` and a TeX distribution are installed.
+With an optional Overleaf session cookie, three additional review tools can create tracked
+suggestions, list tracked changes and comments, and comment on selected text.
 
 ## Privacy Policy
 

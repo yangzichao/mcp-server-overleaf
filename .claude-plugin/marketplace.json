@@ -5,7 +5,7 @@
     "url": "https://github.com/yangzichao"
   },
   "metadata": {
-    "description": "Read and edit Overleaf papers from any AI client. Edits can arrive as tracked-change suggestions."
+    "description": "Overleaf MCP server for Claude, Codex, ChatGPT, and Cursor with safe LaTeX editing and review."
   },
   "plugins": [
     {

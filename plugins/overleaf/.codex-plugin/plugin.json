@@ -1,7 +1,7 @@
 {
   "name": "overleaf",
   "version": "0.3.4",
-  "description": "Read and edit Overleaf papers from any AI client. Edits can arrive as tracked-change suggestions.",
+  "description": "Overleaf MCP server for Claude, Codex, ChatGPT, and Cursor with safe LaTeX editing and review.",
   "author": {
     "name": "Zichao Yang",
     "url": "https://github.com/yangzichao"
@@ -11,13 +11,25 @@
   "license": "MIT",
   "keywords": [
     "mcp",
+    "mcp-server",
     "model-context-protocol",
     "overleaf",
+    "overleaf-mcp",
     "latex",
+    "latex-editor",
     "tracked-changes",
     "academic-writing",
+    "paper-writing",
     "research",
     "git",
+    "claude",
+    "claude-code",
+    "claude-desktop",
+    "codex",
+    "chatgpt",
+    "cursor",
+    "vscode",
+    "ai-agents",
     "ai"
   ],
   "mcpServers": "./.mcp.json",
