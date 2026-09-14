@@ -24,6 +24,8 @@ readable. A plain Git push cannot express either.
 **[Download the one-click Claude Desktop bundle](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
 or use the setup command above for Claude Code, Codex, Cursor, and other local AI clients.
 
+![A 22-second demonstration of mcp-server-overleaf detecting a collaborator conflict and refusing to overwrite the co-author's edit](docs/assets/collaborator-safety-demo.gif)
+
 ---
 
 Independent community project; not affiliated with or endorsed by Overleaf.
