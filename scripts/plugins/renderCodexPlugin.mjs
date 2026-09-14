@@ -1,10 +1,11 @@
 /**
  * Builds the Codex half of the plugin: its manifest, and the marketplace entry listing it.
  *
- * Codex has no directory to submit to. `codex plugin marketplace add` takes a Git
- * repository and reads `.agents/plugins/marketplace.json` out of it, so this repository is
- * its own marketplace. Both documents are committed rather than built into `build/`,
- * because Codex clones the repository and reads them where they lie.
+ * The public OpenAI plugin directory has its own submission and review process. This local
+ * MCP server remains installable from a Git marketplace while that separate review path is
+ * unresolved: `codex plugin marketplace add` reads `.agents/plugins/marketplace.json` from
+ * this repository. Both documents are committed rather than built into `build/`, because
+ * Codex clones the repository and reads them where they lie.
  */
 
 import { pluginName } from "./renderSharedMcpServers.mjs";

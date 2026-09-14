@@ -42,16 +42,18 @@ Restart Codex, then `codex plugin list` should show the plugin installed and ena
 `codex mcp list` should show an `overleaf` server running
 `npx --yes mcp-server-overleaf --stdio`.
 
-## Why a marketplace, and why this repository
+## Why this repository is the marketplace today
 
-Neither client has a central plugin directory to submit to. In both, a marketplace is a Git
-repository: `claude plugin marketplace add` reads `.claude-plugin/marketplace.json` out of
-it, and `codex plugin marketplace add` reads `.agents/plugins/marketplace.json`. Both accept
+Claude Code and Codex now both have public plugin directories with separate submission and
+review processes. This local MCP server is not listed in either one yet. The install route
+on this page uses the clients' repository-marketplace support instead:
+`claude plugin marketplace add` reads `.claude-plugin/marketplace.json` from the repository,
+and `codex plugin marketplace add` reads `.agents/plugins/marketplace.json`. Both accept
 `owner/repo`, a local path, or a Git URL.
 
-So this repository is its own marketplace, twice over. That is the whole distribution
-mechanism. Nothing is submitted anywhere, nothing is approved, and the version you install
-is the one on the Git ref you added.
+So this repository is its own marketplace, twice over. Installing from it does not imply
+that Anthropic or OpenAI reviewed, approved, or endorsed the plugin, and the version you
+install is the one on the Git ref you added.
 
 ## What the plugin contains
 

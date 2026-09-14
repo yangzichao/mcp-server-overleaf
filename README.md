@@ -145,12 +145,13 @@ codex plugin add overleaf@mcp-server-overleaf
 
 Restart the client, then ask it to list the files in your project.
 
-Neither client has a central plugin directory. In both, a marketplace is just a Git
-repository, so this one is its own: Claude Code reads `.claude-plugin/marketplace.json` out
-of it and Codex reads `.agents/plugins/marketplace.json`, and both point at the same
+Until this local MCP server is accepted into a public directory, both clients install it
+from this repository's marketplace: Claude Code reads `.claude-plugin/marketplace.json` and
+Codex reads `.agents/plugins/marketplace.json`, and both point at the same
 `plugins/overleaf` directory. That plugin holds no token and sets no environment variable,
 because the first command writes the token to `~/.config/overleaf-mcp/projects.json` and the
-server finds it there. Details in
+server finds it there. Public directory review is separate from this repository-based
+installation. Details in
 [Install the Claude Code and Codex plugins](docs/install-plugins.md).
 
 ## Install with one command
