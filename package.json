@@ -79,6 +79,7 @@
     "tmp": "^0.2.7"
   },
   "devDependencies": {
+    "@amiceli/vitest-cucumber": "^8.0.0",
     "@anthropic-ai/mcpb": "2.1.2",
     "@biomejs/biome": "^2.5.12",
     "@types/node": "^26.4.1",

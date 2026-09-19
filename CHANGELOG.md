@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add executable specifications. `tests/features/publishingToOverleaf.feature` states in plain
+  sentences what this server promises a co-author — an edit waits in the clone, a push that
+  would overwrite their newer work is refused, a deletion stays local until it is pushed — and
+  every sentence is bound to a real call against the server over stdio. The prose and the
+  behaviour are checked against each other on every run: a sentence with no binding fails the
+  suite, so the document cannot quietly stop being true. Run through Vitest with
+  `@amiceli/vitest-cucumber`, a development dependency, so there is no second test command.
+
 - Fix the category names `project_summary` promises. Its output schema named a category
   `bib`, which this project has never produced; the real names are `tex`, `bibliography`,
   `figure`, `class-or-style`, `build-artifact` and `other`, and two of them were missing
