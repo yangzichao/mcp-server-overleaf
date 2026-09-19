@@ -16,6 +16,7 @@ export interface JsonRpcResponse {
   readonly id?: number;
   readonly result?: {
     readonly content?: Array<{ type: string; text?: string }>;
+    readonly structuredContent?: Record<string, unknown>;
     readonly tools?: McpToolDescription[];
     readonly isError?: boolean;
     readonly protocolVersion?: string;

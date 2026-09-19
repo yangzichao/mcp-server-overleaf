@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { projectSummarySchema } from "../../../src/tools/reading/projectSummarySchema.js";
 import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
 import { McpHttpClient } from "../support/mcpHttpClient.js";
@@ -75,6 +76,29 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     expect(tools.find((tool) => tool.name === "project_summary")?.outputSchema).toMatchObject({
       type: "object",
     });
+  });
+
+  it("returns project_summary as structured content matching the schema it advertises", async () => {
+    await client.call("write_file", { path: "refs.bib", content: "@article{key}\n" });
+    const response = await client.callRaw("project_summary");
+    const structured = response.result?.structuredContent;
+
+    // Parsing the text block instead would pass even if structuredContent were absent,
+    // and would never notice the advertised schema drifting away from the real shape.
+    expect(structured, "project_summary sent no structuredContent").toBeDefined();
+    expect(JSON.parse(response.result?.content?.[0]?.text ?? "null")).toEqual(structured);
+
+    const parsed = projectSummarySchema.safeParse(structured);
+    expect(parsed.error?.issues ?? []).toEqual([]);
+    expect(parsed.data).toMatchObject({
+      trackedFiles: 1,
+      mainFile: "main.tex",
+      sectionCountScope: "mainFile",
+      untrackedFiles: ["refs.bib"],
+    });
+    // The category names are the ones latexProjectFiles actually produces, which is what
+    // the schema promises; an invented name like "bib" would fail the parse above.
+    expect(Object.keys(parsed.data?.categories ?? {}).sort()).toEqual(["bibliography", "tex"]);
   });
 
   it("describes every tool and every parameter, because an undescribed one is unusable", async () => {

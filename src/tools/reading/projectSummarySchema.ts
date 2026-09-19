@@ -1,5 +1,7 @@
 import * as z from "zod/v4";
 
+import { LATEX_FILE_CATEGORIES } from "../../latex/latexProjectFiles.js";
+
 /**
  * The shape `project_summary` promises.
  *
@@ -15,9 +17,11 @@ export const projectSummarySchema = z.object({
     .int()
     .describe("Files in the project: tracked files plus local files not yet pushed."),
   trackedFiles: z.number().int().describe("Files Overleaf already has."),
+  // partialRecord, not record: a record keyed by an enum is exhaustive in Zod 4, so it
+  // would demand a count for every category and the SDK would reject each real answer.
   categories: z
-    .record(z.string(), z.number().int())
-    .describe('File counts by kind, keyed by category: "tex", "bib", "figure" or "other".'),
+    .partialRecord(z.enum(LATEX_FILE_CATEGORIES), z.number().int())
+    .describe(`File counts by kind, keyed by category. A category with no files is absent rather than zero.`),
   mainFile: z
     .string()
     .nullable()

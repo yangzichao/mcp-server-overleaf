@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { mkdir, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -72,6 +72,45 @@ describe("a symlink pointing out of the clone", () => {
   });
 });
 
+describe("a symlink and a file that would be removed or moved", () => {
+  it("is not deleted through, and the target survives", async () => {
+    await symlink(secretFile, repositoryPath("notes.tex"));
+    await expect(repository.deleteFile("notes.tex")).rejects.toThrow(/symbolic links/);
+    expect(await readFile(secretFile, "utf8")).toBe("PRIVATE KEY MATERIAL\n");
+  });
+
+  it("is not reached as a directory on the way to a delete", async () => {
+    await symlink(outsideDirectory, repositoryPath("sections"));
+    await expect(repository.deleteFile("sections/id_rsa")).rejects.toThrow(/symbolic links/);
+    expect(await readFile(secretFile, "utf8")).toBe("PRIVATE KEY MATERIAL\n");
+  });
+
+  it("cannot be the source of a move, which would carry the target into the clone", async () => {
+    await symlink(secretFile, repositoryPath("notes.tex"));
+    await expect(repository.moveFile("notes.tex", "stolen.tex")).rejects.toThrow(/symbolic links/);
+    expect(await readFile(secretFile, "utf8")).toBe("PRIVATE KEY MATERIAL\n");
+  });
+
+  // The destination does not exist yet, so containment has to be decided from the nearest
+  // existing ancestor. Without that, a move would write a co-author's file outside the clone.
+  it("cannot be the destination of a move through a linked directory", async () => {
+    await symlink(outsideDirectory, repositoryPath("figures"));
+    await expect(repository.moveFile("main.tex", "figures/main.tex")).rejects.toThrow(/symbolic links/);
+    expect(await repository.readTextFile("main.tex")).toContain("\\section{A}");
+  });
+
+  it("refuses a move whose destination climbs out of the clone", async () => {
+    await expect(repository.moveFile("main.tex", "../escaped.tex")).rejects.toThrow();
+    expect(await repository.readTextFile("main.tex")).toContain("\\section{A}");
+  });
+
+  it("refuses to delete a directory, which would take a co-author\u2019s files with it", async () => {
+    await repository.writeTextFile("sections/intro.tex", "fresh\n");
+    await expect(repository.deleteFile("sections")).rejects.toThrow(/directory, not a file/);
+    expect(await repository.readTextFile("sections/intro.tex")).toBe("fresh\n");
+  });
+});
+
 describe("a symlink pointing into .git", () => {
   it("cannot be used to walk around the .git guard", async () => {
     await symlink(repositoryPath(".git", "config"), repositoryPath("innocent.tex"));
@@ -82,6 +121,19 @@ describe("a symlink pointing into .git", () => {
     await mkdir(repositoryPath(".git", "hooks"), { recursive: true });
     await symlink(repositoryPath(".git", "hooks"), repositoryPath("figures"));
     await expect(repository.writeTextFile("figures/pre-commit", "#!/bin/sh\n")).rejects.toThrow(
+      /\.git directory/,
+    );
+  });
+
+  it("cannot be used to delete the repository\u2019s own history", async () => {
+    await symlink(repositoryPath(".git", "config"), repositoryPath("innocent.tex"));
+    await expect(repository.deleteFile("innocent.tex")).rejects.toThrow(/\.git directory/);
+    expect(await repository.fileExists("main.tex")).toBe(true);
+  });
+
+  it("cannot be the destination of a move into .git", async () => {
+    await symlink(repositoryPath(".git"), repositoryPath("figures"));
+    await expect(repository.moveFile("main.tex", "figures/hooks/pre-commit")).rejects.toThrow(
       /\.git directory/,
     );
   });
@@ -100,5 +152,16 @@ describe("ordinary paths still work", () => {
   it("allows a symlink that stays inside the clone", async () => {
     await symlink(repositoryPath("main.tex"), repositoryPath("alias.tex"));
     expect(await repository.readTextFile("alias.tex")).toContain("\\section{A}");
+  });
+
+  it("deletes a real file", async () => {
+    await repository.deleteFile("main.tex");
+    expect(await repository.fileExists("main.tex")).toBe(false);
+  });
+
+  it("moves a file into a directory that does not exist yet", async () => {
+    await repository.moveFile("main.tex", "sections/main.tex");
+    expect(await repository.fileExists("main.tex")).toBe(false);
+    expect(await repository.readTextFile("sections/main.tex")).toContain("\\section{A}");
   });
 });
