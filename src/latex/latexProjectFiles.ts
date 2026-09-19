@@ -1,10 +1,20 @@
-export type LatexFileCategory =
-  | "tex"
-  | "bibliography"
-  | "figure"
-  | "class-or-style"
-  | "build-artifact"
-  | "other";
+/**
+ * The categories `list_files` groups by and `project_summary` counts.
+ *
+ * Exported as a list rather than only as a union so the tool schema that documents these
+ * names can be built from them. Restating them in prose is how the schema came to promise
+ * a category called "bib" that this file has never produced.
+ */
+export const LATEX_FILE_CATEGORIES = [
+  "tex",
+  "bibliography",
+  "figure",
+  "class-or-style",
+  "build-artifact",
+  "other",
+] as const;
+
+export type LatexFileCategory = (typeof LATEX_FILE_CATEGORIES)[number];
 
 export interface CategorizedProjectFile {
   readonly path: string;

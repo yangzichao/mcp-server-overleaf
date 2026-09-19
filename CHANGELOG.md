@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Fix the category names `project_summary` promises. Its output schema named a category
+  `bib`, which this project has never produced; the real names are `tex`, `bibliography`,
+  `figure`, `class-or-style`, `build-artifact` and `other`, and two of them were missing
+  from the list entirely. The schema now builds that list from `LATEX_FILE_CATEGORIES` in
+  `latexProjectFiles.ts`, so prose can no longer drift from what the code emits.
+- Cover the three places where a test could not have caught a defect it was meant to.
+  `delete_file` and `move_file` remove and relocate files from a client-supplied path, but
+  `symlinkEscape.test.ts` — the file that proves path containment for every other file
+  operation — did not exercise them; it does now, for both ends of a move. `ranges` payload
+  parsing had no unit test at all, although it is the one input on this server with no
+  published contract and the fake remote only ever produces well-formed shapes. And the
+  `project_summary` assertion parsed the text block, so it would have passed with no
+  structured content on the wire at all; it now validates the wire value against the
+  schema the tool advertises.
+
 - Add `delete_file` and `move_file`, the two parts of the file surface `write_file` could not
   express: the server could create and overwrite a file but never remove or rename one, so
   cleaning up an obsolete draft or reorganising a paper's sections meant leaving Overleaf.
