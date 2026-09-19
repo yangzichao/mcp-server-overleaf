@@ -552,6 +552,7 @@ src/
   server/      server factory shared by both transports
 tests/
   config/ latex/ overleaf/  unit tests, run in-process
+  features/                 Gherkin specifications, bound to the server over stdio
   integration/              spawn the built server and speak MCP to it over stdio or HTTP
 ```
 
@@ -581,6 +582,13 @@ sync, conflict recovery, remote rejection and reconnection, process restarts, a 
 lock holder, and simultaneous clients. New files and unpushed commits must remain
 visible in `show_diff`. Deterministic subprocess fixtures test Git and compiler timeouts
 without needing a network connection or TeX installation.
+
+`tests/features/` states the publishing contract as a Gherkin feature file: plain sentences
+about what a co-author sees, each one bound to a real call against the server over stdio.
+A sentence with no binding fails the run, so the document cannot drift away from the
+behaviour it describes. Add a scenario by writing it in the `.feature` file and binding its
+new steps in the `.test.ts` beside it; steps are shared across the scenarios of a feature,
+so most new scenarios need no new bindings at all.
 
 TeX-dependent tests share one availability check. Set `OVERLEAF_TEST_TEX=skip` to run
 without TeX, or `OVERLEAF_TEST_TEX=required` to fail if `latexmk` or `pdflatex` is missing.
