@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- Add `delete_file` and `move_file`, the two parts of the file surface `write_file` could not
+  express: the server could create and overwrite a file but never remove or rename one, so
+  cleaning up an obsolete draft or reorganising a paper's sections meant leaving Overleaf.
+  Both go through the Git bridge like every other edit, so a removal is local until
+  `push_changes` and `discard_local_changes` undoes it. `move_file` refuses rather than
+  overwrite an existing destination, and says which LaTeX references it has not rewritten.
+- Rewrite every tool description and every parameter description against what the code
+  actually does. Three tools described their `project` parameter more narrowly than the
+  server accepts, or did not describe it at all, so a model could not know an Overleaf
+  address was a valid value. Descriptions now also state when to call a tool and when to
+  prefer another, which side effects it has, and where its behaviour stops: `search_project`
+  names the eight extensions it actually searches, `read_section` and `edit_section` name the
+  trailing matter a section stops at, and `add_comment` says the thread it creates is empty.
+- Declare `openWorldHint` on every tool. Every tool but `list_projects` contacts Overleaf,
+  including the read tools, which pull before answering; none of them said so.
+- Declare an `outputSchema` for `project_summary` and return its result as
+  `structuredContent`, so a client gets a typed object with documented fields instead of a
+  JSON string it has to parse out of a text block.
+
 ## 0.3.4
 
 - Describe this server by what makes it different. Every storefront line, on npm, in the MCP

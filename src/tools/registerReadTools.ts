@@ -6,6 +6,7 @@ import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOver
 import { ANY_OTHER_PROJECT, projectArgument } from "./projectArgument.js";
 import { registerProjectInventoryTools } from "./reading/projectInventoryTools.js";
 import { registerReadFileTool } from "./reading/readFileTool.js";
+import { READS_LOCAL_CONFIGURATION, READS_OVERLEAF } from "./toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
 export function registerReadTools(server: McpServer, context: ToolContext): void {
@@ -14,9 +15,12 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "List Overleaf projects",
       description:
-        "List the Overleaf projects this server is configured to reach, and which one is the default.",
+        "List the Overleaf projects this server is configured to reach, marking which one is the default. " +
+        "Reads local configuration only, so it answers without contacting Overleaf and proves nothing about access. " +
+        "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. " +
+        "Any project not listed can still be reached by passing its Overleaf address as `project`.",
       inputSchema: z.object({}),
-      annotations: { readOnlyHint: true },
+      annotations: READS_LOCAL_CONFIGURATION,
     },
     () =>
       runToolSafely(context, () => {
@@ -46,12 +50,14 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "List LaTeX sections",
       description:
-        "List the sectioning commands in a .tex file with their line ranges, so a section can be addressed by title instead of by line number.",
+        "List the sectioning commands in a .tex file — \\section, \\subsection and the rest — with their nesting depth and line ranges. " +
+        "Pulls from Overleaf first. Call this before read_section or edit_section to learn the exact titles those tools expect, " +
+        "and to address a part of a paper by title rather than by line number, which shifts as the file is edited.",
       inputSchema: z.object({
         project: projectArgument,
-        path: z.string().describe("Path to the .tex file relative to the project root."),
+        path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
       }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, path }) =>
       runToolSafely(context, () =>
@@ -78,15 +84,22 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     "read_section",
     {
       title: "Read one LaTeX section",
-      description: "Read the body of a single section of a .tex file, located by its title.",
+      description:
+        "Read one section of a .tex file, located by its title rather than by line number. " +
+        "The section runs from its own sectioning command to whichever comes first: the next heading at the same or a shallower level, " +
+        "or trailing matter such as \\end{document}, \\appendix or the bibliography, which belongs to no section. " +
+        "Pulls from Overleaf first. Prefer this over read_file when revising one part of a paper, so the rest of the document stays out of context. " +
+        "Title matching is case-insensitive and falls back to a substring match; if nothing matches, the reply lists the titles that do exist.",
       inputSchema: z.object({
         project: projectArgument,
-        path: z.string().describe("Path to the .tex file relative to the project root."),
+        path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
         sectionTitle: z
           .string()
-          .describe("Section title as it appears in the sectioning command, e.g. Introduction."),
+          .describe(
+            "Section title exactly as it appears inside the sectioning command, e.g. Introduction for \\section{Introduction}. Call list_sections first if unsure.",
+          ),
       }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, path, sectionTitle }) =>
       runToolSafely(context, () =>
@@ -111,23 +124,31 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "Search the project",
       description:
-        "Search all tracked text files for a string or regular expression, returning matching lines.",
+        "Search the project's LaTeX and text sources for a string or regular expression, returning matching lines as path:line:text. " +
+        "Pulls from Overleaf first. Use this to find where a term, citation key, label or command is used across a multi-file paper, " +
+        "when you do not already know which file holds it. " +
+        "Only .tex, .ltx, .bib, .cls, .sty, .bst, .txt and .md files are searched; figures, PDFs and other data files are not. " +
+        "Literal searches are case-insensitive.",
       inputSchema: z.object({
         project: projectArgument,
-        query: z.string().describe("Text or regular expression to search for."),
+        query: z
+          .string()
+          .describe(
+            "What to look for. Literal text by default, so LaTeX backslashes need no escaping; a regular expression when isRegularExpression is true.",
+          ),
         isRegularExpression: z
           .boolean()
           .optional()
-          .describe("Treat the query as a regular expression (default false)."),
+          .describe("Treat query as a regular expression instead of literal text (default false)."),
         maximumMatches: z
           .number()
           .int()
           .positive()
           .max(500)
           .optional()
-          .describe("Cap on reported matches (default 100)."),
+          .describe("Stop after this many matches, between 1 and 500 (default 100)."),
       }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, query, isRegularExpression, maximumMatches }) =>
       runToolSafely(context, () =>

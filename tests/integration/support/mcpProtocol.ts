@@ -1,10 +1,14 @@
+/** A tool as `tools/list` advertises it, narrowed to the parts these tests assert on. */
 export interface McpToolDescription {
   readonly name: string;
+  readonly title?: string;
+  readonly description?: string;
   readonly inputSchema: {
     readonly type: string;
     readonly required?: string[];
     readonly properties?: Record<string, unknown>;
   };
+  readonly outputSchema?: { readonly type: string };
   readonly annotations?: Record<string, boolean | string>;
 }
 

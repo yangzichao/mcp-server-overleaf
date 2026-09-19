@@ -2,7 +2,7 @@
 
 Three tools reach Overleaf's editor instead of its Git bridge, so an edit can arrive as a
 suggestion in the review panel rather than as finished text. They are off by default, need a
-credential the other sixteen tools do not use, and this page is about that trade.
+credential the other eighteen tools do not use, and this page is about that trade.
 
 ## Why the Git bridge cannot do this
 
@@ -90,7 +90,7 @@ anything is sent. A reviewer who may not write plain text can still suggest.
 - **Accept or reject.** Neither is implemented yet.
 - **A guarantee of stability.** The Git bridge is a documented, supported interface. The
   real-time protocol is internal to Overleaf and can change without notice. If it does, the
-  review tools break and the other sixteen do not.
+  review tools break and the other eighteen do not.
 
 ## Verification
 

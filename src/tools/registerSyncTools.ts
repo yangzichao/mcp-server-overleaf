@@ -6,6 +6,7 @@ import { compileLatexProject } from "../workflow/compileLatexProject.js";
 import { publishToOverleaf } from "../workflow/publishToOverleaf.js";
 import { synchronizeWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
 import { projectArgument } from "./projectArgument.js";
+import { READS_OVERLEAF, UPDATES_LOCAL_CLONE_SAFELY, WRITES_TO_OVERLEAF } from "./toolAnnotations.js";
 import {
   buildDirectoryForProject,
   runToolSafely,
@@ -20,9 +21,12 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Project status",
       description:
-        "Report whether the local clone is in step with Overleaf: commits pulled, edits pending, and the recent history.",
+        "Report where the local clone stands relative to Overleaf: the branch and head commit, how many commits were just pulled, " +
+        "how many remain unmerged, how many local commits are waiting to be pushed, which files are edited but not committed, and the last ten commits. " +
+        "Pulls from Overleaf as part of answering. Call this to find out whether there is anything to push or anything a collaborator has changed; " +
+        "use show_diff instead to see what the pending edits actually say.",
       inputSchema: z.object({ project: projectArgument }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project }) =>
       runToolSafely(context, () =>
@@ -59,9 +63,13 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     "sync_project",
     {
       title: "Pull from Overleaf",
-      description: "Pull the latest commits from Overleaf into the local clone without changing anything.",
+      description:
+        "Pull the latest commits from Overleaf into the local clone. Nothing is sent to Overleaf and no local edit is discarded. " +
+        "The read tools pull on their own, so this is rarely needed first; call it to check explicitly that the clone is current, " +
+        "or after a collaborator says they have pushed. " +
+        "If the pull cannot complete cleanly it fails and leaves local work untouched, rather than resolving the conflict on its own.",
       inputSchema: z.object({ project: projectArgument }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      annotations: UPDATES_LOCAL_CLONE_SAFELY,
     },
     async ({ project }) =>
       runToolSafely(context, () =>
@@ -85,15 +93,21 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Compile the project",
       description:
-        "Compile the project locally with latexmk and report errors and warnings. Build artifacts are written outside the clone, so they are never pushed to Overleaf.",
+        "Compile the project locally with latexmk and report the errors and warnings, so a broken paper is found before collaborators see it. " +
+        "Call this after editing and before push_changes. " +
+        "Build artifacts go to a directory outside the clone, so they are never pushed to Overleaf, and no PDF is returned — only the log. " +
+        "This is the one tool that needs latexmk and a TeX distribution installed locally; without them it reports that rather than compiling. " +
+        "It also fills in any files sparse checkout was holding back, since figures have to be on disk to compile.",
       inputSchema: z.object({
         project: projectArgument,
         mainTexFile: z
           .string()
           .optional()
-          .describe("Root .tex file. Omitted, the server guesses it from the project layout."),
+          .describe(
+            "Path to the root .tex file, the one containing \\begin{document}. Omitted, the server guesses it from the project layout and says so if the guess has no document environment.",
+          ),
       }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, mainTexFile }) =>
       runToolSafely(context, () =>
@@ -133,14 +147,20 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Push changes to Overleaf",
       description:
-        "Commit the pending local edits and push them to Overleaf. Before pushing, the server re-checks Overleaf and rebases onto anything collaborators pushed in the meantime; if that cannot be done cleanly the push is refused and the conflict is reported.",
+        "Publish every pending local edit to Overleaf as one commit. This is the only tool that changes the project collaborators see, and the change is immediate and public. " +
+        "Call show_diff first, and compile_project when the edit could break the build. " +
+        "Before pushing, the server re-checks Overleaf and rebases onto whatever collaborators pushed in the meantime. " +
+        "If two edits touch the same lines the push is refused, both versions are reported, and no local work is lost — nothing is overwritten and no winner is chosen. " +
+        "Reports that there was nothing to push when the clone has no pending edits.",
       inputSchema: z.object({
         project: projectArgument,
         commitMessage: z
           .string()
-          .describe("Commit message describing the change, e.g. 'Rewrite Section 4 discussion'."),
+          .describe(
+            'Message describing the change, shown in the project\'s Overleaf history. One line, written for a co-author, e.g. "Rewrite Section 4 discussion".',
+          ),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+      annotations: WRITES_TO_OVERLEAF,
     },
     async ({ project, commitMessage }) =>
       runToolSafely(context, () =>

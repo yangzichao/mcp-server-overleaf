@@ -39,8 +39,9 @@ co-author has already changed the lines you are editing.
 - **A conflict ends the push, not your co-author's paragraph.** Every read and every push
   first checks what changed on Overleaf. When two edits touch the same lines, `push_changes`
   refuses and shows you both versions.
-- **16 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
-  section or by exact text, compile locally, inspect the diff, then publish deliberately.
+- **18 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
+  section or by exact text, add, rename and remove files, compile locally, inspect the diff,
+  then publish deliberately.
 - **An edit can arrive as a suggestion, not as finished text.** Three optional tools talk to
   Overleaf's editor rather than the Git bridge, so a change lands in the review panel for a
   co-author to accept or reject. A Git push cannot express that.
@@ -59,7 +60,7 @@ and sending an edit to Overleaf as a tracked suggestion.
 
 ## Where it installs
 
-Every route below reaches the same server and the same 16 tools, and every one of them
+Every route below reaches the same server and the same 18 tools, and every one of them
 keeps edits local until an explicit push. Pick the row for your client. The three
 [tracked-changes tools](docs/tracked-changes.md) are extra, and appear only once a session
 cookie is configured.
@@ -104,7 +105,7 @@ holds the secret.
 
 ## What you are installing
 
-An MCP server exposing 16 tools over stdio or Streamable HTTP, plus 3 more when a session
+An MCP server exposing 18 tools over stdio or Streamable HTTP, plus 3 more when a session
 cookie turns on [tracked changes](docs/tracked-changes.md). One core, two transports;
 the tool implementations are identical and only the framing differs. `setup` connects it
 to the AI clients on this computer and is the only command most people need.
@@ -432,6 +433,8 @@ their configured project credentials.
 | `replace_text` | Replace an exact snippet, refusing ambiguous matches |
 | `edit_section` | Replace one section wholesale |
 | `write_file` | Overwrite or create a file |
+| `delete_file` | Remove a file, local until pushed |
+| `move_file` | Move or rename a file, refusing to overwrite the destination |
 | `show_diff` | The diff of everything not yet pushed |
 | `discard_local_changes` | Throw away unpushed edits and commits, back to Overleaf's version |
 | `project_status` | Sync state, pending edits, recent history |
@@ -464,6 +467,13 @@ the first. Add surrounding context to make it unique, or pass `replaceAll` delib
 
 Prefer `replace_text` and `edit_section` over `write_file`. `write_file` replaces an entire
 file, so a partial reconstruction of a document silently deletes the rest of it.
+
+`delete_file` and `move_file` are local until `push_changes` like every other edit, so a
+removal can be undone with `discard_local_changes` right up to the push. Neither rewrites
+LaTeX references: after a move, `search_project` for the old path and fix any `\input`,
+`\include` or `\includegraphics` that still names it, or the paper stops compiling. Before
+deleting, check the file is genuinely unused — a co-author's `\input` is enough to break
+their build.
 
 For a read–edit cycle, request `read_file` with `mode: "full"` or `"smart"` and pass its
 `revision` as `expectedRevision` to any edit tool. The edit then refuses to overwrite a
