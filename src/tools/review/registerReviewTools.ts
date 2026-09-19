@@ -8,6 +8,7 @@ import {
   generateTrackedChangeIdSeed,
 } from "../../overleaf/realtime/overleafRealtimeSession.js";
 import { projectArgument } from "../projectArgument.js";
+import { READS_OVERLEAF, SUGGESTS_IN_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
 import { describeDocumentRanges, findTextOffset } from "./describeTrackedChanges.js";
 import { requireDocument, requireReviewCapableProject, withReviewSession } from "./openReviewSession.js";
@@ -21,7 +22,7 @@ import { requireDocument, requireReviewCapableProject, withReviewSession } from 
  * edit arrives in the review panel as a suggestion a co-author accepts or rejects.
  *
  * They need a session cookie rather than a Git token, so they are registered only when one is
- * configured. A server without it offers the other sixteen tools unchanged.
+ * configured. A server without it offers the other eighteen tools unchanged.
  */
 
 const pathArgument = z
@@ -38,10 +39,12 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
     {
       title: "List tracked changes and comments",
       description:
-        "Read the tracked changes and review-panel comment threads on a document, as Overleaf's review panel shows them. " +
-        "This reads the live editor rather than the Git bridge, so it sees suggestions that have not been accepted.",
+        "Read the tracked changes and review-panel comment anchors on a document, as Overleaf's review panel shows them. " +
+        "This reads the live editor rather than the Git bridge, so it sees suggestions nobody has accepted yet, which no other tool here can. " +
+        "Call it to find out what is already pending review before suggesting more. " +
+        "Comment threads come back as their anchored text only; the messages inside them are not readable through this connection.",
       inputSchema: z.object({ project: projectArgument, path: pathArgument }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, path }) =>
       runToolSafely(context, () =>
@@ -60,18 +63,24 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
     {
       title: "Suggest an edit as a tracked change",
       description:
-        "Replace an exact snippet of text so that it arrives in Overleaf as a tracked change, which a co-author can accept or reject, " +
-        "instead of as a finished edit. Takes effect in Overleaf immediately; there is no separate push. " +
-        "Use replace_text instead when the edit should simply be made.",
+        "Replace an exact snippet of text so that it arrives in Overleaf as a tracked change a co-author can accept or reject, rather than as finished text. " +
+        "Unlike every other editing tool here, this reaches Overleaf immediately and there is no separate push, because it goes through the editor rather than the Git bridge. " +
+        "Use it when proposing a change to someone else's paper; use replace_text when the edit should simply be made. " +
+        "The snippet must match exactly and appear exactly once in the document. " +
+        "This server cannot accept or reject a suggestion afterwards — that is done in Overleaf.",
       inputSchema: z.object({
         project: projectArgument,
         path: pathArgument,
-        findText: z.string().describe("Exact text to replace, including whitespace."),
+        findText: z
+          .string()
+          .describe(
+            "Exact text to replace, matched literally including whitespace. Must occur exactly once in the document.",
+          ),
         replaceWith: z
           .string()
-          .describe("Replacement text. Empty suggests deleting the found text and nothing more."),
+          .describe("Suggested replacement text. Empty string suggests deleting findText and nothing more."),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      annotations: SUGGESTS_IN_OVERLEAF,
     },
     async ({ project, path, findText, replaceWith }) =>
       runToolSafely(context, () =>
@@ -105,14 +114,20 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
     {
       title: "Comment on a passage",
       description:
-        "Attach a review-panel comment thread to an exact snippet of text. The thread is anchored immediately; " +
-        "the first message has to be written in Overleaf, because this connection cannot carry comment text.",
+        "Anchor a review-panel comment thread to an exact snippet of text, for raising a question without changing the prose. " +
+        "Takes effect in Overleaf immediately; there is no separate push. " +
+        "The thread arrives empty: this connection cannot carry the comment text, so the first message has to be typed in Overleaf. " +
+        "Say so when reporting the result, and put the point you wanted to make in your own reply rather than assuming it reached the co-author.",
       inputSchema: z.object({
         project: projectArgument,
         path: pathArgument,
-        quoteText: z.string().describe("Exact text the comment should be attached to."),
+        quoteText: z
+          .string()
+          .describe(
+            "Exact text the comment should be anchored to, matched literally. Must occur exactly once in the document.",
+          ),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      annotations: SUGGESTS_IN_OVERLEAF,
     },
     async ({ project, path, quoteText }) =>
       runToolSafely(context, () =>

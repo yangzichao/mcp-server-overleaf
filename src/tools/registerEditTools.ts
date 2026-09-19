@@ -3,8 +3,10 @@ import * as z from "zod/v4";
 import { findSectionByTitle, parseLatexSections, replaceSectionText } from "../latex/parseLatexSections.js";
 import { replaceTextOccurrences } from "../latex/replaceTextOccurrences.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { registerFileLifecycleTools } from "./editing/fileLifecycleTools.js";
 import { projectArgument } from "./projectArgument.js";
 import { requireFileRevision } from "./reading/fileRevisions.js";
+import { EDITS_LOCAL_CLONE, EDITS_LOCAL_CLONE_IDEMPOTENTLY, READS_OVERLEAF } from "./toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
 
 const expectedRevisionArgument = z
@@ -12,7 +14,9 @@ const expectedRevisionArgument = z
   .regex(/^[0-9a-f]{64}$/)
   .optional()
   .describe(
-    "Require the SHA-256 revision from read_file mode=full/smart before writing; refuses stale edits after synchronization.",
+    "Optional guard: the 64-character revision hash returned by read_file with mode=full or mode=smart for this same file. " +
+      "When given, the edit is refused if the file changed since that read — for example because pulling from Overleaf brought in a collaborator's version. " +
+      "Pass it whenever the edit depends on content you read earlier.",
   );
 
 const EDITS_ARE_LOCAL_UNTIL_PUSHED =
@@ -29,20 +33,29 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Replace exact text in a file",
       description:
-        "Replace an exact snippet of text in a project file. The snippet must appear exactly once unless replaceAll is set. " +
-        "This is the safest way to make a surgical edit without disturbing surrounding notation.",
+        "Replace an exact snippet of text in a project file. Prefer this over write_file and edit_section for a targeted change: " +
+        "it touches nothing outside the snippet, so surrounding LaTeX notation cannot be disturbed. " +
+        "The snippet must match exactly, whitespace included, and must appear exactly once unless replaceAll is set; " +
+        "if it appears several times the call changes nothing and reports the count, so add surrounding context to make it unique. " +
+        "The edit is written to the local clone only — nothing reaches Overleaf until push_changes.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
         path: z.string().describe("Path relative to the project root."),
-        findText: z.string().describe("Exact text to find, including whitespace."),
-        replaceWith: z.string().describe("Replacement text."),
+        findText: z
+          .string()
+          .describe(
+            "Exact text to find, matched literally including whitespace and newlines. Not a regular expression.",
+          ),
+        replaceWith: z.string().describe("Text to put in its place. Empty string deletes the snippet."),
         replaceAll: z
           .boolean()
           .optional()
-          .describe("Replace every occurrence instead of requiring a unique match."),
+          .describe(
+            "Replace every occurrence instead of requiring exactly one match (default false). Only set this when replacing all of them is intended.",
+          ),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+      annotations: EDITS_LOCAL_CLONE,
     },
     async ({ project, path, findText, replaceWith, replaceAll, expectedRevision }) =>
       runToolSafely(context, () =>
@@ -81,17 +94,27 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Rewrite one LaTeX section",
       description:
-        "Replace the whole body of one section of a .tex file, located by its title. Include the sectioning command itself in newContent.",
+        "Replace one whole section of a .tex file, located by its title. " +
+        "newContent replaces everything from the sectioning command to the end of the section, so it must include the \\section{...} command itself or the heading is lost. " +
+        "The section ends at the next heading of the same or a shallower level, or at trailing matter such as \\end{document} or the bibliography, which is never swallowed. " +
+        "Use replace_text for a smaller change; use this when rewriting a section wholesale. " +
+        "The edit is written to the local clone only — nothing reaches Overleaf until push_changes.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
         path: z.string().describe("Path to the .tex file relative to the project root."),
-        sectionTitle: z.string().describe("Title of the section to replace."),
+        sectionTitle: z
+          .string()
+          .describe(
+            "Title of the section to replace, as it appears in the sectioning command. Matched case-insensitively, with a substring fallback. Call list_sections if unsure.",
+          ),
         newContent: z
           .string()
-          .describe("Replacement text for the section, including its own \\section{...} command."),
+          .describe(
+            "The section's full replacement text, starting with its own sectioning command, e.g. \\section{Introduction} followed by the new body.",
+          ),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+      annotations: EDITS_LOCAL_CLONE,
     },
     async ({ project, path, sectionTitle, newContent, expectedRevision }) =>
       runToolSafely(context, () =>
@@ -121,14 +144,21 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Write a whole file",
       description:
-        "Overwrite a project file with new content, creating it if it does not exist. Prefer replace_text or edit_section for changes to an existing file.",
+        "Overwrite a project file with new content, creating it and any missing parent directories if it does not exist. " +
+        "This replaces the whole file, so use it to add a new file; for a change to an existing one prefer replace_text or edit_section, " +
+        "which cannot accidentally drop the parts you did not mean to rewrite. " +
+        "The file is written to the local clone only — nothing reaches Overleaf until push_changes.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
-        path: z.string().describe("Path relative to the project root."),
-        content: z.string().describe("Full new file content."),
+        path: z
+          .string()
+          .describe(
+            "Path relative to the project root, e.g. sections/related-work.tex. Must stay inside the project.",
+          ),
+        content: z.string().describe("The complete new contents of the file, not a fragment to append."),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+      annotations: EDITS_LOCAL_CLONE_IDEMPOTENTLY,
     },
     async ({ project, path, content, expectedRevision }) =>
       runToolSafely(context, () =>
@@ -154,9 +184,11 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Show pending changes",
       description:
-        "Show the diff of everything edited locally but not yet pushed to Overleaf. Call this before push_changes.",
+        "Show a unified diff of every local edit that has not yet been pushed to Overleaf, across all files. " +
+        "Call this before push_changes to see exactly what collaborators are about to receive, and after a refused push to inspect work that is still pending. " +
+        'Reports "No local changes pending." when the clone matches Overleaf.',
       inputSchema: z.object({ project: projectArgument }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project }) =>
       runToolSafely(context, () =>
@@ -172,9 +204,11 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Discard local edits",
       description:
-        "Throw away every local edit that has not been pushed, returning the clone to the last version seen on Overleaf.",
+        "Permanently throw away every local edit and unpushed commit, resetting the clone to the last version seen on Overleaf. " +
+        "The discarded work cannot be recovered from this server. Call show_diff first, and only call this once the user has said the work should be abandoned. " +
+        "Its main use is after push_changes refuses a conflicting change: the clone cannot be pushed again until the conflicting local commits are either published or discarded here.",
       inputSchema: z.object({ project: projectArgument }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+      annotations: EDITS_LOCAL_CLONE_IDEMPOTENTLY,
     },
     async ({ project }) =>
       runToolSafely(context, () =>
@@ -196,4 +230,6 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
         }),
       ),
   );
+
+  registerFileLifecycleTools(server, context);
 }

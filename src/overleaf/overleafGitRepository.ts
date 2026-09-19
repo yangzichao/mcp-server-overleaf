@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, relative, sep } from "node:path";
 import { assertRealPathInsideRepository } from "./assertRealPathInsideRepository.js";
 import {
@@ -282,6 +282,40 @@ export class OverleafGitRepository {
     const absolutePath = await this.resolveClientPath(relativePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content, "utf8");
+  }
+
+  /**
+   * Removes a file from the working tree. `stageAllAndCommit` runs `git add --all`, which
+   * records the deletion, so nothing else is needed for a push to carry it.
+   *
+   * Sparse checkout is the reason this materializes first: a tracked file can be absent
+   * from disk while still being part of the project, and deleting only what is on disk
+   * would silently succeed without removing anything.
+   */
+  async deleteFile(relativePath: string): Promise<void> {
+    await this.materializePathIfNeeded(relativePath);
+    const absolutePath = await this.resolveClientPath(relativePath);
+    const entry = await stat(absolutePath);
+    if (!entry.isFile()) {
+      throw new Error(`${relativePath} is a directory, not a file. Only files can be deleted.`);
+    }
+    await rm(absolutePath);
+  }
+
+  /** Moves or renames a file inside the project. Both ends are contained the same way. */
+  async moveFile(fromRelativePath: string, toRelativePath: string): Promise<void> {
+    await this.materializePathIfNeeded(fromRelativePath);
+    const fromAbsolutePath = await this.resolveClientPath(fromRelativePath);
+    const entry = await stat(fromAbsolutePath);
+    if (!entry.isFile()) {
+      throw new Error(`${fromRelativePath} is a directory, not a file. Only files can be moved.`);
+    }
+
+    // resolveClientPath contains a path that does not exist yet by checking its nearest
+    // existing ancestor, so a symlinked directory cannot be used to move a file out.
+    const toAbsolutePath = await this.resolveClientPath(toRelativePath);
+    await mkdir(dirname(toAbsolutePath), { recursive: true });
+    await rename(fromAbsolutePath, toAbsolutePath);
   }
 
   async fileExists(relativePath: string): Promise<boolean> {

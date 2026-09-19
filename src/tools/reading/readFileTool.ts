@@ -2,6 +2,8 @@ import { resolve } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { requireSynchronizedWithOverleaf } from "../../workflow/synchronizeWithOverleaf.js";
+import { projectArgument } from "../projectArgument.js";
+import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
 
 export function registerReadFileTool(server: McpServer, context: ToolContext): void {
@@ -10,26 +12,44 @@ export function registerReadFileTool(server: McpServer, context: ToolContext): v
     {
       title: "Read a project file",
       description:
-        "Pull from Overleaf and read text, optionally by line range. Without mode, returns plain text. mode=full returns JSON content and revision; mode=smart with previousRevision returns unchanged, a line replacement delta, or full content when the baseline is unavailable. Deltas use 1-based startLine: split the baseline on newline, splice deleteLineCount lines with change.lines, then join on newline. Never apply a delta to any other baseline. A truncated full response has no usable revision.",
+        "Read a text file from the project, pulling the latest commits from Overleaf first. " +
+        "Binary files are refused rather than returned as mojibake. " +
+        "Three ways to call it: plain (no mode) returns the text, numbered by line when startLine/endLine are given; " +
+        "mode=full returns JSON with the whole content and a revision hash to pass to a guarded edit; " +
+        "mode=smart with previousRevision returns only what changed since that revision. " +
+        "Use a line range to sample a large file, mode=full before editing, and mode=smart to re-read a file you have already read. " +
+        "A smart delta is a 1-based line splice: split your baseline on newline, replace deleteLineCount lines at startLine with change.lines, and join on newline again. " +
+        "Apply a delta only to the exact revision it was computed against. A response marked truncated carries no usable revision.",
       inputSchema: z.object({
-        project: z
-          .string()
+        project: projectArgument,
+        path: z.string().describe("Path to the file relative to the project root, e.g. sections/intro.tex."),
+        startLine: z
+          .number()
+          .int()
+          .positive()
           .optional()
-          .describe("Registered name or 24-character project id; omit for default."),
-        path: z.string().describe("Path relative to the project root."),
-        startLine: z.number().int().positive().optional().describe("First line (1-indexed)."),
-        endLine: z.number().int().positive().optional().describe("Last line (inclusive)."),
+          .describe("First line to return, 1-indexed. Cannot be combined with mode."),
+        endLine: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Last line to return, inclusive. Cannot be combined with mode."),
         mode: z
           .enum(["full", "smart"])
           .optional()
-          .describe("Opt into revision-aware JSON; incompatible with line ranges."),
+          .describe(
+            'Return revision-aware JSON instead of plain text: "full" for whole content plus a revision, "smart" for a delta against previousRevision. Cannot be combined with startLine/endLine.',
+          ),
         previousRevision: z
           .string()
           .regex(/^[0-9a-f]{64}$/)
           .optional()
-          .describe("Revision returned for this file to this caller; requires mode=smart."),
+          .describe(
+            "A 64-character revision hash this server returned for this same file earlier in this session. Requires mode=smart.",
+          ),
       }),
-      annotations: { readOnlyHint: true },
+      annotations: READS_OVERLEAF,
     },
     async ({ project, path, startLine, endLine, mode, previousRevision }) =>
       runToolSafely(context, () => {

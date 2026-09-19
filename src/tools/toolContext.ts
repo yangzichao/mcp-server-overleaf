@@ -29,6 +29,17 @@ export function textResult(text: string): ToolTextResult {
 }
 
 /**
+ * A result for a tool that declares an `outputSchema`.
+ *
+ * The object goes back as `structuredContent`, and the same object is serialized into a
+ * text block as well: clients that never learned to read structured results still get the
+ * answer, rather than an empty content array.
+ */
+export function structuredResult<T extends Record<string, unknown>>(value: T): ToolTextResult {
+  return { content: [{ type: "text", text: JSON.stringify(value) }], structuredContent: value };
+}
+
+/**
  * Turns a thrown error into a tool-level failure the model can read and react to,
  * with the Overleaf token stripped out of the message.
  */

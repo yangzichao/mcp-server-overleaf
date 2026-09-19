@@ -29,6 +29,7 @@ features. Names and defaults differ; this server is not a drop-in protocol repla
 | List/read LaTeX sections | `get_sections`, `get_section_content` | Same names | `list_sections`, `read_section` |
 | Replace a section | `write_section` | — | `edit_section` |
 | Write/create files | `write_file` | `write_file` | `write_file` |
+| Delete and rename files | — | — | `delete_file`, `move_file` |
 | Exact text patch | — | `patch_file` | `replace_text`, unique or explicit all |
 | Publish changes | Automatic after writes | `push_changes` | Explicit `push_changes` |
 | File/main/section summary | `status_summary` | `status_summary` | `project_summary` |
@@ -109,21 +110,26 @@ nothing here would be written against a verified contract.
 
 Because it authenticates as a browser session throughout, that peer also does not need the
 Git bridge, and therefore does not need the project owner's paid subscription. Here the
-session cookie turns on three tools; the other sixteen still go through the bridge, so the
+session cookie turns on three tools; the other eighteen still go through the bridge, so the
 subscription requirement is unchanged for them.
 
 [`@youzhijc/overleaf-paper-mcp`](https://www.npmjs.com/package/@youzhijc/overleaf-paper-mcp)
 automates a browser session. It documents creating projects, uploading a ZIP, creating
-folders, renaming and deleting files, and downloading the compiled PDF, none of which exist
-here. It reads `OVERLEAF_EMAIL` and `OVERLEAF_PASSWORD` from the environment, which is a
-materially different credential exposure from a scoped Git token.
+folders, renaming and deleting files, and downloading the compiled PDF. Renaming and
+deleting now exist here as `move_file` and `delete_file`, which go through the Git bridge
+like every other edit and are therefore local until `push_changes`; creating a project,
+uploading an archive and downloading the PDF do not. It reads `OVERLEAF_EMAIL` and
+`OVERLEAF_PASSWORD` from the environment, which is a materially different credential
+exposure from a scoped Git token.
 
 So this server is not a superset of everything available. It is the most complete of the
 Git-bridge servers, and the trade is deliberate: the Git bridge is what makes a conflicting
 co-author edit detectable and a push refusable. Of the two capabilities that needed a
 second, non-Git integration, tracked-change suggestions are now implemented; working without
-a paid plan is not, and neither is accepting or rejecting a suggestion, reading comment
-thread messages, or anything in the browser-automation list above.
+a paid plan is not, and neither is accepting or rejecting a suggestion or reading comment
+thread messages. From the browser-automation list, renaming and deleting a file are now
+covered; creating a project, uploading an archive, creating a folder on its own and
+downloading the compiled PDF are not.
 
 Release validation covers macOS and Linux, not Windows. Git integration requires a qualifying
 Overleaf account; local compilation requires TeX. There are no latency, bandwidth or user

@@ -1,0 +1,109 @@
+import type { McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod/v4";
+
+import { requireSynchronizedWithOverleaf } from "../../workflow/synchronizeWithOverleaf.js";
+import { projectArgument } from "../projectArgument.js";
+import { EDITS_LOCAL_CLONE } from "../toolAnnotations.js";
+import { runToolSafely, type ToolContext, textResult } from "../toolContext.js";
+
+/**
+ * Removing and renaming a file, the two parts of the file surface that `write_file`
+ * cannot express.
+ *
+ * Both go through the Git bridge like every other edit: the change is made in the local
+ * clone, and `stageAllAndCommit` runs `git add --all`, which records a deletion or a
+ * rename without either tool having to touch the index itself. Nothing reaches Overleaf
+ * until `push_changes`, so a co-author sees a removed file only after a deliberate push,
+ * and `discard_local_changes` puts it back until then.
+ */
+export function registerFileLifecycleTools(server: McpServer, context: ToolContext): void {
+  server.registerTool(
+    "delete_file",
+    {
+      title: "Delete a project file",
+      description:
+        "Delete a file from the project. " +
+        "The file is removed from the local clone only — it stays in Overleaf, and the co-authors keep seeing it, until push_changes publishes the removal. " +
+        "Until then discard_local_changes brings it back, and show_diff shows the pending deletion. " +
+        "Deleting a file a co-author still cites or includes will break their compile, so confirm the file is genuinely unused first; " +
+        "search_project on its path or label is the way to check. To replace a file's contents instead of removing it, use write_file.",
+      inputSchema: z.object({
+        project: projectArgument,
+        path: z
+          .string()
+          .describe(
+            "Path of the file to delete, relative to the project root, e.g. sections/old-draft.tex. Directories cannot be deleted, only files.",
+          ),
+      }),
+      annotations: EDITS_LOCAL_CLONE,
+    },
+    async ({ project, path }) =>
+      runToolSafely(context, () =>
+        context.projectRegistry.withRepository(project, async (repository) => {
+          await requireSynchronizedWithOverleaf(repository);
+
+          if (!(await repository.fileExists(path))) {
+            return textResult(`${path} is not in the project, so there is nothing to delete.`);
+          }
+          await repository.deleteFile(path);
+          return textResult(
+            `Deleted ${path} from the local clone. It is still in Overleaf. ` +
+              "Review it with show_diff, then call push_changes to publish the removal, or discard_local_changes to keep the file.",
+          );
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "move_file",
+    {
+      title: "Move or rename a project file",
+      description:
+        "Move or rename a file inside the project, creating any missing parent directories. " +
+        "The move happens in the local clone only — nothing changes in Overleaf until push_changes. " +
+        "LaTeX references are not rewritten: an \\\\input, \\\\include or \\\\includegraphics pointing at the old path will break, " +
+        "so search_project for the old path afterwards and fix the references with replace_text before pushing. " +
+        "Refuses rather than overwrite when a file already exists at the destination.",
+      inputSchema: z.object({
+        project: projectArgument,
+        fromPath: z
+          .string()
+          .describe("Current path of the file, relative to the project root, e.g. intro.tex."),
+        toPath: z
+          .string()
+          .describe(
+            "New path for the file, relative to the project root, e.g. sections/intro.tex. Must stay inside the project and must not already exist.",
+          ),
+      }),
+      annotations: EDITS_LOCAL_CLONE,
+    },
+    async ({ project, fromPath, toPath }) =>
+      runToolSafely(context, () =>
+        context.projectRegistry.withRepository(project, async (repository) => {
+          await requireSynchronizedWithOverleaf(repository);
+
+          if (fromPath === toPath) {
+            return textResult(`fromPath and toPath are the same file (${fromPath}). Nothing was moved.`);
+          }
+          if (!(await repository.fileExists(fromPath))) {
+            return textResult(`${fromPath} is not in the project, so there is nothing to move.`);
+          }
+          // Overwriting here would destroy a file the caller never named, and the reply
+          // would not mention it. Refusing keeps both files and puts the choice back.
+          if (await repository.fileExists(toPath)) {
+            return textResult(
+              `${toPath} already exists. Nothing was moved. ` +
+                "Delete it first, or choose another destination.",
+            );
+          }
+
+          await repository.moveFile(fromPath, toPath);
+          return textResult(
+            `Moved ${fromPath} to ${toPath} in the local clone. ` +
+              `Any \\input, \\include or \\includegraphics still naming ${fromPath} now points at nothing; ` +
+              "search_project for it before calling push_changes.",
+          );
+        }),
+      ),
+  );
+}

@@ -95,6 +95,14 @@ export class FakeOverleafRemote {
     return stdout;
   }
 
+  /** Every path that currently exists "on Overleaf", so a deletion can be proved. */
+  async listPublishedFiles(): Promise<string[]> {
+    const { stdout } = await execFileAsync("git", ["ls-tree", "-r", "--name-only", "main"], {
+      cwd: this.bareRepositoryDirectory,
+    });
+    return stdout.split("\n").filter((line) => line !== "");
+  }
+
   async publishedCommitSubjects(): Promise<string[]> {
     const { stdout } = await execFileAsync("git", ["log", "--pretty=format:%s", "main"], {
       cwd: this.bareRepositoryDirectory,

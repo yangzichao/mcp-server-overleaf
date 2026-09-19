@@ -6,7 +6,7 @@ import { McpStdioClient } from "./mcpStdioClient.js";
 
 /**
  * The review tools through the MCP protocol, against both fakes at once: the Git bridge the
- * other sixteen tools use, and the editor connection these three use.
+ * other eighteen tools use, and the editor connection these three use.
  */
 
 const PAPER = "\\documentclass{article}\n\\begin{document}\nHello world.\n\\end{document}";

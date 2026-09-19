@@ -40,12 +40,16 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
       "sync_project",
       "compile_project",
       "push_changes",
+      "delete_file",
+      "move_file",
     ];
     expect(tools.map((tool) => tool.name).sort()).toEqual(expectedNames.sort());
     const writes = new Set([
       "replace_text",
       "edit_section",
       "write_file",
+      "delete_file",
+      "move_file",
       "discard_local_changes",
       "sync_project",
       "push_changes",
@@ -53,6 +57,9 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     for (const tool of tools) {
       expect(tool.inputSchema.type).toBe("object");
       expect(tool.annotations?.readOnlyHint).toBe(!writes.has(tool.name));
+      // Every tool reaches Overleaf except list_projects, which only reports local
+      // configuration. Getting this backwards misleads a client about what a call costs.
+      expect(tool.annotations?.openWorldHint).toBe(tool.name !== "list_projects");
     }
     expect(tools.find((tool) => tool.name === "write_file")).toMatchObject({
       inputSchema: { required: ["path", "content"] },
@@ -61,6 +68,65 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     expect(tools.find((tool) => tool.name === "push_changes")?.inputSchema.required).toEqual([
       "commitMessage",
     ]);
+    expect(tools.find((tool) => tool.name === "move_file")?.inputSchema.required).toEqual([
+      "fromPath",
+      "toPath",
+    ]);
+    expect(tools.find((tool) => tool.name === "project_summary")?.outputSchema).toMatchObject({
+      type: "object",
+    });
+  });
+
+  it("describes every tool and every parameter, because an undescribed one is unusable", async () => {
+    for (const tool of await client.listTools()) {
+      expect(tool.description ?? "", `${tool.name} has no description`).not.toBe("");
+      expect(tool.title ?? "", `${tool.name} has no title`).not.toBe("");
+      const properties = (tool.inputSchema.properties ?? {}) as Record<string, { description?: string }>;
+      for (const [parameterName, schema] of Object.entries(properties)) {
+        expect(schema.description ?? "", `${tool.name}.${parameterName} has no description`).not.toBe("");
+      }
+    }
+  });
+
+  it("deletes and moves files locally, and publishes both on push", async () => {
+    await client.call("write_file", { path: "obsolete.tex", content: "Old draft.\n" });
+    await client.call("push_changes", { commitMessage: "Add a file to remove later" });
+
+    expect(await client.call("delete_file", { path: "absent.tex" })).toContain("nothing to delete");
+    expect(await client.call("delete_file", { path: "obsolete.tex" })).toContain("still in Overleaf");
+    expect(await remote.readPublishedFile("obsolete.tex")).toBe("Old draft.\n");
+
+    // A deletion is only local until a push, so discarding has to bring the file back.
+    await client.call("discard_local_changes");
+    expect(await client.call("read_file", { path: "obsolete.tex" })).toBe("Old draft.\n");
+
+    expect(await client.call("move_file", { fromPath: "absent.tex", toPath: "x.tex" })).toContain(
+      "nothing to move",
+    );
+    expect(await client.call("move_file", { fromPath: "obsolete.tex", toPath: "main.tex" })).toContain(
+      "already exists",
+    );
+    expect(await client.call("move_file", { fromPath: "obsolete.tex", toPath: "obsolete.tex" })).toContain(
+      "same file",
+    );
+    expect(
+      await client.call("move_file", { fromPath: "obsolete.tex", toPath: "sections/renamed.tex" }),
+    ).toContain("Moved obsolete.tex");
+
+    await client.call("delete_file", { path: "sections/renamed.tex" });
+    await client.call("write_file", { path: "kept.tex", content: "Kept.\n" });
+    await client.call("push_changes", { commitMessage: "Remove the obsolete draft" });
+    expect(await remote.listPublishedFiles()).not.toContain("obsolete.tex");
+    expect(await remote.readPublishedFile("kept.tex")).toBe("Kept.\n");
+  });
+
+  it("refuses to move a file outside the project", async () => {
+    const response = await client.callRaw("move_file", {
+      fromPath: "main.tex",
+      toPath: "../escaped.tex",
+    });
+    expect(response.result?.isError === true || response.error !== undefined).toBe(true);
+    expect(await client.call("read_file", { path: "main.tex" })).toBe(paper);
   });
 
   it("lists projects and files, reads ranges and sections, and searches", async () => {
