@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Stop the package check failing on upstream patch releases. It installs the packed archive
+  the way a user does, which makes npm resolve this package's declared ranges against the
+  registry instead of reading the archive's shrinkwrap, so that tree is always the newest one
+  those ranges allow — then it required that tree to be version-identical to the lock. The two
+  can only agree in the window between an upstream publish and the next `npm update`, so CI
+  went red on branches that had not touched a dependency, with the same unrelated dependency
+  bump as the fix each time. `hono` hit it most often, being an unpinned peer of the MCP SDK
+  with a fast release cadence, but every runtime range was exposed the same way. The trees are
+  now compared by shape: a package in one and not the other fails, and so does a major version
+  apart, which is how an unpinned peer would slip an untested major into a user's tree. A
+  newer patch or minor is printed and left to Dependabot, since both trees are tested.
+
 - Add executable specifications. `tests/features/publishingToOverleaf.feature` states in plain
   sentences what this server promises a co-author — an edit waits in the clone, a push that
   would overwrite their newer work is refused, a deletion stays local until it is pushed — and

@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyPackageContents } from "./packageContents.mjs";
+import { describeRuntimeVersionDrift } from "./runtimeDependencyComparison.mjs";
 import { createRuntimeSbom } from "./runtimeSbom.mjs";
 import { restoreDevelopmentShrinkwrap } from "./shrinkwrap/developmentShrinkwrapSwap.mjs";
 import { countDevelopmentEntries } from "./shrinkwrap/pruneDevelopmentEntries.mjs";
@@ -95,11 +96,12 @@ try {
     },
   );
   process.stdout.write(npm(["audit", "--audit-level=low"], consumerDirectory));
-  const sbom = createRuntimeSbom(
+  const { sbom, comparison } = createRuntimeSbom(
     JSON.parse(npm(["sbom", "--sbom-format=cyclonedx", "--omit=dev"], consumerDirectory)),
     packageMetadata,
     JSON.parse(readFileSync(join(packageRoot, "npm-shrinkwrap.json"), "utf8")),
   );
+  process.stdout.write(describeRuntimeVersionDrift(comparison));
   // Rebuilt from nothing on every run. Copying into whatever happened to be there left
   // one tarball per version piling up, and the release candidate CI uploads is this whole
   // directory, so a stale archive would travel alongside the one that was actually tested.
