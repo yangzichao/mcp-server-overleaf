@@ -24,8 +24,12 @@ audit, Windows support, or availability of the real Overleaf service.
   revision reads and guarded edits, sparse checkout, and compilation after expansion.
 - Source checks run on macOS and Linux with Node 22.14, 24, and 26. A Linux job requires TeX,
   tests compilation in the installed package, and produces the release candidate.
-- Dependency audits block on any reported severity. npm and GitHub Actions updates are
-  proposed by Dependabot. Action references are pinned to complete commit hashes.
+- Dependency audits block on any reported severity. The repository audit
+  (`npm run audit:dependencies`) lets through only the advisories listed in
+  `scripts/audit/acceptedAdvisories.mjs`, each with its reason and a review date after which
+  it fails again; the runtime tree's audit inside the package check has no exceptions. npm
+  and GitHub Actions updates are proposed by Dependabot. Action references are pinned to
+  complete commit hashes.
 - `release.yml` only proceeds on a matching stable `vX.Y.Z` tag whose commit is on `main`
   and whose version has a changelog entry. All checks run again on that tag.
 - The publish job downloads the tested archive, checks its SHA-512 integrity, and publishes
