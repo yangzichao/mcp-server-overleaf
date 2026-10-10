@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.5
 
 - Stop the package check failing on upstream patch releases. It installs the packed archive
   the way a user does, which makes npm resolve this package's declared ranges against the
