@@ -5,9 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 
+// npm accepts a publish before its registry serves the version; 0.3.5 took about two minutes
+// to appear, past the minute this used to allow.
+const registryVisibilityTimeoutMilliseconds = 10 * 60_000;
+const registryPollIntervalMilliseconds = 10_000;
+
 const manifest = JSON.parse(readFileSync("release-artifacts/package-manifest.json", "utf8"));
+const registryVisibilityDeadline = Date.now() + registryVisibilityTimeoutMilliseconds;
 let publishedMetadata;
-for (let attempt = 0; attempt < 12; attempt += 1) {
+while (Date.now() < registryVisibilityDeadline) {
   const response = await fetch(
     `https://registry.npmjs.org/${encodeURIComponent(manifest.name)}/${manifest.version}`,
     {
@@ -19,9 +25,12 @@ for (let attempt = 0; attempt < 12; attempt += 1) {
     break;
   }
   assert.ok(response.status === 404 || response.status >= 500, `Registry returned ${response.status}`);
-  await setTimeout(5_000);
+  await setTimeout(registryPollIntervalMilliseconds);
 }
-assert.ok(publishedMetadata, "Published version did not become visible on npm");
+assert.ok(
+  publishedMetadata,
+  `Published version did not become visible on npm within ${registryVisibilityTimeoutMilliseconds / 60_000} minutes`,
+);
 assert.equal(
   publishedMetadata.dist.integrity,
   manifest.integrity,
