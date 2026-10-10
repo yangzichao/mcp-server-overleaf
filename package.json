@@ -68,7 +68,8 @@
     "mcpb:build": "node scripts/mcpb/buildMcpbBundle.mjs",
     "registry:build": "node scripts/registry/buildServerJson.mjs",
     "plugins:build": "node scripts/plugins/writePluginFiles.mjs",
-    "check:release": "npm run check && npm run package:check && npm audit --audit-level=low",
+    "check:release": "npm run check && npm run package:check && npm run audit:dependencies",
+    "audit:dependencies": "node scripts/audit/auditDependencies.mjs",
     "start:stdio": "node dist/index.js --stdio",
     "start:http": "node dist/index.js --http"
   },
