@@ -25,6 +25,18 @@
   suite, so the document cannot quietly stop being true. Run through Vitest with
   `@amiceli/vitest-cucumber`, a development dependency, so there is no second test command.
 
+- Refresh the runtime dependencies to the newest versions the declared ranges allow:
+  `@modelcontextprotocol/server` 2.3.1, `@modelcontextprotocol/node` 2.1.1 and `hono` 4.13.13.
+  The MCP SDK packages are now licensed Apache-2.0, and `@modelcontextprotocol/node` depends
+  on `hono` directly instead of as a peer.
+- Let the repository audit accept a named advisory until a review date. `node-forge` has a
+  high-severity advisory with no fixed release, reached only through `@anthropic-ai/mcpb`, a
+  development dependency, in a signature check this repository never calls; npm cannot
+  ignore one advisory, so it held every branch red. `npm run audit:dependencies` now fails on
+  anything not listed in `scripts/audit/acceptedAdvisories.mjs`, and on a listed advisory once
+  its review date passes. The audit of the installed runtime tree is unchanged and accepts
+  nothing.
+
 - Fix the category names `project_summary` promises. Its output schema named a category
   `bib`, which this project has never produced; the real names are `tex`, `bibliography`,
   `figure`, `class-or-style`, `build-artifact` and `other`, and two of them were missing
