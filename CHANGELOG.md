@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Give npm up to ten minutes to serve a new version before the release workflow calls the
+  publication missing. npm accepts a publish before its registry returns it, and 0.3.5 took
+  about two minutes to appear; the check allowed one, so it failed a publish that had
+  succeeded and skipped the GitHub release and the MCP registry listing until it was rerun.
+
 ## 0.3.5
 
 - Stop the package check failing on upstream patch releases. It installs the packed archive
