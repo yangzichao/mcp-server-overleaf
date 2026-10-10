@@ -608,10 +608,11 @@ unrelated working directory, covering stdio, HTTP, edits, conflicts, and recover
 That install resolves the declared ranges freshly against the registry rather than reading
 the archive's own shrinkwrap, so the tree it tests is the newest one those ranges allow, and
 it is compared against the lock by shape rather than by version. A package in one tree and
-not the other fails the check, and so does a major version apart — an unpinned peer
-dependency can put one there without any direct dependency changing. A newer patch or minor
-is printed and left to Dependabot: both trees are tested, and requiring the versions to match
-turned every upstream patch release red on branches that had not touched a dependency.
+not the other fails the check, and so does a major version apart (a minor, for a 0.x
+package) — an unpinned peer dependency can put one there without any direct dependency
+changing. A newer patch or minor is only printed, and `npm update` brings the lock level:
+both trees are tested, and requiring the versions to match turned every upstream patch
+release red on branches that had not touched a dependency.
 
 Tests never touch the real Overleaf. `tests/integration/fakeOverleafRemote.ts` stands up a
 bare git repository plus a second clone acting as a co-author, which reproduces everything

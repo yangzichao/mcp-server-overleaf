@@ -13,8 +13,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyPackageContents } from "./packageContents.mjs";
-import { describeRuntimeVersionDrift } from "./runtimeDependencyComparison.mjs";
-import { createRuntimeSbom } from "./runtimeSbom.mjs";
+import { describeRuntimeVersionDrift } from "./runtimeTree/runtimeDependencyComparison.mjs";
+import { createRuntimeSbom } from "./runtimeTree/runtimeSbom.mjs";
 import { restoreDevelopmentShrinkwrap } from "./shrinkwrap/developmentShrinkwrapSwap.mjs";
 import { countDevelopmentEntries } from "./shrinkwrap/pruneDevelopmentEntries.mjs";
 

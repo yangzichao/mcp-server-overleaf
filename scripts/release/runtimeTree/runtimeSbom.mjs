@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   compareRuntimeDependencies,
   describeRuntimeTreeProblems,
+  describeRuntimeVersionDrift,
   readInstalledRuntimeVersions,
   readLockedRuntimeVersions,
 } from "./runtimeDependencyComparison.mjs";
@@ -12,7 +13,8 @@ import {
  * checks the installed tree against the shrinkwrap on the way through.
  *
  * What counts as a mismatch, and why a version difference usually does not, is explained in
- * runtimeDependencyComparison.mjs.
+ * runtimeDependencyComparison.mjs. One consequence: this SBOM lists the tree the package check
+ * tested, which can be a patch or minor ahead of the shrinkwrap a registry install follows.
  */
 export function createRuntimeSbom(consumerSbom, metadata, shrinkwrap) {
   const application = consumerSbom.components.find(
@@ -27,10 +29,12 @@ export function createRuntimeSbom(consumerSbom, metadata, shrinkwrap) {
     readLockedRuntimeVersions(shrinkwrap),
   );
   const problems = describeRuntimeTreeProblems(comparison);
+  // The drift goes in too: a new transitive package usually arrives with some dependency's
+  // new minor, and that line is what points at the cause.
   assert.equal(
     problems.length,
     0,
-    `Installed runtime dependencies do not match the shrinkwrap.\n${problems.join("\n")}`,
+    `Installed runtime dependencies do not match the shrinkwrap.\n${problems.join("\n")}\n${describeRuntimeVersionDrift(comparison)}`,
   );
 
   // Remove the verification harness and its temporary archive URL, retaining npm's
