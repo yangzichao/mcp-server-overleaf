@@ -43,7 +43,7 @@ audit, Windows support, or availability of the real Overleaf service.
 
 ## Local preparation
 
-Use Node 24 LTS for release work. The CI artifact producer uses npm 11.19.1.
+Use Node 24 LTS for release work. The CI artifact producer uses npm 11.21.0.
 
 ```bash
 npm ci
