@@ -18,6 +18,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
         "List the Overleaf projects this server is configured to reach, marking which one is the default. " +
         "Reads local configuration only, so it answers without contacting Overleaf and proves nothing about access. " +
         "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. " +
+        "Returns one line per registered name, marked (default) where it applies and followed by its display name when one is configured. " +
         "Any project not listed can still be reached by passing its Overleaf address as `project`.",
       inputSchema: z.object({}),
       annotations: READS_LOCAL_CONFIGURATION,
@@ -52,7 +53,8 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
       description:
         "List the sectioning commands in a .tex file — \\section, \\subsection and the rest — with their nesting depth and line ranges. " +
         "Pulls from Overleaf first. Call this before read_section or edit_section to learn the exact titles those tools expect, " +
-        "and to address a part of a paper by title rather than by line number, which shifts as the file is edited.",
+        "and to address a part of a paper by title rather than by line number, which shifts as the file is edited. " +
+        "Returns one line per heading, indented by depth, as \\section{Title} [lines start-end].",
       inputSchema: z.object({
         project: projectArgument,
         path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
@@ -89,6 +91,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
         "The section runs from its own sectioning command to whichever comes first: the next heading at the same or a shallower level, " +
         "or trailing matter such as \\end{document}, \\appendix or the bibliography, which belongs to no section. " +
         "Pulls from Overleaf first. Prefer this over read_file when revising one part of a paper, so the rest of the document stays out of context. " +
+        "Returns the section's LaTeX source as stored, cut off after 60,000 characters. " +
         "Title matching is case-insensitive and falls back to a substring match; if nothing matches, the reply lists the titles that do exist.",
       inputSchema: z.object({
         project: projectArgument,

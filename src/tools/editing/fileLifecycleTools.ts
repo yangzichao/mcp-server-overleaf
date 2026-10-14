@@ -26,7 +26,8 @@ export function registerFileLifecycleTools(server: McpServer, context: ToolConte
         "The file is removed from the local clone only — it stays in Overleaf, and the co-authors keep seeing it, until push_changes publishes the removal. " +
         "Until then discard_local_changes brings it back, and show_diff shows the pending deletion. " +
         "Deleting a file a co-author still cites or includes will break their compile, so confirm the file is genuinely unused first; " +
-        "search_project on its path or label is the way to check. To replace a file's contents instead of removing it, use write_file.",
+        "search_project on its path or label is the way to check. To replace a file's contents instead of removing it, use write_file. " +
+        "Pulls from Overleaf first. Returns a confirmation, or says the path is not in the project and deletes nothing.",
       inputSchema: z.object({
         project: projectArgument,
         path: z
@@ -61,9 +62,10 @@ export function registerFileLifecycleTools(server: McpServer, context: ToolConte
       description:
         "Move or rename a file inside the project, creating any missing parent directories. " +
         "The move happens in the local clone only — nothing changes in Overleaf until push_changes. " +
-        "LaTeX references are not rewritten: an \\\\input, \\\\include or \\\\includegraphics pointing at the old path will break, " +
+        "LaTeX references are not rewritten: an \\input, \\include or \\includegraphics pointing at the old path will break, " +
         "so search_project for the old path afterwards and fix the references with replace_text before pushing. " +
-        "Refuses rather than overwrite when a file already exists at the destination.",
+        "Pulls from Overleaf first. Returns a confirmation that repeats this warning; " +
+        "if the source is missing or a file already exists at the destination, nothing moves and the reply says why.",
       inputSchema: z.object({
         project: projectArgument,
         fromPath: z

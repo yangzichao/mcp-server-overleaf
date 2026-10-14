@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Say in every tool description what the tool returns. Only `project_summary` declares an
+  output schema, so for the other seventeen the description is the only place a client learns
+  the reply's shape and its no-op cases: a missing snippet, a section title that matches
+  nothing, a destination that already exists. The edit and file tools now also say that they
+  pull from Overleaf first. `move_file` named `\\input` with two backslashes because the source
+  escaped them twice; it now names `\input`, and the contract test rejects a doubled backslash
+  in any description.
+
 - Give npm up to ten minutes to serve a new version before the release workflow calls the
   publication missing. npm accepts a publish before its registry returns it, and 0.3.5 took
   about two minutes to appear; the check allowed one, so it failed a publish that had
