@@ -24,7 +24,8 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
         "Report where the local clone stands relative to Overleaf: the branch and head commit, how many commits were just pulled, " +
         "how many remain unmerged, how many local commits are waiting to be pushed, which files are edited but not committed, and the last ten commits. " +
         "Pulls from Overleaf as part of answering. Call this to find out whether there is anything to push or anything a collaborator has changed; " +
-        "use show_diff instead to see what the pending edits actually say.",
+        "use show_diff instead to see what the pending edits actually say. " +
+        "Returns plain `name: value` lines. A pull that hits a conflict does not make it fail: the reply adds a WARNING with the conflict, and local work is kept.",
       inputSchema: z.object({ project: projectArgument }),
       annotations: READS_OVERLEAF,
     },
@@ -67,7 +68,8 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
         "Pull the latest commits from Overleaf into the local clone. Nothing is sent to Overleaf and no local edit is discarded. " +
         "The read tools pull on their own, so this is rarely needed first; call it to check explicitly that the clone is current, " +
         "or after a collaborator says they have pushed. " +
-        "If the pull cannot complete cleanly it fails and leaves local work untouched, rather than resolving the conflict on its own.",
+        "If the pull cannot complete cleanly it fails and leaves local work untouched, rather than resolving the conflict on its own. " +
+        "Returns how many commits were pulled and how many local commits are still unpushed.",
       inputSchema: z.object({ project: projectArgument }),
       annotations: UPDATES_LOCAL_CLONE_SAFELY,
     },
@@ -151,7 +153,7 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
         "Call show_diff first, and compile_project when the edit could break the build. " +
         "Before pushing, the server re-checks Overleaf and rebases onto whatever collaborators pushed in the meantime. " +
         "If two edits touch the same lines the push is refused, both versions are reported, and no local work is lost — nothing is overwritten and no winner is chosen. " +
-        "Reports that there was nothing to push when the clone has no pending edits.",
+        "Returns the new commit hash and the diff that was published, or reports that there was nothing to push.",
       inputSchema: z.object({
         project: projectArgument,
         commitMessage: z

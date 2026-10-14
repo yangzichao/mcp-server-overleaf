@@ -19,7 +19,8 @@ export function registerProjectInventoryTools(server: McpServer, context: ToolCo
         "List every file in the project, grouped by kind (LaTeX sources, bibliographies, figures, other). " +
         "Pulls the latest commits from Overleaf first, so the listing reflects what collaborators have pushed. " +
         "Files hidden by sparse checkout are listed too, because they exist in the project even when not on disk. " +
-        "Use this to discover paths before reading or editing; use project_summary instead for counts and the likely main document.",
+        "Use this to discover paths before reading or editing; use project_summary instead for counts and the likely main document. " +
+        "Returns a file count and the likely main document, then the paths under each kind, with files not yet pushed marked (untracked).",
       inputSchema: z.object({
         project: projectArgument,
         extension: z

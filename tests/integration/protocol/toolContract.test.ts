@@ -105,6 +105,11 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     for (const tool of await client.listTools()) {
       expect(tool.description ?? "", `${tool.name} has no description`).not.toBe("");
       expect(tool.title ?? "", `${tool.name} has no title`).not.toBe("");
+      // A doubled backslash in the TypeScript source shows up as \\input, which is not
+      // the LaTeX command the description means to name.
+      expect(tool.description, `${tool.name} names a LaTeX command with two backslashes`).not.toMatch(
+        /\\\\[a-z]/,
+      );
       const properties = (tool.inputSchema.properties ?? {}) as Record<string, { description?: string }>;
       for (const [parameterName, schema] of Object.entries(properties)) {
         expect(schema.description ?? "", `${tool.name}.${parameterName} has no description`).not.toBe("");
