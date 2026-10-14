@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Wait for the package document `npm install` reads, not only the per-version one, before
+  verifying a publication. For 0.3.6 the version document answered while the abbreviated
+  packument the install fetches still lacked the version, so the install failed with ETARGET,
+  and the GitHub release and the MCP registry listing were skipped until the job was rerun.
+
 ## 0.3.6
 
 - Say in every tool description what the tool returns. Only `project_summary` declares an

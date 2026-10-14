@@ -10,21 +10,31 @@ import { setTimeout } from "node:timers/promises";
 const registryVisibilityTimeoutMilliseconds = 10 * 60_000;
 const registryPollIntervalMilliseconds = 10_000;
 
+// `npm install` does not read the per-version document. It reads the abbreviated packument,
+// which the registry caches separately: for 0.3.6 the version document answered while the
+// packument still lacked the version, and the install failed with ETARGET. So both must
+// list the version before the install runs.
+const abbreviatedPackumentMediaType = "application/vnd.npm.install-v1+json";
+
 const manifest = JSON.parse(readFileSync("release-artifacts/package-manifest.json", "utf8"));
+const packageUrl = `https://registry.npmjs.org/${encodeURIComponent(manifest.name)}`;
+
+async function fetchRegistryDocument(url, headers = {}) {
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
+  if (response.ok) return response.json();
+  assert.ok(response.status === 404 || response.status >= 500, `Registry returned ${response.status}`);
+  return undefined;
+}
+
 const registryVisibilityDeadline = Date.now() + registryVisibilityTimeoutMilliseconds;
 let publishedMetadata;
 while (Date.now() < registryVisibilityDeadline) {
-  const response = await fetch(
-    `https://registry.npmjs.org/${encodeURIComponent(manifest.name)}/${manifest.version}`,
-    {
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
-  if (response.ok) {
-    publishedMetadata = await response.json();
+  const versionDocument = await fetchRegistryDocument(`${packageUrl}/${manifest.version}`);
+  const installPackument = await fetchRegistryDocument(packageUrl, { accept: abbreviatedPackumentMediaType });
+  if (versionDocument && installPackument?.versions?.[manifest.version]) {
+    publishedMetadata = versionDocument;
     break;
   }
-  assert.ok(response.status === 404 || response.status >= 500, `Registry returned ${response.status}`);
   await setTimeout(registryPollIntervalMilliseconds);
 }
 assert.ok(
