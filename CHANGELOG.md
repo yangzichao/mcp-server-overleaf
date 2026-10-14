@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.6
 
 - Say in every tool description what the tool returns. Only `project_summary` declares an
   output schema, so for the other seventeen the description is the only place a client learns
