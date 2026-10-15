@@ -1,5 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import {
+  hasOverleafCredential,
+  MISSING_OVERLEAF_CREDENTIAL_MESSAGE,
+} from "../config/missingOverleafCredential.js";
 import { extractSectionText, findSectionByTitle, parseLatexSections } from "../latex/parseLatexSections.js";
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
@@ -25,6 +29,9 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     },
     () =>
       runToolSafely(context, () => {
+        if (!hasOverleafCredential(context.configuration)) {
+          return textResult(MISSING_OVERLEAF_CREDENTIAL_MESSAGE);
+        }
         const names = context.projectRegistry.listRegisteredProjectNames();
         if (names.length === 0) {
           return textResult(`No projects are registered.\n${ANY_OTHER_PROJECT}`);

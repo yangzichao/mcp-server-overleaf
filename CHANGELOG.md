@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Start without any credentials instead of exiting. With no token and no registered project,
+  the server now lists its tools, and every call that needs Overleaf answers that
+  `OVERLEAF_GIT_TOKEN` is not set, as does `list_projects`. Glama's sandbox starts a listed
+  server with no credentials, and 0.3.6 exited there before answering `initialize`. A project
+  registered without any token is still a startup error, since that configuration is half written.
 - Wait for the package document `npm install` reads, not only the per-version one, before
   verifying a publication. For 0.3.6 the version document answered while the abbreviated
   packument the install fetches still lacked the version, so the install failed with ETARGET,

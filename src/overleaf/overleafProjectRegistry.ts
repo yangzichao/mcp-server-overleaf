@@ -1,7 +1,15 @@
 import { join } from "node:path";
 
+import {
+  hasOverleafCredential,
+  MISSING_OVERLEAF_CREDENTIAL_MESSAGE,
+} from "../config/missingOverleafCredential.js";
 import { extractOverleafProjectId } from "../config/projects/projectIdentity.js";
-import type { RegisteredOverleafProject, ServerConfiguration } from "../config/serverConfiguration.js";
+import {
+  ConfigurationError,
+  type RegisteredOverleafProject,
+  type ServerConfiguration,
+} from "../config/serverConfiguration.js";
 import { OverleafGitRepository } from "./overleafGitRepository.js";
 import { withProjectDirectoryLock } from "./projectDirectoryLock.js";
 
@@ -35,6 +43,11 @@ export class OverleafProjectRegistry {
    * the project id without opening a repository.
    */
   resolveProjectId(requestedProject: string | undefined): RegisteredOverleafProject {
+    // Checked before the project argument, so an unconfigured server names the missing token
+    // rather than a missing default project.
+    if (!hasOverleafCredential(this.configuration)) {
+      throw new ConfigurationError(MISSING_OVERLEAF_CREDENTIAL_MESSAGE);
+    }
     const requested = requestedProject?.trim();
 
     if (!requested) {

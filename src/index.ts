@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { loadHttpTransportConfiguration } from "./config/httpTransportConfiguration.js";
 import { loadEnvironmentFileIfPresent } from "./config/loadEnvironmentFile.js";
+import {
+  hasOverleafCredential,
+  MISSING_OVERLEAF_CREDENTIAL_MESSAGE,
+} from "./config/missingOverleafCredential.js";
 import { PACKAGE_VERSION } from "./config/packageMetadata.js";
 import { ConfigurationError, loadServerConfigurationFromEnvironment } from "./config/serverConfiguration.js";
 import { createToolContext } from "./server/createOverleafMcpServer.js";
@@ -104,6 +108,9 @@ async function main(): Promise<void> {
   loadEnvironmentFileIfPresent();
 
   const configuration = loadServerConfigurationFromEnvironment();
+  if (!hasOverleafCredential(configuration)) {
+    process.stderr.write(`mcp-server-overleaf: ${MISSING_OVERLEAF_CREDENTIAL_MESSAGE}\n`);
+  }
   const context = createToolContext(configuration);
 
   if (options.transport === "stdio") {

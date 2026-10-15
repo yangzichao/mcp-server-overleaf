@@ -1,7 +1,8 @@
-import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { hasOverleafCredential } from "../../src/config/missingOverleafCredential.js";
 import {
   ConfigurationError,
   loadServerConfigurationFromEnvironment,
@@ -39,7 +40,19 @@ describe("looksLikeOverleafProjectId", () => {
 });
 
 describe("required configuration", () => {
-  it("refuses to start without a token", () => {
+  it("starts unconfigured when nothing at all is set", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      XDG_CONFIG_HOME: join(tmpdir(), "overleaf-mcp-test-without-user-configuration"),
+    });
+    expect(configuration).toMatchObject({
+      overleafGitToken: "",
+      registeredProjects: [],
+      defaultProjectName: null,
+    });
+    expect(hasOverleafCredential(configuration)).toBe(false);
+  });
+
+  it("refuses a registered project when no token covers it", () => {
     expect(() => loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` })).toThrow(
       ConfigurationError,
     );
