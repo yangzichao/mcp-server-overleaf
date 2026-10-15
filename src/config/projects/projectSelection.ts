@@ -32,11 +32,9 @@ function validateProjectCredentials(
       );
     }
   }
-  if (!overleafGitToken && registeredProjects.length === 0) {
-    throw new ConfigurationError(
-      "OVERLEAF_GIT_TOKEN is not set. Configure a token, token file, or OVERLEAF_PROJECTS_CONFIG.",
-    );
-  }
+  // No token and no project at all is not an error here: the server starts unconfigured,
+  // and the calls that need Overleaf say so (see missingOverleafCredential.ts). A project
+  // registered without any token, above, is a half-written configuration and still fails.
 }
 
 /**

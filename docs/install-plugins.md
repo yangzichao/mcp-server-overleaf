@@ -88,7 +88,8 @@ but a command and its arguments.
 
 The server finds `~/.config/overleaf-mcp/projects.json` on its own, which is why the plugin
 does not have to pass anything in. Start the server without that file and without any
-`OVERLEAF_*` variable and it exits with a configuration error rather than starting empty.
+`OVERLEAF_*` variable and it still starts, so the client can list its tools, but every tool
+that needs Overleaf answers that `OVERLEAF_GIT_TOKEN` is not set until setup has run.
 
 The version is pinned rather than floating. A plugin installed from an older Git ref keeps
 launching the server that ref was tested against.
@@ -159,6 +160,7 @@ install does not touch your real configuration.
 | --- | --- |
 | The install command cannot find the plugin | List the configured marketplaces and confirm `mcp-server-overleaf` is there with this repository as its source. |
 | The plugin installs but no server appears | Restart the client. A plugin's MCP servers are read at startup. |
-| The server exits immediately | Run `npx --yes mcp-server-overleaf --stdio` in a terminal and read stderr. Usually `projects.json` is missing because setup has not been run. |
+| Every tool answers that `OVERLEAF_GIT_TOKEN` is not set | Setup has not been run, so `projects.json` is missing. Run `npx --yes mcp-server-overleaf setup`. |
+| The server exits immediately | Run `npx --yes mcp-server-overleaf --stdio` in a terminal and read stderr. It names the setting it rejected, such as a malformed `projects.json`. |
 | `npx` is not found | The client started with a smaller `PATH` than your terminal. Install Node system-wide, or use `npx --yes mcp-server-overleaf setup` to register an absolute Node path instead of the plugin. |
 | The plugin installs an old server version | Update the marketplace snapshot, then install again. |
