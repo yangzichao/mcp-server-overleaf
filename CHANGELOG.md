@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.7
 
 - Start without any credentials instead of exiting. With no token and no registered project,
   the server now lists its tools, and every call that needs Overleaf answers that

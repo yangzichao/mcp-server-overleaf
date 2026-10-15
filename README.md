@@ -10,7 +10,7 @@ to Overleaf. Read, search, edit, compile, and review real LaTeX projects without
 copy-pasting your paper into a chat window.
 
 ```bash
-npx --yes mcp-server-overleaf@0.3.6 setup
+npx --yes mcp-server-overleaf@0.3.7 setup
 ```
 
 Edits stay in a local clone until you explicitly publish them. Before every read and every
@@ -143,7 +143,7 @@ any other client, use the command below. Details in
 Store the token once:
 
 ```bash
-npx --yes mcp-server-overleaf@0.3.6 setup --clients none
+npx --yes mcp-server-overleaf@0.3.7 setup --clients none
 ```
 
 Then, in Claude Code:
@@ -174,7 +174,7 @@ installation. Details in
 ## Install with one command
 
 ```bash
-npx --yes mcp-server-overleaf@0.3.6 setup
+npx --yes mcp-server-overleaf@0.3.7 setup
 ```
 
 It checks Node and git, asks for the project and a token, proves the token reaches Overleaf
@@ -202,7 +202,7 @@ run. Then ask the assistant to list the files in the project.
 Setup can also run unattended:
 
 ```bash
-printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.3.6 setup \
+printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.3.7 setup \
   --project paper=https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1 \
   --token-stdin --yes
 ```
@@ -223,8 +223,8 @@ Claude Code and Codex do not read that registry. They have their own plugin mark
 which is the section above, or the server can be added by hand:
 
 ```bash
-claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.3.6 --stdio
-codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.3.6 --stdio
+claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.3.7 --stdio
+codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.3.7 --stdio
 ```
 
 Both forms need `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECT_ID` in the environment, which is
@@ -233,12 +233,12 @@ why `setup` writes a `projects.json` instead and registers an absolute path.
 ## Install from npm by hand
 
 Use this when you want to see every step, or to configure a client setup does not cover.
-The commands below select version `0.3.6` explicitly so a client restart does not silently
+The commands below select version `0.3.7` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.3.6 --version
+npx --yes mcp-server-overleaf@0.3.7 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -263,7 +263,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.3.6", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.3.7", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
