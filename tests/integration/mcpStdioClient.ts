@@ -1,5 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { serverEntryPoint, serverWorkingDirectory } from "../support/serverUnderTest.js";
+import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "../support/withoutBackgroundGitMaintenance.js";
 import { type JsonRpcResponse, responseText } from "./support/mcpProtocol.js";
 
 /**
@@ -19,7 +20,12 @@ export class McpStdioClient {
   static async start(environment: NodeJS.ProcessEnv): Promise<McpStdioClient> {
     const child = spawn(process.execPath, [serverEntryPoint, "--stdio"], {
       // A bare environment, minus PATH: an MCP client does not pass a shell through.
-      env: { PATH: process.env.PATH, HOME: process.env.HOME, ...environment },
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        ...WITHOUT_BACKGROUND_GIT_MAINTENANCE,
+        ...environment,
+      },
       stdio: ["pipe", "pipe", "pipe"],
       cwd: serverWorkingDirectory,
     });

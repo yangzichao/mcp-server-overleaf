@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "./tests/support/withoutBackgroundGitMaintenance.js";
 
 export default defineConfig({
   test: {
@@ -9,6 +10,7 @@ export default defineConfig({
     testTimeout: 120_000,
     hookTimeout: 120_000,
     fileParallelism: false,
+    env: WITHOUT_BACKGROUND_GIT_MAINTENANCE,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

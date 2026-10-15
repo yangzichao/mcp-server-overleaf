@@ -8,6 +8,18 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 /**
+ * A push into a local bare repository runs `receive-pack` there, and receive-pack starts
+ * detached maintenance on its own. Git clears GIT_CONFIG_* for that process, so the
+ * environment the tests set cannot reach it: the bare repository's own config has to say
+ * no, or the detached process can still be writing while cleanUp deletes the directory.
+ */
+async function initializeBareRepository(directory: string): Promise<void> {
+  await mkdir(directory, { recursive: true });
+  await execFileAsync("git", ["init", "--bare", "--initial-branch=main", directory]);
+  await execFileAsync("git", ["config", "receive.autoGc", "false"], { cwd: directory });
+}
+
+/**
  * A bare repository standing in for a project on git.overleaf.com, plus a second clone
  * standing in for a co-author working in the Overleaf web editor.
  *
@@ -28,8 +40,7 @@ export class FakeOverleafRemote {
     const bareRepositoryDirectory = join(rootDirectory, "overleaf", projectId);
     const collaboratorDirectory = join(rootDirectory, "collaborator");
 
-    await mkdir(bareRepositoryDirectory, { recursive: true });
-    await execFileAsync("git", ["init", "--bare", "--initial-branch=main", bareRepositoryDirectory]);
+    await initializeBareRepository(bareRepositoryDirectory);
 
     const remote = new FakeOverleafRemote(
       rootDirectory,
@@ -76,8 +87,7 @@ export class FakeOverleafRemote {
   async addSiblingProject(projectId: string, relativePath: string, content: string): Promise<string> {
     const bareDirectory = join(this.gitBaseUrl, projectId);
     const authorDirectory = join(this.rootDirectory, `author-${projectId}`);
-    await mkdir(bareDirectory, { recursive: true });
-    await execFileAsync("git", ["init", "--bare", "--initial-branch=main", bareDirectory]);
+    await initializeBareRepository(bareDirectory);
     await execFileAsync("git", ["clone", bareDirectory, authorDirectory]);
     await this.configureIdentity(authorDirectory, "A Collaborator", "collaborator@example.com");
     await writeFile(join(authorDirectory, relativePath), content, "utf8");
