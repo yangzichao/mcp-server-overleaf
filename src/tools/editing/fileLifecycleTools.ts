@@ -23,10 +23,9 @@ export function registerFileLifecycleTools(server: McpServer, context: ToolConte
       title: "Delete a project file",
       description:
         "Delete a file from the project. " +
-        "The file is removed from the local clone only — it stays in Overleaf, and the co-authors keep seeing it, until push_changes publishes the removal. " +
-        "Until then discard_local_changes brings it back, and show_diff shows the pending deletion. " +
-        "Deleting a file a co-author still cites or includes will break their compile, so confirm the file is genuinely unused first; " +
-        "search_project on its path or label is the way to check. To replace a file's contents instead of removing it, use write_file. " +
+        "The file is removed from the local clone only: it stays in Overleaf, and co-authors keep seeing it, until push_changes publishes the removal. Until then discard_local_changes brings it back, and show_diff shows the pending deletion. " +
+        "Deleting a file a co-author still cites or includes will break their compile, so confirm it is unused first with search_project on its path or label. To replace a file's contents instead, use write_file. " +
+        "path is relative to the project root, as list_files prints it; a directory is refused, and a file sparse checkout keeps off disk is still deleted from the project. " +
         "Pulls from Overleaf first. Returns a confirmation, or says the path is not in the project and deletes nothing.",
       inputSchema: z.object({
         project: projectArgument,
@@ -60,12 +59,11 @@ export function registerFileLifecycleTools(server: McpServer, context: ToolConte
     {
       title: "Move or rename a project file",
       description:
-        "Move or rename a file inside the project, creating any missing parent directories. " +
-        "The move happens in the local clone only — nothing changes in Overleaf until push_changes. " +
-        "LaTeX references are not rewritten: an \\input, \\include or \\includegraphics pointing at the old path will break, " +
-        "so search_project for the old path afterwards and fix the references with replace_text before pushing. " +
-        "Pulls from Overleaf first. Returns a confirmation that repeats this warning; " +
-        "if the source is missing or a file already exists at the destination, nothing moves and the reply says why.",
+        "Move or rename a file inside one project, creating any missing parent directories. " +
+        "The move happens in the local clone only; nothing changes in Overleaf until push_changes. " +
+        "LaTeX references are not rewritten: an \\input, \\include or \\includegraphics naming the old path will break, so search_project for it afterwards and fix the references with replace_text before pushing. " +
+        "Both paths are relative to the same project's root; to move a text file between projects, read_file it from one and write_file it into the other. " +
+        "Pulls from Overleaf first. If fromPath is not a file in the project or a file already exists at toPath, nothing moves and the reply says why.",
       inputSchema: z.object({
         project: projectArgument,
         fromPath: z

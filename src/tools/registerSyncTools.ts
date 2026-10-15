@@ -21,11 +21,11 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Project status",
       description:
-        "Report where the local clone stands relative to Overleaf: the branch and head commit, how many commits were just pulled, " +
-        "how many remain unmerged, how many local commits are waiting to be pushed, which files are edited but not committed, and the last ten commits. " +
-        "Pulls from Overleaf as part of answering. Call this to find out whether there is anything to push or anything a collaborator has changed; " +
-        "use show_diff instead to see what the pending edits actually say. " +
-        "Returns plain `name: value` lines. A pull that hits a conflict does not make it fail: the reply adds a WARNING with the conflict, and local work is kept.",
+        "Report where one project's local clone stands against Overleaf: branch and head commit, commits just pulled, commits still unmerged, local commits waiting to be pushed, files edited but not committed, and the last ten commits. " +
+        "Call it to learn whether there is anything to push or anything new from a collaborator; use show_diff to read the pending edits themselves. " +
+        "It pulls as part of answering, and that pull only updates the local clone: nothing changes on Overleaf and no local edit is dropped. A conflicting pull does not fail the call; the reply adds a WARNING with the conflict and the clone is left as it was. " +
+        "For a project not opened before, the clone is made first, so that first report shows nothing pulled. " +
+        "Returns plain name: value lines.",
       inputSchema: z.object({ project: projectArgument }),
       annotations: READS_OVERLEAF,
     },
@@ -65,10 +65,10 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Pull from Overleaf",
       description:
-        "Pull the latest commits from Overleaf into the local clone. Nothing is sent to Overleaf and no local edit is discarded. " +
-        "The read tools pull on their own, so this is rarely needed first; call it to check explicitly that the clone is current, " +
-        "or after a collaborator says they have pushed. " +
+        "Pull the latest commits from Overleaf into one project's local clone. Nothing is sent to Overleaf and no local edit is discarded. " +
+        "The read tools pull on their own, so this is rarely needed first; call it to check explicitly that the clone is current, or after a collaborator says they have pushed. Use project_status for the full picture. " +
         "If the pull cannot complete cleanly it fails and leaves local work untouched, rather than resolving the conflict on its own. " +
+        "Only the chosen project is pulled; a project not opened before is cloned instead, and reports nothing pulled. " +
         "Returns how many commits were pulled and how many local commits are still unpushed.",
       inputSchema: z.object({ project: projectArgument }),
       annotations: UPDATES_LOCAL_CLONE_SAFELY,
@@ -95,11 +95,12 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
     {
       title: "Compile the project",
       description:
-        "Compile the project locally with latexmk and report the errors and warnings, so a broken paper is found before collaborators see it. " +
-        "Call this after editing and before push_changes. " +
-        "Build artifacts go to a directory outside the clone, so they are never pushed to Overleaf, and no PDF is returned — only the log. " +
-        "This is the one tool that needs latexmk and a TeX distribution installed locally; without them it reports that rather than compiling. " +
-        "It also fills in any files sparse checkout was holding back, since figures have to be on disk to compile.",
+        "Compile one project locally with latexmk -pdf and report the errors and warnings, so a broken paper is caught before collaborators see it. Call it after editing and before push_changes. " +
+        "It compiles the clone as it stands, local edits included, without pulling, and halts at the first error. " +
+        "Without mainTexFile it tries main.tex, paper.tex, manuscript.tex, root.tex, thesis.tex and article.tex at the root, then the shallowest .tex file, and stops with a message if that file has no \\begin{document}. " +
+        "Build artifacts go to a directory outside the clone, so they are never pushed, and only the log comes back, never a PDF. " +
+        "Without latexmk and a TeX distribution installed locally it says so instead of compiling; a run past the configured timeout, 180 seconds by default, is reported as an error. " +
+        "It also restores any files sparse checkout was holding back, since figures must be on disk to compile.",
       inputSchema: z.object({
         project: projectArgument,
         mainTexFile: z
@@ -151,8 +152,8 @@ export function registerSyncTools(server: McpServer, context: ToolContext): void
       description:
         "Publish every pending local edit to Overleaf as one commit. This is the only tool that changes the project collaborators see, and the change is immediate and public. " +
         "Call show_diff first, and compile_project when the edit could break the build. " +
-        "Before pushing, the server re-checks Overleaf and rebases onto whatever collaborators pushed in the meantime. " +
-        "If two edits touch the same lines the push is refused, both versions are reported, and no local work is lost — nothing is overwritten and no winner is chosen. " +
+        "Before pushing, the server re-checks Overleaf and rebases onto whatever collaborators pushed in the meantime. If two edits touch the same lines the push is refused, both versions are reported, and no local work is lost: nothing is overwritten and no winner is chosen. " +
+        "commitMessage labels the one commit made from the pending edits; commits already waiting from an earlier refused push keep their own messages and go out with it. Only the chosen project is pushed. " +
         "Returns the new commit hash and the diff that was published, or reports that there was nothing to push.",
       inputSchema: z.object({
         project: projectArgument,

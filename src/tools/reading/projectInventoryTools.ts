@@ -16,11 +16,12 @@ export function registerProjectInventoryTools(server: McpServer, context: ToolCo
     {
       title: "List project files",
       description:
-        "List every file in the project, grouped by kind (LaTeX sources, bibliographies, figures, other). " +
-        "Pulls the latest commits from Overleaf first, so the listing reflects what collaborators have pushed. " +
-        "Files hidden by sparse checkout are listed too, because they exist in the project even when not on disk. " +
-        "Use this to discover paths before reading or editing; use project_summary instead for counts and the likely main document. " +
-        "Returns a file count and the likely main document, then the paths under each kind, with files not yet pushed marked (untracked).",
+        "List every file in the project, grouped by kind (LaTeX sources, bibliographies, figures, other), after pulling the latest commits from Overleaf. " +
+        "Use it to find exact paths before reading or editing; use project_summary when counts are enough, and search_project to find which file mentions something. " +
+        "Files sparse checkout keeps off disk are listed too, since they are still part of the project. " +
+        "extension keeps only paths ending in that suffix, case-insensitively, and filters untracked files as well; includeUntracked adds files created locally that push_changes has not committed yet, marked (untracked). " +
+        "Returns the file count and the likely main document, then the paths under each kind. " +
+        "If the pull conflicts with unpushed local work, it fails, keeps that work, and says how to resolve it.",
       inputSchema: z.object({
         project: projectArgument,
         extension: z
@@ -57,10 +58,11 @@ export function registerProjectInventoryTools(server: McpServer, context: ToolCo
     {
       title: "Project summary",
       description:
-        "Get a JSON overview of the project: file counts by kind, the likely main document and how many sections it has, " +
-        "the first ten file paths, statistics for edits not yet pushed, and files created locally. " +
-        "Pulls from Overleaf first. Call this once at the start of a task to orient; " +
-        "totalSections counts only the main document, not every .tex file.",
+        "Summarize one project in a single structured result (file counts by kind, the likely main document and its section count, pending local work) to orient at the start of a task. " +
+        "Use list_files for every path, list_sections for a document's outline, and project_status for commit-level sync state. " +
+        "mainFile is a guess: main.tex, paper.tex, manuscript.tex, root.tex, thesis.tex or article.tex at the root, otherwise the shallowest .tex file, so check it for \\begin{document} before relying on it. " +
+        "Pulls from Overleaf first; if that pull conflicts with unpushed local work, it fails and keeps the work. " +
+        "project can name any project the default token reaches, registered or not; the first call on a project clones it, so it is slower than later calls.",
       inputSchema: z.object({ project: projectArgument }),
       outputSchema: projectSummarySchema,
       annotations: READS_OVERLEAF,

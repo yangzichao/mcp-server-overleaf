@@ -12,14 +12,13 @@ export function registerReadFileTool(server: McpServer, context: ToolContext): v
     {
       title: "Read a project file",
       description:
-        "Read a text file from the project, pulling the latest commits from Overleaf first. " +
-        "Binary files are refused rather than returned as mojibake. " +
-        "Three ways to call it: plain (no mode) returns the text, numbered by line when startLine/endLine are given; " +
-        "mode=full returns JSON with the whole content and a revision hash to pass to a guarded edit; " +
-        "mode=smart with previousRevision returns only what changed since that revision. " +
-        "Use a line range to sample a large file, mode=full before editing, and mode=smart to re-read a file you have already read. " +
-        "A smart delta is a 1-based line splice: split your baseline on newline, replace deleteLineCount lines at startLine with change.lines, and join on newline again. " +
-        "Apply a delta only to the exact revision it was computed against. A response marked truncated carries no usable revision.",
+        "Read one text file from the project after pulling the latest commits from Overleaf. " +
+        "Plain calls return the text, line-numbered when startLine or endLine is given; startLine alone reads to the end, and endLine is clamped to the file. " +
+        "mode=full returns JSON with the content and a revision hash for a guarded edit; mode=smart with previousRevision returns kind unchanged, a delta, or full content when this server process does not know that revision or a delta would be no smaller. " +
+        "Use a line range to sample a large file, mode=full before an edit that passes expectedRevision, and mode=smart to re-read a file already read. " +
+        "Apply a delta only to its exact baseline: split on newline, replace deleteLineCount lines at the 1-based startLine with change.lines, and join on newline. " +
+        "Plain text is cut off after 60,000 characters; in a revision mode, a file too large to return whole comes back truncated with no revision. " +
+        "Fails without reading for a missing or binary file, a path outside the project, a line range combined with mode, or startLine after endLine.",
       inputSchema: z.object({
         project: projectArgument,
         path: z.string().describe("Path to the file relative to the project root, e.g. sections/intro.tex."),
