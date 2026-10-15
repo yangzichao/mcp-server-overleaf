@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.9
+
+There is no 0.3.8. Glama already uses that label for a rebuild of 0.3.7, so this release
+skips it and keeps the npm version and Glama's label the same.
 
 - Say in the tool descriptions what each argument does beyond its schema, and how each tool
   fails. `replace_text` inserts `replaceWith` literally, so `$$` and `$1` are kept. A section
