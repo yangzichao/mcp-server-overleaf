@@ -58,10 +58,10 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "List LaTeX sections",
       description:
-        "List the sectioning commands in a .tex file — \\section, \\subsection and the rest — with their nesting depth and line ranges. " +
-        "Pulls from Overleaf first. Call this before read_section or edit_section to learn the exact titles those tools expect, " +
-        "and to address a part of a paper by title rather than by line number, which shifts as the file is edited. " +
-        "Returns one line per heading, indented by depth, as \\section{Title} [lines start-end].",
+        "List the sectioning commands in one .tex file, \\part down to \\subparagraph including starred forms, with their nesting depth and line ranges. " +
+        "Call it before read_section or edit_section to get the exact titles they match, and to address part of a paper by title instead of line numbers that shift with every edit. " +
+        "path names a single file: \\input and \\include are not followed, so list each included file separately, and commented-out headings are skipped. " +
+        "Pulls from Overleaf first. Returns one line per heading, indented by depth, as \\section{Title} [lines start-end], or says the file has none; a missing, binary or out-of-project path fails.",
       inputSchema: z.object({
         project: projectArgument,
         path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
@@ -94,12 +94,10 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "Read one LaTeX section",
       description:
-        "Read one section of a .tex file, located by its title rather than by line number. " +
-        "The section runs from its own sectioning command to whichever comes first: the next heading at the same or a shallower level, " +
-        "or trailing matter such as \\end{document}, \\appendix or the bibliography, which belongs to no section. " +
-        "Pulls from Overleaf first. Prefer this over read_file when revising one part of a paper, so the rest of the document stays out of context. " +
-        "Returns the section's LaTeX source as stored, cut off after 60,000 characters. " +
-        "Title matching is case-insensitive and falls back to a substring match; if nothing matches, the reply lists the titles that do exist.",
+        "Read one section of a .tex file by its title: from its heading to the next heading at the same or a shallower level, stopping before trailing matter such as \\appendix, the bibliography or \\end{document}. " +
+        "Prefer it over read_file when revising one part of a paper, so the rest stays out of context. " +
+        "sectionTitle is compared case-insensitively with the title in braces, not an optional [short] title: an exact match wins, otherwise the first heading in document order that contains it, so a short fragment can pick an earlier section than intended. " +
+        "Pulls from Overleaf first. Returns the section's LaTeX source as stored, cut off after 60,000 characters; if nothing matches, the reply lists the titles that exist.",
       inputSchema: z.object({
         project: projectArgument,
         path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
@@ -134,11 +132,12 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
     {
       title: "Search the project",
       description:
-        "Search the project's LaTeX and text sources for a string or regular expression, returning matching lines as path:line:text. " +
-        "Pulls from Overleaf first. Use this to find where a term, citation key, label or command is used across a multi-file paper, " +
-        "when you do not already know which file holds it. " +
-        "Only .tex, .ltx, .bib, .cls, .sty, .bst, .txt and .md files are searched; figures, PDFs and other data files are not. " +
-        "Literal searches are case-insensitive.",
+        "Search the project's text sources for a literal string or a regular expression, returning matching lines as path:line: text. " +
+        "Use it to find where a term, citation key, label or command appears when you do not know which file holds it; once you do, use read_file or read_section, and use list_files to find a file by name. " +
+        "Only .tex, .ltx, .bib, .cls, .sty, .bst, .txt and .md files are searched, and a file created locally is not searched until push_changes commits it. " +
+        "Both modes are case-insensitive and match one line at a time, so a pattern cannot span lines. " +
+        "A regular expression uses JavaScript syntax, sees the first 4,000 characters of each line, and is abandoned with an error after 10 seconds; an invalid one fails with its syntax error. " +
+        "maximumMatches counts matching lines, taken in path order. Pulls from Overleaf first.",
       inputSchema: z.object({
         project: projectArgument,
         query: z

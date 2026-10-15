@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Say in the tool descriptions what each argument does beyond its schema, and how each tool
+  fails. `replace_text` inserts `replaceWith` literally, so `$$` and `$1` are kept. A section
+  title is matched against the title in braces: an exact title wins over the first one that
+  contains it. `write_file` with `expectedRevision` refuses a file that no longer exists.
+  `compile_project` names the files it tries when `mainTexFile` is omitted, and it compiles the
+  clone without pulling. `search_project` skips a new file until `push_changes` commits it.
+  `show_diff` does not pull. `discard_local_changes` deletes new files too. Glama's tool
+  definition score had marked 13 of the 18 tools down for adding nothing to their parameters.
+- Stop the integration tests from failing intermittently with ENOTEMPTY while deleting a clone.
+  Git starts `git maintenance run --auto --detach` after fetch, commit and push, and that
+  process can still be writing inside a clone after the server has exited. The tests now turn
+  automatic maintenance off, through the environment for the server and through the bare
+  repository's own config for the push side, which does not see that environment.
+
 ## 0.3.7
 
 - Start without any credentials instead of exiting. With no token and no registered project,

@@ -33,12 +33,10 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Replace exact text in a file",
       description:
-        "Replace an exact snippet of text in a project file. Prefer this over write_file and edit_section for a targeted change: " +
-        "it touches nothing outside the snippet, so surrounding LaTeX notation cannot be disturbed. " +
-        "The snippet must match exactly, whitespace included, and must appear exactly once unless replaceAll is set. " +
-        "Pulls from Overleaf first. Returns how many occurrences were replaced; " +
-        "if the snippet is missing, or appears several times without replaceAll, nothing changes and the reply says which, with the count, so add surrounding context to make it unique. " +
-        "The edit is written to the local clone only — nothing reaches Overleaf until push_changes.",
+        "Replace an exact snippet of text in a project file. Prefer it over write_file and edit_section for a targeted change: nothing outside the snippet is touched. " +
+        "findText must match exactly, whitespace and newlines included, and occur once unless replaceAll is set; replaceWith is inserted literally, so $$, $& and $1 stay as written. " +
+        "If the snippet is missing, or occurs several times without replaceAll, nothing changes and the reply gives the count; widen findText with surrounding text to make it unique. " +
+        "Pulls from Overleaf first, then edits only the local clone; push_changes publishes it. Returns how many occurrences were replaced.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
@@ -95,13 +93,11 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Rewrite one LaTeX section",
       description:
-        "Replace one whole section of a .tex file, located by its title. " +
-        "newContent replaces everything from the sectioning command to the end of the section, so it must include the \\section{...} command itself or the heading is lost. " +
-        "The section ends at the next heading of the same or a shallower level, or at trailing matter such as \\end{document} or the bibliography, which is never swallowed. " +
-        "Use replace_text for a smaller change; use this when rewriting a section wholesale. " +
-        "Pulls from Overleaf first. Returns the heading that was replaced and its former line range; " +
-        "if no title matches, nothing changes and the reply lists the titles that do exist. " +
-        "The edit is written to the local clone only — nothing reaches Overleaf until push_changes.",
+        "Replace one whole section of a .tex file, located by its title. Use replace_text for a smaller change and this to rewrite a section wholesale. " +
+        "The section runs from its heading to the next heading of the same or a shallower level, never swallowing trailing matter such as \\end{document} or the bibliography. " +
+        "newContent replaces that range line for line, so it must start with the \\section{...} command itself or the heading is lost, and should end with a newline to keep the blank line before the next heading. " +
+        "sectionTitle is compared case-insensitively with the title in braces: an exact match wins, otherwise the first heading in document order that contains it. " +
+        "Pulls from Overleaf first, then edits only the local clone; push_changes publishes it. Returns the heading replaced and its former line range; if no title matches, nothing changes and the reply lists the titles.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
@@ -147,11 +143,11 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Write a whole file",
       description:
-        "Overwrite a project file with new content, creating it and any missing parent directories if it does not exist. " +
-        "This replaces the whole file, so use it to add a new file; for a change to an existing one prefer replace_text or edit_section, " +
-        "which cannot accidentally drop the parts you did not mean to rewrite. " +
-        "Pulls from Overleaf first. Returns whether the file was created or overwritten. " +
-        "The file is written to the local clone only — nothing reaches Overleaf until push_changes.",
+        "Write a whole file: create it, with any missing parent directories, or overwrite it entirely. " +
+        "Use it to add a new file; for an existing one prefer replace_text or edit_section, which cannot drop text you did not mean to rewrite. " +
+        "content is written exactly as given, as UTF-8, with no trailing newline added. expectedRevision makes the call a guarded overwrite, refused if the file changed since that read or no longer exists, so leave it out when creating a file. " +
+        "path must be relative and stay inside the project; absolute paths, .. escapes and the .git directory are refused. " +
+        "Pulls from Overleaf first, then writes only the local clone; push_changes publishes it. Returns whether the file was created or overwritten.",
       inputSchema: z.object({
         project: projectArgument,
         expectedRevision: expectedRevisionArgument,
@@ -188,9 +184,10 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Show pending changes",
       description:
-        "Show a unified diff of every local edit that has not yet been pushed to Overleaf, across all files. " +
-        "Call this before push_changes to see exactly what collaborators are about to receive, and after a refused push to inspect work that is still pending. " +
-        'Reports "No local changes pending." when the clone matches Overleaf.',
+        "Show a unified diff of everything in one project's clone that Overleaf does not have yet: uncommitted edits, new and deleted files, and commits left behind by a refused push. " +
+        "Call it before push_changes to see exactly what collaborators will receive, and after a refused push to inspect what is still pending; use project_status when counts are enough. " +
+        "It does not pull first, so the comparison is against Overleaf as last fetched; it contacts Overleaf only to clone a project not opened before. " +
+        'Covers only the chosen project. The diff is cut off after 60,000 characters, and "No local changes pending." means there is nothing to push.',
       inputSchema: z.object({ project: projectArgument }),
       annotations: READS_OVERLEAF,
     },
@@ -208,9 +205,10 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
     {
       title: "Discard local edits",
       description:
-        "Permanently throw away every local edit and unpushed commit, resetting the clone to the last version seen on Overleaf. " +
+        "Permanently throw away every local edit, new file and unpushed commit in one project's clone, fetching Overleaf first so the clone ends up matching its current version. " +
         "The discarded work cannot be recovered from this server. Call show_diff first, and only call this once the user has said the work should be abandoned. " +
         "Its main use is after push_changes refuses a conflicting change: the clone cannot be pushed again until the conflicting local commits are either published or discarded here. " +
+        "Only the chosen project is reset; pending work in other projects is untouched. " +
         "Returns how many edited files and unpushed commits were discarded, or that there was nothing to discard.",
       inputSchema: z.object({ project: projectArgument }),
       annotations: EDITS_LOCAL_CLONE_IDEMPOTENTLY,
