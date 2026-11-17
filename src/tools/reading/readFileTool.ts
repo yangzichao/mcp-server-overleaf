@@ -2,9 +2,41 @@ import { resolve } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { requireSynchronizedWithOverleaf } from "../../workflow/synchronizeWithOverleaf.js";
+import { revisionArgument } from "../history/revisionArgument.js";
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+
+interface ReadArguments {
+  readonly startLine: number | undefined;
+  readonly endLine: number | undefined;
+  readonly mode: "full" | "smart" | undefined;
+  readonly previousRevision: string | undefined;
+  readonly revision: string | undefined;
+}
+
+function assertCompatibleReadArguments(read: ReadArguments): void {
+  const hasLineRange = read.startLine !== undefined || read.endLine !== undefined;
+  if (read.mode && hasLineRange) throw new Error("Revision reads cannot use line ranges.");
+  if (read.mode && read.revision)
+    throw new Error("revision reads return plain text, so they cannot use mode.");
+  if (read.previousRevision && read.mode !== "smart")
+    throw new Error("previousRevision requires mode=smart.");
+  if (read.startLine !== undefined && read.endLine !== undefined && read.startLine > read.endLine) {
+    throw new Error("startLine must not exceed endLine.");
+  }
+}
+
+/** startLine alone reads to the end; endLine is clamped to the file. */
+function numberLines(content: string, startLine: number | undefined, endLine: number | undefined): string {
+  const lines = content.split("\n");
+  const firstLine = startLine ?? 1;
+  const lastLine = Math.min(lines.length, endLine ?? lines.length);
+  return lines
+    .slice(firstLine - 1, lastLine)
+    .map((line, offset) => `${firstLine + offset}\t${line}`)
+    .join("\n");
+}
 
 export function registerReadFileTool(server: McpServer, context: ToolContext): void {
   server.registerTool(
@@ -18,6 +50,7 @@ export function registerReadFileTool(server: McpServer, context: ToolContext): v
         "Use a line range to sample a large file, mode=full before an edit that passes expectedRevision, and mode=smart to re-read a file already read. " +
         "Apply a delta only to its exact baseline: split on newline, replace deleteLineCount lines at the 1-based startLine with change.lines, and join on newline. " +
         "Plain text is cut off after 60,000 characters; in a revision mode, a file too large to return whole comes back truncated with no revision. " +
+        "With revision, reads the file as it was at that commit from list_history instead, as plain text; line ranges work, mode does not. " +
         "Fails without reading for a missing or binary file, a path outside the project, a line range combined with mode, or startLine after endLine.",
       inputSchema: z.object({
         project: projectArgument,
@@ -47,41 +80,28 @@ export function registerReadFileTool(server: McpServer, context: ToolContext): v
           .describe(
             "A 64-character revision hash this server returned for this same file earlier in this session. Requires mode=smart.",
           ),
+        revision: revisionArgument
+          .optional()
+          .describe(
+            "Read the file as it was at this commit hash from list_history. Cannot be combined with mode.",
+          ),
       }),
       annotations: READS_OVERLEAF,
     },
-    async ({ project, path, startLine, endLine, mode, previousRevision }) =>
+    async ({ project, path, startLine, endLine, mode, previousRevision, revision }) =>
       runToolSafely(context, () => {
-        if (mode && (startLine !== undefined || endLine !== undefined))
-          throw new Error("Revision reads cannot use line ranges.");
-        if (previousRevision && mode !== "smart") throw new Error("previousRevision requires mode=smart.");
-        if (startLine !== undefined && endLine !== undefined && startLine > endLine)
-          throw new Error("startLine must not exceed endLine.");
+        assertCompatibleReadArguments({ startLine, endLine, mode, previousRevision, revision });
         return context.projectRegistry.withRepository(project, async (repository) => {
           await requireSynchronizedWithOverleaf(repository);
-          const content = await repository.readTextFile(path);
-          if (mode)
-            return textResult(
-              JSON.stringify(
-                context.fileRevisions.read(
-                  resolve(repository.repositoryDirectory, path),
-                  content,
-                  previousRevision,
-                ),
-              ),
-            );
+          const content = revision
+            ? await repository.history().readTextAt(revision, path)
+            : await repository.readTextFile(path);
+          if (mode) {
+            const scope = resolve(repository.repositoryDirectory, path);
+            return textResult(JSON.stringify(context.fileRevisions.read(scope, content, previousRevision)));
+          }
           if (startLine === undefined && endLine === undefined) return textResult(truncateForModel(content));
-          const lines = content.split("\n");
-          const firstLine = startLine ?? 1;
-          const lastLine = Math.min(lines.length, endLine ?? lines.length);
-          return textResult(
-            truncateForModel(
-              lines
-                .slice(firstLine - 1, lastLine)
-                .map((line, offset) => `${firstLine + offset}\t${line}`)
-                .join("\n"),
-            ),
-          );
+          return textResult(truncateForModel(numberLines(content, startLine, endLine)));
         });
       }),
   );

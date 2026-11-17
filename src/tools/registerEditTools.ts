@@ -4,10 +4,12 @@ import { findSectionByTitle, parseLatexSections, replaceSectionText } from "../l
 import { replaceTextOccurrences } from "../latex/replaceTextOccurrences.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
 import { registerFileLifecycleTools } from "./editing/fileLifecycleTools.js";
+import { registerShowDiffTool } from "./editing/showDiffTool.js";
+import { registerUploadFileTool } from "./editing/uploadFileTool.js";
 import { projectArgument } from "./projectArgument.js";
 import { requireFileRevision } from "./reading/fileRevisions.js";
-import { EDITS_LOCAL_CLONE, EDITS_LOCAL_CLONE_IDEMPOTENTLY, READS_OVERLEAF } from "./toolAnnotations.js";
-import { runToolSafely, type ToolContext, textResult, truncateForModel } from "./toolContext.js";
+import { EDITS_LOCAL_CLONE, EDITS_LOCAL_CLONE_IDEMPOTENTLY } from "./toolAnnotations.js";
+import { runToolSafely, type ToolContext, textResult } from "./toolContext.js";
 
 const expectedRevisionArgument = z
   .string()
@@ -180,27 +182,6 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
   );
 
   server.registerTool(
-    "show_diff",
-    {
-      title: "Show pending changes",
-      description:
-        "Show a unified diff of everything in one project's clone that Overleaf does not have yet: uncommitted edits, new and deleted files, and commits left behind by a refused push. " +
-        "Call it before push_changes to see exactly what collaborators will receive, and after a refused push to inspect what is still pending; use project_status when counts are enough. " +
-        "It does not pull first, so the comparison is against Overleaf as last fetched; it contacts Overleaf only to clone a project not opened before. " +
-        'Covers only the chosen project. The diff is cut off after 60,000 characters, and "No local changes pending." means there is nothing to push.',
-      inputSchema: z.object({ project: projectArgument }),
-      annotations: READS_OVERLEAF,
-    },
-    async ({ project }) =>
-      runToolSafely(context, () =>
-        context.projectRegistry.withRepository(project, async (repository) => {
-          const diff = await repository.getPendingDiff();
-          return textResult(diff.trim() === "" ? "No local changes pending." : truncateForModel(diff));
-        }),
-      ),
-  );
-
-  server.registerTool(
     "discard_local_changes",
     {
       title: "Discard local edits",
@@ -234,5 +215,7 @@ export function registerEditTools(server: McpServer, context: ToolContext): void
       ),
   );
 
+  registerShowDiffTool(server, context);
   registerFileLifecycleTools(server, context);
+  registerUploadFileTool(server, context);
 }

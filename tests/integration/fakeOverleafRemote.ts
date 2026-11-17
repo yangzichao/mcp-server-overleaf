@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -69,10 +69,28 @@ export class FakeOverleafRemote {
   }
 
   /** Writes a file as the co-author and pushes it, the way the Overleaf editor would. */
-  async collaboratorPushes(relativePath: string, content: string, message: string): Promise<void> {
+  async collaboratorPushes(relativePath: string, content: string | Buffer, message: string): Promise<void> {
     const absolutePath = join(this.collaboratorDirectory, relativePath);
     await mkdir(join(absolutePath, ".."), { recursive: true });
-    await writeFile(absolutePath, content, "utf8");
+    await writeFile(absolutePath, content);
+    await this.commitAndPushAsCollaborator(message);
+  }
+
+  /** Deletes a file as the co-author and pushes the deletion. */
+  async collaboratorDeletes(relativePath: string, message: string): Promise<void> {
+    await rm(join(this.collaboratorDirectory, relativePath));
+    await this.commitAndPushAsCollaborator(message);
+  }
+
+  /** The hash of the newest commit "on Overleaf", for addressing a revision in a test. */
+  async publishedHeadHash(): Promise<string> {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "main"], {
+      cwd: this.bareRepositoryDirectory,
+    });
+    return stdout.trim();
+  }
+
+  private async commitAndPushAsCollaborator(message: string): Promise<void> {
     await execFileAsync("git", ["add", "--all"], { cwd: this.collaboratorDirectory });
     await execFileAsync("git", ["commit", "-m", message], { cwd: this.collaboratorDirectory });
     await execFileAsync("git", ["push", "origin", "main"], { cwd: this.collaboratorDirectory });
@@ -101,6 +119,15 @@ export class FakeOverleafRemote {
   async readPublishedFile(relativePath: string): Promise<string> {
     const { stdout } = await execFileAsync("git", ["show", `main:${relativePath}`], {
       cwd: this.bareRepositoryDirectory,
+    });
+    return stdout;
+  }
+
+  /** A file's exact bytes "on Overleaf", for binary files. */
+  async readPublishedBytes(relativePath: string): Promise<Buffer> {
+    const { stdout } = await execFileAsync("git", ["show", `main:${relativePath}`], {
+      cwd: this.bareRepositoryDirectory,
+      encoding: "buffer",
     });
     return stdout;
   }

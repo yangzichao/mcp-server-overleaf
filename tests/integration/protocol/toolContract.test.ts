@@ -43,6 +43,9 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
       "push_changes",
       "delete_file",
       "move_file",
+      "list_history",
+      "restore_file",
+      "upload_file",
     ];
     expect(tools.map((tool) => tool.name).sort()).toEqual(expectedNames.sort());
     const writes = new Set([
@@ -51,6 +54,8 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
       "write_file",
       "delete_file",
       "move_file",
+      "restore_file",
+      "upload_file",
       "discard_local_changes",
       "sync_project",
       "push_changes",
