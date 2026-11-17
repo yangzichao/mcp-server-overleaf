@@ -6,6 +6,7 @@ import {
   decodeSocketIoFrame,
   encodeSocketIoEvent,
 } from "../../src/overleaf/realtime/socketIoZeroNineProtocol.js";
+import { FakeOverleafWeb } from "./fakeOverleafWeb.js";
 
 /**
  * An Overleaf real-time service standing in for the one behind overleaf.com.
@@ -20,7 +21,13 @@ import {
  *   `WebsocketController` escapes them;
  * - `applyOtUpdate` turning operations into tracked changes when `meta.tc` is present and into
  *   plain text when it is not, which is the distinction `RangesManager` makes;
- * - the review permission check `WebsocketController._assertClientCanApplyUpdate` performs.
+ * - the review permission check `WebsocketController._assertClientCanApplyUpdate` performs;
+ * - the `GCLB` load-balancer cookie overleaf.com sets on the handshake, which the upgrade must
+ *   carry back to reach the backend that knows the handshake's session id;
+ * - an `u` (undo) insert at a tracked deletion removing that deletion, as ranges-tracker does.
+ *
+ * The web application's HTTP routes (comment threads, accepting changes) are in
+ * `fakeOverleafWeb.ts`, served from the same port as the real thing serves them.
  */
 
 export interface FakeTrackedChange {
@@ -46,7 +53,15 @@ interface FakeDocument {
 
 export type FakePermissionsLevel = "owner" | "readAndWrite" | "review" | "readOnly";
 
+interface Tracking {
+  readonly idSeed: string | undefined;
+  readonly nextChangeId: () => string;
+  readonly authorId: string;
+  readonly undoing: boolean;
+}
+
 const SESSION_COOKIE_NAME = "overleaf_session2";
+const LOAD_BALANCER_COOKIE = "GCLB=fake-backend-1";
 
 /** Mirrors `encodeForWebsockets` in `services/real-time/app/js/WebsocketController.js`. */
 function escapeForWebsockets(text: string): string {
@@ -63,11 +78,15 @@ export class FakeOverleafRealtime {
   private readonly documents = new Map<string, FakeDocument>();
   private handshakeSessionIds = new Set<string>();
   private nextHandshakeId = 0;
+  /** The web application's routes, sharing this fake's documents. */
+  readonly web: FakeOverleafWeb;
 
   /** Changed by a test to exercise the review-permission branch. */
   permissionsLevel: FakePermissionsLevel = "owner";
   /** Set by a test to make the next `applyOtUpdate` fail the way Overleaf does. */
   rejectNextUpdateWith: string | undefined;
+  /** Documents stored in the newer history-OT format, which `joinDoc` refuses to old clients. */
+  readonly historyOtDocumentIds = new Set<string>();
   readonly userId = "6500000000000000000000aa";
 
   private constructor(
@@ -78,6 +97,7 @@ export class FakeOverleafRealtime {
   ) {
     this.httpServer = httpServer;
     this.webSocketServer = webSocketServer;
+    this.web = new FakeOverleafWeb(this, SESSION_COOKIE_NAME);
   }
 
   static async start(
@@ -125,9 +145,38 @@ export class FakeOverleafRealtime {
   }
 
   trackedChanges(documentId: string): readonly FakeTrackedChange[] {
+    return this.requireDocument(documentId).changes;
+  }
+
+  commentAnchors(documentId: string): readonly FakeComment[] {
+    return this.requireDocument(documentId).comments;
+  }
+
+  hasDocument(documentId: string): boolean {
+    return this.documents.has(documentId);
+  }
+
+  /** What `POST .../changes/accept` amounts to: the text stays as it is and the ranges go. */
+  acceptChanges(documentId: string, changeIds: readonly string[]): void {
+    const document = this.requireDocument(documentId);
+    document.changes = document.changes.filter((change) => !changeIds.includes(change.id));
+    document.version += 1;
+  }
+
+  removeComment(documentId: string, threadId: string): void {
+    const document = this.requireDocument(documentId);
+    document.comments = document.comments.filter((comment) => comment.op.t !== threadId);
+  }
+
+  /** A suggestion a collaborator left, applied exactly as if their editor had sent it. */
+  collaboratorSuggests(documentId: string, operations: unknown[], idSeed = "c0ffee0000000000aa"): void {
+    this.applyOperations(this.requireDocument(documentId), operations, idSeed, "6500000000000000000000bb");
+  }
+
+  private requireDocument(documentId: string): FakeDocument {
     const document = this.documents.get(documentId);
     if (!document) throw new Error(`No such document: ${documentId}`);
-    return document.changes;
+    return document;
   }
 
   async stop(): Promise<void> {
@@ -139,7 +188,7 @@ export class FakeOverleafRealtime {
   private installHandshakeRoute(): void {
     this.httpServer.on("request", (request, response) => {
       if (!request.url?.startsWith("/socket.io/1/?")) {
-        response.writeHead(404).end();
+        this.web.handle(request, response);
         return;
       }
       if (!request.headers.cookie?.includes(`${SESSION_COOKIE_NAME}=`)) {
@@ -148,7 +197,10 @@ export class FakeOverleafRealtime {
       }
       const sessionId = `handshake-${++this.nextHandshakeId}`;
       this.handshakeSessionIds.add(sessionId);
-      response.writeHead(200, { "content-type": "text/plain" });
+      response.writeHead(200, {
+        "content-type": "text/plain",
+        "set-cookie": `${LOAD_BALANCER_COOKIE}; Path=/; HttpOnly`,
+      });
       response.end(`${sessionId}:60:60:websocket,xhr-polling`);
     });
   }
@@ -163,6 +215,12 @@ export class FakeOverleafRealtime {
         return;
       }
       if (!this.handshakeSessionIds.has(sessionId)) {
+        socket.destroy();
+        return;
+      }
+      // Without the load-balancer cookie the upgrade would reach a backend that never saw the
+      // handshake. Here that is modelled as the refusal it amounts to.
+      if (!request.headers.cookie?.includes(LOAD_BALANCER_COOKIE)) {
         socket.destroy();
         return;
       }
@@ -246,6 +304,13 @@ export class FakeOverleafRealtime {
       this.sendAcknowledgement(webSocket, acknowledgementId, [{ message: "doc not found" }]);
       return;
     }
+    if (this.historyOtDocumentIds.has(document.documentId)) {
+      // WebsocketController.joinDoc, when the client did not send supportsHistoryOT.
+      this.sendAcknowledgement(webSocket, acknowledgementId, [
+        { message: "client does not support history-ot" },
+      ]);
+      return;
+    }
     const lines = document.text.split("\n").map(escapeForWebsockets);
     this.sendAcknowledgement(webSocket, acknowledgementId, [
       null,
@@ -303,7 +368,12 @@ export class FakeOverleafRealtime {
       : "not authorized";
   }
 
-  private applyOperations(document: FakeDocument, operations: unknown[], idSeed: string | undefined): void {
+  private applyOperations(
+    document: FakeDocument,
+    operations: unknown[],
+    idSeed: string | undefined,
+    authorId: string = this.userId,
+  ): void {
     let idCounter = 0;
     const nextChangeId = (): string => {
       idCounter += 1;
@@ -311,14 +381,22 @@ export class FakeOverleafRealtime {
     };
     for (const raw of operations) {
       if (!raw || typeof raw !== "object") continue;
-      const operation = raw as { p?: unknown; i?: unknown; d?: unknown; c?: unknown; t?: unknown };
+      const operation = raw as {
+        p?: unknown;
+        i?: unknown;
+        d?: unknown;
+        c?: unknown;
+        t?: unknown;
+        u?: unknown;
+      };
       const position = typeof operation.p === "number" ? operation.p : 0;
+      const tracking: Tracking = { idSeed, nextChangeId, authorId, undoing: operation.u === true };
       if (typeof operation.c === "string" && typeof operation.t === "string") {
         this.applyComment(document, position, operation.c, operation.t);
       } else if (typeof operation.i === "string") {
-        this.applyInsert(document, position, operation.i, idSeed, nextChangeId);
+        this.applyInsert(document, position, operation.i, tracking);
       } else if (typeof operation.d === "string") {
-        this.applyDelete(document, position, operation.d, idSeed, nextChangeId);
+        this.applyDelete(document, position, operation.d, tracking);
       }
     }
     document.version += 1;
@@ -332,29 +410,37 @@ export class FakeOverleafRealtime {
     });
   }
 
-  private applyInsert(
-    document: FakeDocument,
-    position: number,
-    text: string,
-    idSeed: string | undefined,
-    nextChangeId: () => string,
-  ): void {
+  /**
+   * The parts of `applyInsertToChanges` the tools depend on: later ranges move along, and an
+   * undoing insert of exactly a tracked deletion's text at its position removes that deletion
+   * instead of becoming a suggestion of its own.
+   */
+  private applyInsert(document: FakeDocument, position: number, text: string, tracking: Tracking): void {
     document.text = document.text.slice(0, position) + text + document.text.slice(position);
-    if (!idSeed) return;
+    const rejectedDeletion = tracking.undoing
+      ? document.changes.find((change) => change.op.d === text && change.op.p === position)
+      : undefined;
+    if (rejectedDeletion) document.changes = document.changes.filter((change) => change !== rejectedDeletion);
+    for (const change of document.changes) {
+      if (change.op.p >= position) change.op.p += text.length;
+    }
+    for (const comment of document.comments) {
+      if (comment.op.p >= position) comment.op.p += text.length;
+    }
+    if (!tracking.idSeed || rejectedDeletion) return;
     document.changes.push({
-      id: nextChangeId(),
+      id: tracking.nextChangeId(),
       op: { p: position, i: text },
-      metadata: { user_id: this.userId, ts: nowIso() },
+      metadata: { user_id: tracking.authorId, ts: nowIso() },
     });
   }
 
-  private applyDelete(
-    document: FakeDocument,
-    position: number,
-    text: string,
-    idSeed: string | undefined,
-    nextChangeId: () => string,
-  ): void {
+  /**
+   * The parts of `applyDeleteToChanges` the tools depend on. Deleting exactly the text of a
+   * suggested insertion removes that suggestion rather than suggesting a deletion of it, which
+   * is what rejecting an insertion relies on; later ranges move back.
+   */
+  private applyDelete(document: FakeDocument, position: number, text: string, tracking: Tracking): void {
     // The real doc-updater refuses a delete whose text does not match the document, which is
     // what turns a miscalculated offset into a failure rather than a silent corruption.
     const found = document.text.slice(position, position + text.length);
@@ -368,11 +454,21 @@ export class FakeOverleafRealtime {
     // do if the text were still there. What the range keeps is the original text, so rejecting
     // the suggestion can put it back.
     document.text = document.text.slice(0, position) + document.text.slice(position + text.length);
-    if (!idSeed) return;
+    const removedInsertion = document.changes.find(
+      (change) => change.op.i === text && change.op.p === position,
+    );
+    if (removedInsertion) document.changes = document.changes.filter((change) => change !== removedInsertion);
+    for (const change of document.changes) {
+      if (change.op.p >= position + text.length) change.op.p -= text.length;
+    }
+    for (const comment of document.comments) {
+      if (comment.op.p >= position + text.length) comment.op.p -= text.length;
+    }
+    if (!tracking.idSeed || removedInsertion) return;
     document.changes.push({
-      id: nextChangeId(),
+      id: tracking.nextChangeId(),
       op: { p: position, d: text },
-      metadata: { user_id: this.userId, ts: nowIso() },
+      metadata: { user_id: tracking.authorId, ts: nowIso() },
     });
   }
 

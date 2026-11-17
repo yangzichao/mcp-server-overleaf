@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { PACKAGE_NAME, PACKAGE_VERSION } from "../config/packageMetadata.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
+import { OverleafWebClient } from "../overleaf/web/overleafWebClient.js";
 import { FileRevisionStore } from "../tools/reading/fileRevisions.js";
 import { registerEditTools } from "../tools/registerEditTools.js";
 import { registerReadTools } from "../tools/registerReadTools.js";
@@ -22,6 +23,12 @@ export function createToolContext(configuration: ServerConfiguration): ToolConte
     configuration,
     projectRegistry: new OverleafProjectRegistry(configuration),
     fileRevisions: new FileRevisionStore(),
+    overleafWebClient: configuration.reviewCredentials
+      ? new OverleafWebClient({
+          baseUrl: configuration.reviewCredentials.webBaseUrl,
+          cookieHeader: configuration.reviewCredentials.cookieHeader,
+        })
+      : undefined,
   };
 }
 

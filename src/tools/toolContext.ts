@@ -5,6 +5,7 @@ import { reviewCredentialSecrets } from "../config/review/reviewCredentials.js";
 import { redactSecrets } from "../config/secretRedaction.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import type { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
+import type { OverleafWebClient } from "../overleaf/web/overleafWebClient.js";
 
 import type { FileRevisionStore } from "./reading/fileRevisions.js";
 
@@ -12,6 +13,11 @@ export interface ToolContext {
   readonly fileRevisions: FileRevisionStore;
   readonly configuration: ServerConfiguration;
   readonly projectRegistry: OverleafProjectRegistry;
+  /**
+   * Overleaf's web application, signed in with the session cookie. Present only when a cookie
+   * is configured, and shared across calls so its CSRF token is fetched once per process.
+   */
+  readonly overleafWebClient: OverleafWebClient | undefined;
 }
 
 /** The SDK's own tool-result shape, aliased so tool modules do not each import it. */
