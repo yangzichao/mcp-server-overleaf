@@ -54,7 +54,15 @@ describe("verify_citations", () => {
   }
 
   it("separates wrong identifiers from unconfirmed titles and confirmed entries", async () => {
-    metadata.searchResults = [{ DOI: "10.5555/gan", title: ["Generative adversarial nets"] }];
+    metadata.searchResults = [
+      {
+        DOI: "10.5555/chapter",
+        title: ["Quantum gravity explained"],
+        author: [{ family: "Elsewhere", given: "A." }],
+        issued: { "date-parts": [[2023]] },
+      },
+      { DOI: "10.5555/gan", title: ["Generative adversarial nets"], author: [{ family: "Goodfellow" }] },
+    ];
     const answer = await (await startClient()).call("verify_citations", {});
 
     expect(answer).toContain(
@@ -67,7 +75,7 @@ describe("verify_citations", () => {
       "fakedoi (refs.bib:3): DOI 10.5555/missing does not resolve; doi.org has no such DOI.",
     );
     expect(answer).toContain(
-      'madeup (refs.bib:6): no work titled "Quantum Gravity Explained by Transformers" found in Crossref.',
+      'madeup (refs.bib:6): no work titled "Quantum Gravity Explained by Transformers" by Nobody found in Crossref. The closest Crossref result is "Quantum gravity explained" by Elsewhere (2023).',
     );
     expect(answer).toContain(
       "Confirmed (3): real2017 (DOI), preprint (arXiv id), searched (found in Crossref as DOI 10.5555/gan)",

@@ -1,5 +1,5 @@
 import type { BibliographyRecord } from "../../citations/parseBibliographyRecords.js";
-import type { CitationVerdict } from "../../citations/verifyBibliographyEntry.js";
+import type { CitationVerdict, ClosestSearchResult } from "../../citations/verifyBibliographyEntry.js";
 import { describeLocation } from "../../latex/source/scannedSource.js";
 
 /**
@@ -39,10 +39,17 @@ function describeProblem({ record, verdict }: VerifiedRecord): string | undefine
   return undefined;
 }
 
+function describeClosest(closest: ClosestSearchResult | undefined): string {
+  if (!closest) return "";
+  const author = closest.firstAuthor ? ` by ${closest.firstAuthor}` : "";
+  const year = closest.year ? ` (${closest.year})` : "";
+  return ` The closest Crossref result is "${closest.title}"${author}${year}.`;
+}
+
 function describeUnconfirmed({ record, verdict }: VerifiedRecord): string | undefined {
   if (verdict.kind === "no-close-match") {
-    const closest = verdict.closestTitle ? ` The closest Crossref title is "${verdict.closestTitle}".` : "";
-    return `${entryLabel(record)}: no work titled "${plainTitle(record)}" found in Crossref.${closest}`;
+    const author = verdict.searchedAuthor ? ` by ${verdict.searchedAuthor}` : "";
+    return `${entryLabel(record)}: no work titled "${plainTitle(record)}"${author} found in Crossref.${describeClosest(verdict.closest)}`;
   }
   if (verdict.kind === "not-checked") return `${entryLabel(record)}: not checked, because ${verdict.reason}.`;
   return undefined;

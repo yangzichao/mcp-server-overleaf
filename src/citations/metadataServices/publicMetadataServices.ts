@@ -1,13 +1,14 @@
 import type { CitationLookupEndpoints } from "../../config/citationLookupConfiguration.js";
 import { describeFailure, fetchMetadata } from "./fetchMetadata.js";
 import {
+  firstString,
   type IdentifierLookup,
   type MetadataServices,
-  type SearchCandidate,
   type SearchLookup,
   titleForms,
 } from "./metadataServices.js";
 import { parseFirstArxivEntry } from "./parseArxivFeed.js";
+import { parseCrossrefSearchCandidates } from "./parseCrossrefWorks.js";
 
 /**
  * doi.org, arXiv and Crossref as their documentation describes them:
@@ -27,12 +28,6 @@ const CROSSREF_SEARCH_ROWS = 5;
 
 type Sleep = (milliseconds: number) => Promise<void>;
 const realSleep: Sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-function firstString(value: unknown): string | undefined {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
-  return undefined;
-}
 
 /** Keeps calls to one service at least `intervalMs` apart. */
 function spaced(intervalMs: number, sleep: Sleep): <T>(call: () => Promise<T>) => Promise<T> {
@@ -102,13 +97,7 @@ async function searchCrossref(endpoints: CitationLookupEndpoints, query: string)
     );
     if (response.status !== 200)
       return { outcome: "unavailable", detail: `Crossref answered ${response.status}` };
-    const items = (JSON.parse(response.body) as { message?: { items?: unknown[] } }).message?.items ?? [];
-    const candidates: SearchCandidate[] = items.flatMap((item) => {
-      const { DOI, title, subtitle } = item as { DOI?: unknown; title?: unknown; subtitle?: unknown };
-      const titles = titleForms(firstString(title), firstString(subtitle));
-      return typeof DOI === "string" && titles.length > 0 ? [{ doi: DOI, titles }] : [];
-    });
-    return { outcome: "searched", candidates };
+    return { outcome: "searched", candidates: parseCrossrefSearchCandidates(response.body) };
   } catch (error) {
     return { outcome: "unavailable", detail: describeFailure("Crossref", error) };
   }

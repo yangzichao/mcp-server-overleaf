@@ -6,7 +6,7 @@ import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
 import { describeCommitHistory } from "./describeCommitHistory.js";
-import { historyDateArgument } from "./revisionArgument.js";
+import { historyDateArgument, toGitHistoryBoundary } from "./historyDateArgument.js";
 
 export function registerListHistoryTool(server: McpServer, context: ToolContext): void {
   server.registerTool(
@@ -46,7 +46,12 @@ export function registerListHistoryTool(server: McpServer, context: ToolContext)
       runToolSafely(context, () =>
         context.projectRegistry.withRepository(project, async (repository) => {
           await requireSynchronizedWithOverleaf(repository);
-          const commits = await repository.history().listCommits({ path, since, until, limit });
+          const commits = await repository.history().listCommits({
+            path,
+            since: since && toGitHistoryBoundary(since, "since"),
+            until: until && toGitHistoryBoundary(until, "until"),
+            limit,
+          });
           return textResult(truncateForModel(describeCommitHistory(commits, path ?? "the project", limit)));
         }),
       ),

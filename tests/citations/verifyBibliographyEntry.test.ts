@@ -66,7 +66,10 @@ describe("verifyBibliographyEntry", () => {
     const stub = services({
       lookupDoi: { outcome: "unavailable", detail: "doi.org answered 503" },
       lookupArxiv: { outcome: "unavailable", detail: "arXiv answered 503" },
-      searchCrossref: { outcome: "searched", candidates: [{ doi: "10.1000/found", titles: [TITLE] }] },
+      searchCrossref: {
+        outcome: "searched",
+        candidates: [{ doi: "10.1000/found", titles: [TITLE], authorNames: ["Vaswani"], year: 2017 }],
+      },
     });
     const verdict = await verifyBibliographyEntry(
       record({
@@ -83,17 +86,55 @@ describe("verifyBibliographyEntry", () => {
     expect(stub.calls.at(-1)).toBe("searchCrossref attention is all you need Vaswani 2017");
   });
 
-  it("reports the closest title when a search finds nothing close", async () => {
+  it("reports the closest result when a search finds nothing close", async () => {
     const verdict = await verifyBibliographyEntry(
       record({ title: TITLE }),
       services({
         searchCrossref: {
           outcome: "searched",
-          candidates: [{ doi: "10.1/x", titles: ["Attention spans of goldfish"] }],
+          candidates: [
+            { doi: "10.1/x", titles: ["Attention spans of goldfish"], authorNames: ["Fish"], year: 2001 },
+          ],
         },
       }),
     );
-    expect(verdict).toEqual({ kind: "no-close-match", closestTitle: "Attention spans of goldfish" });
+    expect(verdict).toEqual({
+      kind: "no-close-match",
+      searchedAuthor: undefined,
+      closest: { title: "Attention spans of goldfish", firstAuthor: "Fish", year: 2001 },
+    });
+  });
+
+  it("does not confirm a same-titled work by someone else, but does confirm the author's own", async () => {
+    // Crossref really answers this way: a 2023 book chapter shares the 2014 paper's title.
+    const chapter = {
+      doi: "10.1007/978-3-658-40442-0_9",
+      titles: ["Generative Adversarial Nets"],
+      authorNames: ["Labaca-Castro"],
+      year: 2023,
+    };
+    const entry = record({ title: "Generative Adversarial Nets", author: "Goodfellow, Ian and others" });
+    const onlyTheChapter = await verifyBibliographyEntry(
+      entry,
+      services({ searchCrossref: { outcome: "searched", candidates: [chapter] } }),
+    );
+    expect(onlyTheChapter).toEqual({
+      kind: "no-close-match",
+      searchedAuthor: "Goodfellow",
+      closest: { title: "Generative Adversarial Nets", firstAuthor: "Labaca-Castro", year: 2023 },
+    });
+
+    const reprint = {
+      doi: "10.1/gan",
+      titles: ["Generative adversarial nets"],
+      authorNames: ["Mirza", "Goodfellow"],
+      year: 2020,
+    };
+    const withTheReprint = await verifyBibliographyEntry(
+      entry,
+      services({ searchCrossref: { outcome: "searched", candidates: [chapter, reprint] } }),
+    );
+    expect(withTheReprint).toEqual({ kind: "confirmed", via: "search", identifier: "10.1/gan" });
   });
 
   it("says why an entry with nothing to look up was not checked", async () => {

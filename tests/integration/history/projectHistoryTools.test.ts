@@ -68,6 +68,18 @@ describe("the project history tools", () => {
     expect(newest).toContain("Showing the newest 1");
   });
 
+  // Git reads a bare date as that day at the current time of day, which drops the commits made
+  // a moment ago. Found against the real Git bridge, where it hid a commit from that morning.
+  it("counts the whole day for a bare since or until date", async () => {
+    const now = new Date();
+    const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+      .map((part) => String(part).padStart(2, "0"))
+      .join("-");
+    const mcp = await startClient();
+    expect(await mcp.call("list_history", { since: today })).toContain("3 commits for the project");
+    expect(await mcp.call("list_history", { until: today })).toContain("3 commits for the project");
+  });
+
   it("refuses a date Git would silently ignore, or one that could be read as an option", async () => {
     const mcp = await startClient();
     for (const since of ["--all", "2999-01-01", "2026-02-31", "last tuesday-ish"]) {

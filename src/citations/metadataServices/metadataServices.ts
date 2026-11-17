@@ -12,6 +12,9 @@ export type IdentifierLookup =
 export interface SearchCandidate {
   readonly doi: string;
   readonly titles: string[];
+  /** Family names, or an organisation's name, in the registry's author order. */
+  readonly authorNames: string[];
+  readonly year: number | undefined;
 }
 
 export type SearchLookup =
@@ -22,6 +25,13 @@ export interface MetadataServices {
   lookupDoi(doi: string): Promise<IdentifierLookup>;
   lookupArxiv(arxivId: string): Promise<IdentifierLookup>;
   searchCrossref(bibliographicQuery: string): Promise<SearchLookup>;
+}
+
+/** A string, or the first string of an array, which is how CSL JSON and Crossref hold titles. */
+export function firstString(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  return undefined;
 }
 
 /** The title on its own and joined to its subtitle, since a .bib file may hold either. */

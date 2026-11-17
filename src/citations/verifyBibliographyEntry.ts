@@ -1,5 +1,10 @@
+import { listsAuthor } from "./authorNames.js";
 import { findArxivId, findDoi, findFirstAuthorFamilyName } from "./citationIdentifiers.js";
-import type { IdentifierLookup, MetadataServices } from "./metadataServices/metadataServices.js";
+import type {
+  IdentifierLookup,
+  MetadataServices,
+  SearchCandidate,
+} from "./metadataServices/metadataServices.js";
 import type { BibliographyRecord } from "./parseBibliographyRecords.js";
 import { normalizeTitleWords, SAME_WORK_THRESHOLD, titleSimilarity } from "./titleSimilarity.js";
 
@@ -9,6 +14,10 @@ import { normalizeTitleWords, SAME_WORK_THRESHOLD, titleSimilarity } from "./tit
  * An identifier that resolves to a different title, or does not resolve at all, is a
  * problem: the entry points somewhere it should not. A title search that finds nothing is
  * weaker evidence, because books, theses, reports and web pages are often not in Crossref.
+ *
+ * A title search confirms an entry only when a result also lists the entry's first author.
+ * Titles repeat: "Generative Adversarial Nets" is both the 2014 NeurIPS paper, which has no
+ * DOI, and a 2023 book chapter by someone else, which Crossref returns first.
  */
 
 export type IdentifierKind = "doi" | "arxiv";
@@ -27,8 +36,41 @@ export type CitationVerdict =
       readonly identifier: string;
       readonly detail: string;
     }
-  | { readonly kind: "no-close-match"; readonly closestTitle: string | undefined }
+  | {
+      readonly kind: "no-close-match";
+      /** The family name a match had to list, when the entry gives one. */
+      readonly searchedAuthor: string | undefined;
+      readonly closest: ClosestSearchResult | undefined;
+    }
   | { readonly kind: "not-checked"; readonly reason: string };
+
+export interface ClosestSearchResult {
+  readonly title: string;
+  readonly firstAuthor: string | undefined;
+  readonly year: number | undefined;
+}
+
+interface ScoredCandidate {
+  readonly candidate: SearchCandidate;
+  readonly title: string;
+  readonly similarity: number;
+}
+
+function scoreCandidate(title: string, candidate: SearchCandidate): ScoredCandidate {
+  let best: ScoredCandidate = { candidate, title: candidate.titles[0] ?? "", similarity: 0 };
+  for (const candidateTitle of candidate.titles) {
+    const similarity = titleSimilarity(title, candidateTitle);
+    if (similarity > best.similarity) best = { candidate, title: candidateTitle, similarity };
+  }
+  return best;
+}
+
+function mostSimilar(scored: readonly ScoredCandidate[]): ScoredCandidate | undefined {
+  return scored.reduce<ScoredCandidate | undefined>(
+    (best, next) => (!best || next.similarity > best.similarity ? next : best),
+    undefined,
+  );
+}
 
 function bestSimilarity(title: string, candidates: readonly string[]): number {
   return Math.max(0, ...candidates.map((candidate) => titleSimilarity(title, candidate)));
@@ -64,18 +106,27 @@ async function searchByTitle(
   const search = await services.searchCrossref(query);
   if (search.outcome === "unavailable") return { kind: "not-checked", reason: search.detail };
 
-  let best: { doi: string; title: string; similarity: number } | undefined;
-  for (const candidate of search.candidates) {
-    for (const candidateTitle of candidate.titles) {
-      const similarity = titleSimilarity(title, candidateTitle);
-      if (!best || similarity > best.similarity)
-        best = { doi: candidate.doi, title: candidateTitle, similarity };
-    }
-  }
-  if (best && best.similarity >= SAME_WORK_THRESHOLD) {
-    return { kind: "confirmed", via: "search", identifier: best.doi };
-  }
-  return { kind: "no-close-match", closestTitle: best?.title };
+  const familyName = findFirstAuthorFamilyName(record);
+  const scored = search.candidates.map((candidate) => scoreCandidate(title, candidate));
+  const match = mostSimilar(
+    scored.filter(
+      ({ candidate, similarity }) =>
+        similarity >= SAME_WORK_THRESHOLD &&
+        (familyName === undefined || listsAuthor(candidate.authorNames, familyName)),
+    ),
+  );
+  if (match) return { kind: "confirmed", via: "search", identifier: match.candidate.doi };
+
+  const closest = mostSimilar(scored);
+  return {
+    kind: "no-close-match",
+    searchedAuthor: familyName,
+    closest: closest && {
+      title: closest.title,
+      firstAuthor: closest.candidate.authorNames[0],
+      year: closest.candidate.year,
+    },
+  };
 }
 
 export async function verifyBibliographyEntry(

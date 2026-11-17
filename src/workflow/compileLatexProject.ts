@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { promisify } from "node:util";
 
 import { collectLatexDiagnostics } from "../latex/collectLatexDiagnostics.js";
+import { readFinalCompileLog } from "./readFinalCompileLog.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -42,6 +43,10 @@ export async function compileLatexProject(options: {
     `./${mainTexFile}`,
   ];
 
+  const startedAtMs = Date.now();
+  const finalLog = (succeeded: boolean) =>
+    readFinalCompileLog({ buildDirectory, mainTexFile, startedAtMs, succeeded });
+
   try {
     const { stdout, stderr } = await execFileAsync("latexmk", latexmkArguments, {
       cwd: repositoryDirectory,
@@ -49,7 +54,7 @@ export async function compileLatexProject(options: {
       maxBuffer: 32 * 1024 * 1024,
     });
     const combinedOutput = `${stdout}\n${stderr}`;
-    const diagnostics = collectLatexDiagnostics(combinedOutput);
+    const diagnostics = collectLatexDiagnostics((await finalLog(true)) ?? combinedOutput);
     return {
       succeeded: true,
       mainTexFile,
@@ -71,7 +76,10 @@ export async function compileLatexProject(options: {
       );
     }
     const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
-    const diagnostics = collectLatexDiagnostics(combinedOutput);
+    const logDiagnostics = collectLatexDiagnostics((await finalLog(false)) ?? "");
+    // latexmk can stop before any LaTeX pass runs, and then only its own output says why.
+    const diagnostics =
+      logDiagnostics.errorLines.length > 0 ? logDiagnostics : collectLatexDiagnostics(combinedOutput);
     if (failure.killed) {
       diagnostics.errorLines.unshift(`Compilation timed out after ${timeoutMs} ms.`);
     } else if (diagnostics.errorLines.length === 0) {

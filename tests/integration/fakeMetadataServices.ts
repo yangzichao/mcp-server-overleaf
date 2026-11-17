@@ -25,7 +25,12 @@ export class FakeMetadataServices {
   readonly dois = new Map<string, FakeWork>();
   readonly arxivPapers = new Map<string, FakeWork>();
   /** What every Crossref search returns, best first. */
-  searchResults: Array<{ DOI: string; title: string[] }> = [];
+  searchResults: Array<{
+    DOI: string;
+    title: string[];
+    author?: Array<{ family?: string; given?: string; name?: string }>;
+    issued?: { "date-parts": number[][] };
+  }> = [];
 
   private constructor(
     private readonly server: Server,
