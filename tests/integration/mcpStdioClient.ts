@@ -14,6 +14,8 @@ export class McpStdioClient {
   private buffer = "";
   private stderrText = "";
   private processFailure: Error | null = null;
+  /** What the server sent as `instructions` in its initialize result. */
+  serverInstructions: string | undefined;
 
   private constructor(private readonly child: ChildProcessWithoutNullStreams) {}
 
@@ -101,6 +103,7 @@ export class McpStdioClient {
     if (response.error || !response.result?.protocolVersion) {
       throw new Error(`MCP initialization failed: ${JSON.stringify(response)}`);
     }
+    this.serverInstructions = response.result.instructions;
     this.send({ jsonrpc: "2.0", method: "notifications/initialized" });
   }
 

@@ -115,9 +115,9 @@ You can also configure the server through the desktop or IDE MCP settings:
 1. Open **Settings → MCP servers**.
 2. Choose **Add server** and select **STDIO**.
 3. Enter the absolute Node command and the two arguments from the configuration above.
-4. Save, restart the client, and confirm that 18 tools are available. It is 21 if you also
+4. Save, restart the client, and confirm that 23 tools are available. It is 36 if you also
    set `OVERLEAF_SESSION_COOKIE`, which turns on the
-   [tracked-changes tools](tracked-changes.md).
+   [review and web tools](tracked-changes.md).
 
 Reference: [Codex MCP documentation](https://developers.openai.com/codex/mcp).
 
@@ -225,7 +225,7 @@ Add:
 }
 ```
 
-Open Cursor’s MCP settings, enable the server, and verify that its 18 tools appear under
+Open Cursor’s MCP settings, enable the server, and verify that its 23 tools appear under
 Available Tools. Cursor asks before tool calls by default; review mutating calls carefully.
 
 Reference: [Cursor MCP documentation](https://docs.cursor.com/context/model-context-protocol).

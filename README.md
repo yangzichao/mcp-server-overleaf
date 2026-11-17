@@ -18,8 +18,9 @@ push, this Overleaf MCP server checks what your collaborators changed. If both o
 the same lines, it stops the push and shows both versions instead of choosing a winner.
 
 With an optional Overleaf session cookie, edits can also arrive as tracked-change
-suggestions for co-authors to accept or reject, and the existing review panel becomes
-readable. A plain Git push cannot express either.
+suggestions for co-authors to accept or reject, review-panel comments can be read, answered
+and resolved, and a project can be compiled on Overleaf itself. A plain Git push cannot do
+any of that.
 
 **[Download the one-click Claude Desktop bundle](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
 or use the setup command above for Claude Code, Codex, Cursor, and other local AI clients.
@@ -39,12 +40,17 @@ co-author has already changed the lines you are editing.
 - **A conflict ends the push, not your co-author's paragraph.** Every read and every push
   first checks what changed on Overleaf. When two edits touch the same lines, `push_changes`
   refuses and shows you both versions.
-- **18 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
-  section or by exact text, add, rename and remove files, compile locally, inspect the diff,
-  then publish deliberately.
-- **An edit can arrive as a suggestion, not as finished text.** Three optional tools talk to
-  Overleaf's editor rather than the Git bridge, so a change lands in the review panel for a
-  co-author to accept or reject. A Git push cannot express that.
+- **23 tools, and nothing reaches Overleaf until you say so.** Read, search, and edit by
+  section or by exact text, add, rename, remove and upload files, browse and restore earlier
+  revisions, compile locally, inspect the diff, then publish deliberately.
+- **It checks the paper, not only the text.** `check_references` finds undefined and unused
+  labels and citations, and `\input` files that do not exist, without compiling.
+  `verify_citations` looks bibliography entries up at doi.org, Crossref and arXiv, and flags
+  a DOI that belongs to a different paper or an entry no search can find.
+- **An edit can arrive as a suggestion, not as finished text.** Thirteen optional tools talk
+  to Overleaf's editor and web app rather than the Git bridge: a change lands in the review
+  panel for a co-author to accept or reject, comment threads can be read and answered, and a
+  project compiles on Overleaf without a local TeX installation.
   [Tracked changes](docs/tracked-changes.md)
 - **No terminal, if you do not want one.** Claude Desktop installs it from a downloaded
   bundle; Claude Code and Codex install it as a plugin.
@@ -60,9 +66,9 @@ and sending an edit to Overleaf as a tracked suggestion.
 
 ## Where it installs
 
-Every route below reaches the same server and the same 18 tools, and every one of them
-keeps edits local until an explicit push. Pick the row for your client. The three
-[tracked-changes tools](docs/tracked-changes.md) are extra, and appear only once a session
+Every route below reaches the same server and the same 23 tools, and every one of them
+keeps edits local until an explicit push. Pick the row for your client. The thirteen
+[session-cookie tools](docs/tracked-changes.md) are extra, and appear only once a session
 cookie is configured.
 
 | Client | How to install it |
@@ -105,13 +111,15 @@ holds the secret.
 
 ## What you are installing
 
-An MCP server exposing 18 tools over stdio or Streamable HTTP, plus 3 more when a session
-cookie turns on [tracked changes](docs/tracked-changes.md). One core, two transports;
-the tool implementations are identical and only the framing differs. `setup` connects it
+An MCP server exposing 23 tools over stdio or Streamable HTTP, plus 13 more when a session
+cookie turns on [tracked changes, comments and Overleaf's web app](docs/tracked-changes.md).
+One core, two transports; the tool implementations are identical and only the framing
+differs. `setup` connects it
 to the AI clients on this computer and is the only command most people need.
 
 Requires Node 22.14+ and git on PATH; Node 24 LTS is recommended. `compile_project` additionally needs `latexmk` and a TeX
-distribution; every other tool works without them.
+distribution; every other tool works without them, and with a session cookie
+`compile_on_overleaf` compiles on Overleaf's servers instead.
 
 The release test matrix covers macOS and Linux. Windows Git and TeX workflows are not yet
 validated. This server is a command-line application, not an importable JavaScript library.
@@ -426,8 +434,8 @@ their configured project credentials.
 | --- | --- |
 | `list_projects` | The projects this server can reach |
 | `list_files` | Files grouped by kind; extension filter and optional new local files |
-| `read_file` | Text or line ranges; optional revision-aware full/unchanged/delta reads |
-| `list_sections` | Sectioning commands in a `.tex` file, with line ranges |
+| `read_file` | Text or line ranges, as it is now or at an earlier revision; optional revision-aware full/unchanged/delta reads |
+| `list_sections` | Sectioning commands in a `.tex` file, with line ranges; optionally the whole document across `\input` and `\include` |
 | `read_section` | The body of one section, found by title |
 | `search_project` | Search tracked text files |
 | `replace_text` | Replace an exact snippet, refusing ambiguous matches |
@@ -435,13 +443,35 @@ their configured project credentials.
 | `write_file` | Overwrite or create a file |
 | `delete_file` | Remove a file, local until pushed |
 | `move_file` | Move or rename a file, refusing to overwrite the destination |
-| `show_diff` | The diff of everything not yet pushed |
+| `upload_file` | Add or replace a binary file such as a figure, from a local path or base64 |
+| `show_diff` | The diff of everything not yet pushed, or between any two revisions |
+| `list_history` | Commits for the project or one file, with author, date and changed files |
+| `restore_file` | Put a file back to an earlier revision, local until pushed |
 | `discard_local_changes` | Throw away unpushed edits and commits, back to Overleaf's version |
 | `project_status` | Sync state, pending edits, recent history |
 | `project_summary` | JSON file counts, main document, sections and pending changes |
 | `sync_project` | Pull from Overleaf |
-| `compile_project` | Compile with latexmk and report errors |
+| `compile_project` | Compile with latexmk and report errors, BibTeX and biber ones included |
+| `check_references` | Undefined, duplicate and unused labels and citations, and missing included files, from the source |
+| `verify_citations` | Look cited entries up at doi.org, Crossref and arXiv; flags DOIs that name a different work |
 | `push_changes` | Commit and publish, with the collaborator check |
+
+With a session cookie, thirteen more tools reach Overleaf's editor and web app directly.
+They take effect at once, with no `push_changes` step. Details and the credential trade-off
+are in [tracked changes](docs/tracked-changes.md).
+
+| Tool | What it does |
+| --- | --- |
+| `list_tracked_changes` | The suggestions and comment anchors on a document, with line numbers |
+| `suggest_edit` | Replace an exact snippet as a tracked change for a co-author to accept or reject |
+| `accept_tracked_changes` / `reject_tracked_changes` | Decide suggestions, by id or all at once |
+| `list_comments` | Comment threads with every message, open or resolved |
+| `add_comment` | Start a thread on an exact passage, with a first message |
+| `reply_to_comment` / `resolve_comment` / `delete_comment` | Answer, resolve or reopen, or delete a thread |
+| `list_account_projects` | Every project the account can open, with access level |
+| `create_project` | A new blank or example project |
+| `compile_on_overleaf` | Compile on Overleaf's servers and report errors; optionally save the PDF |
+| `download_project_zip` | Save the whole project as a ZIP |
 
 ## How to use the tools safely
 
@@ -500,9 +530,12 @@ builds, so a broken document can be published if you do not check first.
 | `OVERLEAF_MCP_COMPILE_TIMEOUT_MS` | Compile timeout. Must be a positive integer. |
 | `OVERLEAF_MCP_HTTP_AUTH_TOKEN` | Bearer token required by `--http`. |
 | `OVERLEAF_MCP_HTTP_PORT` | Port for `--http`. `--port` overrides it. |
-| `OVERLEAF_SESSION_COOKIE` | Overleaf session cookie. Turns on the three [tracked-changes tools](docs/tracked-changes.md). |
+| `OVERLEAF_SESSION_COOKIE` | Overleaf session cookie. Turns on the thirteen [review and web tools](docs/tracked-changes.md). |
 | `OVERLEAF_SESSION_COOKIE_FILE` | Absolute path to a file holding the same value. Preferred over the variable. |
 | `OVERLEAF_WEB_BASE_URL` | Overleaf's web address for those tools. Default `https://www.overleaf.com`. |
+| `OVERLEAF_MCP_DOI_RESOLVER_URL` | Where `verify_citations` resolves DOIs. Default `https://doi.org`. |
+| `OVERLEAF_MCP_CROSSREF_API_URL` | Where it searches titles. Default `https://api.crossref.org`. |
+| `OVERLEAF_MCP_ARXIV_API_URL` | Where it reads arXiv ids. Default `http://export.arxiv.org/api`. |
 
 ## Why it behaves the way it does
 
@@ -545,7 +578,8 @@ after symbolic links are resolved, so a link inside a clone cannot reach outside
 src/
   config/      environment parsing, secret redaction
   overleaf/    git command runner, repository operations, project registry, path safety
-  latex/       section parsing, file categorization
+  latex/       section parsing, include and reference checks, compile diagnostics
+  citations/   bibliography parsing and DOI, Crossref and arXiv lookups
   workflow/    sync-before-edit, publish-with-conflict-check, compile
   tools/       MCP tool definitions
   transport/   stdio and Streamable HTTP
@@ -644,20 +678,25 @@ co-author changed the same lines, the push is refused and both versions are pres
 
 ### Does this work with a free Overleaf account?
 
-The 16 Git-backed tools require Git integration on the project. Overleaf gates that feature
+Every tool requires Git integration on the project, the session-cookie ones included,
+because each finds the project through the same Git configuration. Overleaf gates that feature
 on the project owner's qualifying subscription, so an invited free account can use it when
 the project owner has access through an individual, group, or institutional plan.
 
 ### Can it compile LaTeX and show tracked changes?
 
-Yes. `compile_project` runs locally when `latexmk` and a TeX distribution are installed.
-With an optional Overleaf session cookie, three additional review tools can create tracked
-suggestions, list tracked changes and comments, and comment on selected text.
+Yes. `compile_project` runs locally when `latexmk` and a TeX distribution are installed,
+and with a session cookie `compile_on_overleaf` compiles on Overleaf's servers instead. The
+cookie also turns on the review tools: tracked suggestions, accepting and rejecting them, and
+reading, answering and resolving comment threads.
 
 ## Privacy Policy
 
 The server runs entirely on your computer. It has no analytics, no telemetry, and no
-service behind it. Its only outbound traffic is Git over HTTPS to Overleaf. Your token is
+service behind it. It talks to Overleaf's Git bridge, and to Overleaf's web app only when a
+session cookie is configured. `verify_citations` is the one tool that contacts anyone else:
+it sends the titles, identifiers, first authors and years of the entries it checks to
+doi.org, Crossref and arXiv. Your token is
 stored either in the operating system keychain, when Claude Desktop installs the bundle, or
 in a mode `600` file written by `setup`, and it is redacted from error output.
 

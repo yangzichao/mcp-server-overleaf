@@ -12,6 +12,7 @@ import { registerSyncTools } from "../tools/registerSyncTools.js";
 import { registerReviewTools } from "../tools/review/registerReviewTools.js";
 import type { ToolContext } from "../tools/toolContext.js";
 import { registerWebTools } from "../tools/web/registerWebTools.js";
+import { describeServerInstructions } from "./serverInstructions.js";
 
 export const SERVER_NAME = PACKAGE_NAME;
 export const SERVER_VERSION = PACKAGE_VERSION;
@@ -35,7 +36,10 @@ export function createToolContext(configuration: ServerConfiguration): ToolConte
 }
 
 export function createOverleafMcpServer(context: ToolContext): McpServer {
-  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  const server = new McpServer(
+    { name: SERVER_NAME, version: SERVER_VERSION },
+    { instructions: describeServerInstructions(context.configuration.reviewCredentials !== undefined) },
+  );
   registerReadTools(server, context);
   registerEditTools(server, context);
   registerSyncTools(server, context);
