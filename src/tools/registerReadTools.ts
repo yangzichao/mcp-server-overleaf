@@ -8,6 +8,7 @@ import { extractSectionText, findSectionByTitle, parseLatexSections } from "../l
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
 import { registerCheckReferencesTool } from "./latex/checkReferencesTool.js";
+import { registerVerifyCitationsTool } from "./latex/verifyCitationsTool.js";
 import { ANY_OTHER_PROJECT, projectArgument } from "./projectArgument.js";
 import { registerListSectionsTool } from "./reading/listSectionsTool.js";
 import { registerProjectInventoryTools } from "./reading/projectInventoryTools.js";
@@ -55,6 +56,7 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
   registerReadFileTool(server, context);
   registerProjectInventoryTools(server, context);
   registerCheckReferencesTool(server, context);
+  registerVerifyCitationsTool(server, context);
 
   registerListSectionsTool(server, context);
 

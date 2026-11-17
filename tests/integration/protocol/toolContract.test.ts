@@ -47,6 +47,7 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
       "restore_file",
       "upload_file",
       "check_references",
+      "verify_citations",
     ];
     expect(tools.map((tool) => tool.name).sort()).toEqual(expectedNames.sort());
     const writes = new Set([

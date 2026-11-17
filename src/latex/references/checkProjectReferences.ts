@@ -5,17 +5,12 @@ import {
   walkIncludedFiles,
 } from "../includes/walkIncludedFiles.js";
 import { categorizeProjectFile } from "../latexProjectFiles.js";
-import { directoryOf, findFirstExistingPath } from "../source/projectPaths.js";
 import {
   findDuplicateDefinitions,
   findUndefinedUses,
   findUnusedDefinitions,
 } from "./compareKeyOccurrences.js";
-import {
-  type BibliographyResource,
-  findBibitems,
-  findBibliographyResources,
-} from "./findBibliographySources.js";
+import { findBibitems } from "./findBibliographySources.js";
 import { findCitations } from "./findCitations.js";
 import {
   findGraphicsInclusions,
@@ -24,6 +19,7 @@ import {
 } from "./findGraphicsInclusions.js";
 import { findLabels, findReferences, PACKAGE_DEFINED_LABELS } from "./findLabelsAndReferences.js";
 import type { KeyOccurrence } from "./keyOccurrence.js";
+import { locateBibliographyFiles } from "./locateBibliographyFiles.js";
 import { parseBibliographyEntries } from "./parseBibliographyEntries.js";
 import type { ReferenceCheckReport } from "./referenceCheckReport.js";
 
@@ -41,26 +37,11 @@ interface BibliographyLookup {
 
 async function readBibliographies(
   reader: ProjectSourceReader,
-  resourcesByFile: ReadonlyArray<{ file: VisitedSourceFile; resource: BibliographyResource }>,
+  visited: readonly VisitedSourceFile[],
 ): Promise<BibliographyLookup> {
+  const { files, missing } = locateBibliographyFiles(visited, reader.projectFiles);
   const entries: KeyOccurrence[] = [];
-  const files: string[] = [];
-  const missing: MissingProjectFile[] = [];
-
-  for (const { file, resource } of resourcesByFile) {
-    const lookup = findFirstExistingPath(
-      [file.baseDirectory, "", directoryOf(file.path)],
-      [resource.fileName],
-      reader.projectFiles,
-    );
-    if (!("found" in lookup)) {
-      missing.push({ written: resource.written, location: resource.location, tried: lookup.tried });
-      continue;
-    }
-    if (files.includes(lookup.found)) continue;
-    files.push(lookup.found);
-    entries.push(...parseBibliographyEntries(lookup.found, await reader.readTextFile(lookup.found)));
-  }
+  for (const path of files) entries.push(...parseBibliographyEntries(path, await reader.readTextFile(path)));
   return { entries, files, missing };
 }
 
@@ -94,10 +75,7 @@ export async function checkProjectReferences(
   const citations = citationScans.flatMap((scan) => scan.citations);
   const citesEveryEntry = citationScans.some((scan) => scan.citesEveryEntry);
   const bibitems = visited.flatMap(findBibitems);
-  const bibliography = await readBibliographies(
-    reader,
-    visited.flatMap((file) => findBibliographyResources(file).map((resource) => ({ file, resource }))),
-  );
+  const bibliography = await readBibliographies(reader, visited);
   const graphics = findMissingGraphics(visited, reader.projectFiles);
 
   const bibliographyDefinitions = [...bibliography.entries, ...bibitems];
