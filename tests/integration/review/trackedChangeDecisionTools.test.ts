@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { McpStdioClient } from "../mcpStdioClient.js";
-import { PAPER, useReviewTestHarness } from "./reviewTestHarness.js";
+import { PAPER, useEditorTestHarness } from "../support/editorTestHarness.js";
 
 /**
  * Accepting goes over the web application; rejecting is an undo edit over the real-time socket.
@@ -9,7 +9,7 @@ import { PAPER, useReviewTestHarness } from "./reviewTestHarness.js";
  */
 
 describe("accepting and rejecting tracked changes", () => {
-  const harness = useReviewTestHarness();
+  const harness = useEditorTestHarness();
 
   async function suggestReplacement(): Promise<McpStdioClient> {
     const client = await harness.startClient();

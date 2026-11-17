@@ -10,6 +10,7 @@ import { registerReadTools } from "../tools/registerReadTools.js";
 import { registerSyncTools } from "../tools/registerSyncTools.js";
 import { registerReviewTools } from "../tools/review/registerReviewTools.js";
 import type { ToolContext } from "../tools/toolContext.js";
+import { registerWebTools } from "../tools/web/registerWebTools.js";
 
 export const SERVER_NAME = PACKAGE_NAME;
 export const SERVER_VERSION = PACKAGE_VERSION;
@@ -38,7 +39,10 @@ export function createOverleafMcpServer(context: ToolContext): McpServer {
   registerEditTools(server, context);
   registerSyncTools(server, context);
   // Offered only when a session cookie is configured: a client that cannot use them is
-  // better off not seeing them than seeing three tools that always answer with a setup note.
-  if (context.configuration.reviewCredentials) registerReviewTools(server, context);
+  // better off not seeing them than seeing tools that always answer with a setup note.
+  if (context.configuration.reviewCredentials) {
+    registerReviewTools(server, context);
+    registerWebTools(server, context);
+  }
   return server;
 }

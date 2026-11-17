@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import { FakeOverleafAccount } from "./fakeOverleafAccount.js";
 import type { FakeOverleafRealtime } from "./fakeOverleafRealtime.js";
+import { type FakeAnswer, jsonAnswer, NO_CONTENT, NOT_FOUND } from "./fakeWebAnswers.js";
 
 /**
  * The slice of Overleaf's web application the review tools call, served from the same origin
@@ -36,23 +38,6 @@ export interface RecordedWebRequest {
 
 const CSRF_TOKEN = "fake-csrf-token-1";
 
-interface FakeAnswer {
-  readonly status: number;
-  readonly contentType?: string;
-  readonly body?: string;
-}
-
-const NO_CONTENT: FakeAnswer = { status: 204 };
-const NOT_FOUND: FakeAnswer = {
-  status: 404,
-  contentType: "application/json",
-  body: JSON.stringify({ message: "not found" }),
-};
-
-function jsonAnswer(value: unknown): FakeAnswer {
-  return { status: 200, contentType: "application/json", body: JSON.stringify(value) };
-}
-
 export class FakeOverleafWeb {
   readonly threads = new Map<string, FakeThread>();
   readonly requests: RecordedWebRequest[] = [];
@@ -61,10 +46,15 @@ export class FakeOverleafWeb {
   private nextMessageId = 0;
   private acceptedCsrfToken = CSRF_TOKEN;
 
+  /** The dashboard, compile and download routes. */
+  readonly account: FakeOverleafAccount;
+
   constructor(
     private readonly realtime: FakeOverleafRealtime,
     private readonly sessionCookieName: string,
-  ) {}
+  ) {
+    this.account = new FakeOverleafAccount(realtime);
+  }
 
   get csrfToken(): string {
     return this.acceptedCsrfToken;
@@ -107,7 +97,9 @@ export class FakeOverleafWeb {
       body += String(chunk);
     });
     request.on("end", () => {
-      const answer = this.route(method, url.pathname, body);
+      const answer =
+        this.account.route(method, url.pathname, url.search.slice(1), body) ??
+        this.route(method, url.pathname, body);
       response.writeHead(answer.status, answer.contentType ? { "content-type": answer.contentType } : {});
       response.end(answer.body);
     });

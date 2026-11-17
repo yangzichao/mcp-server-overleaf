@@ -5,7 +5,6 @@ import {
   type OverleafDocumentEntry,
 } from "../../overleaf/realtime/overleafProjectDocuments.js";
 import { OverleafRealtimeSession } from "../../overleaf/realtime/overleafRealtimeSession.js";
-import type { OverleafWebClient } from "../../overleaf/web/overleafWebClient.js";
 import type { ToolContext } from "../toolContext.js";
 
 /**
@@ -64,12 +63,6 @@ export function requireEditCapableProject(session: OverleafRealtimeSession): voi
         "Accepting or rejecting suggestions needs edit access; ask the project owner to decide them, or to raise this account's access.",
     );
   }
-}
-
-/** The web-application half of the review tools; configured whenever a session cookie is. */
-export function requireWebClient(context: ToolContext): OverleafWebClient {
-  if (!context.overleafWebClient) throw new ConfigurationError(REVIEW_CREDENTIALS_MISSING_MESSAGE);
-  return context.overleafWebClient;
 }
 
 /** Names the paths that do exist, because a wrong path is the likeliest reason to be here. */

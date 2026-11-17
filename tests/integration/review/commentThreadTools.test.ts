@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { useReviewTestHarness } from "./reviewTestHarness.js";
+import { useEditorTestHarness } from "../support/editorTestHarness.js";
 
 /**
  * Comment threads end to end: the anchor goes over the real-time socket, the messages over
@@ -11,7 +11,7 @@ const THREAD_ID = "aaaaaaaaaaaaaaaaaa000001";
 const THREAD_PATTERN = /\(thread ([0-9a-f]{24})\)/;
 
 describe("the comment thread tools", () => {
-  const harness = useReviewTestHarness();
+  const harness = useEditorTestHarness();
 
   function seedCollaboratorThread(resolved = false): void {
     const position = harness.offsetOf(harness.mainDocumentId, "Hello world.");

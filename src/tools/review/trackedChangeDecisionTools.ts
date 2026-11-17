@@ -11,12 +11,8 @@ import { describeLineForPosition, type TrackedChange } from "../../overleaf/real
 import { projectArgument } from "../projectArgument.js";
 import { WRITES_TO_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
-import {
-  requireDocument,
-  requireEditCapableProject,
-  requireWebClient,
-  withReviewSession,
-} from "./openReviewSession.js";
+import { requireOverleafWebClient } from "../web/requireOverleafWebClient.js";
+import { requireDocument, requireEditCapableProject, withReviewSession } from "./openReviewSession.js";
 
 /**
  * Deciding suggestions: accepting makes a suggestion part of the paper, rejecting undoes it.
@@ -122,7 +118,7 @@ export function registerTrackedChangeDecisionTools(server: McpServer, context: T
       runToolSafely(context, () =>
         withReviewSession(context, input.project, async (session) => {
           requireEditCapableProject(session);
-          const webClient = requireWebClient(context);
+          const webClient = requireOverleafWebClient(context);
           const selected = await selectChanges(session, input);
           await acceptTrackedChanges(
             webClient,

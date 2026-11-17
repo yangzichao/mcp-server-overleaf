@@ -12,10 +12,11 @@ import {
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF, SUGGESTS_IN_OVERLEAF, WRITES_TO_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+import { requireOverleafWebClient } from "../web/requireOverleafWebClient.js";
 import { describeCommentListing } from "./describeCommentThreads.js";
 import { findTextOffset } from "./describeTrackedChanges.js";
 import { collectCommentAnchors, locateCommentThread } from "./locateCommentThreads.js";
-import { requireDocument, requireWebClient, withReviewSession } from "./openReviewSession.js";
+import { requireDocument, withReviewSession } from "./openReviewSession.js";
 
 /**
  * Review-panel comment threads: anchoring one, reading them, replying, resolving and deleting.
@@ -74,7 +75,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     async ({ project, path, includeResolved }) =>
       runToolSafely(context, () =>
         withReviewSession(context, project, async (session) => {
-          const webClient = requireWebClient(context);
+          const webClient = requireOverleafWebClient(context);
           const threads = await fetchCommentThreads(webClient, session.project.projectId);
           const anchored = await collectCommentAnchors(session, path);
           return textResult(
@@ -114,7 +115,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     async ({ project, path, quoteText, message }) =>
       runToolSafely(context, () =>
         withReviewSession(context, project, async (session) => {
-          const webClient = requireWebClient(context);
+          const webClient = requireOverleafWebClient(context);
           const document = requireDocument(session, path);
           const joined = await session.joinDocument(document.documentId);
           const position = findTextOffset(joined.lines, quoteText, "unique");
@@ -159,7 +160,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     },
     async ({ project, threadId, message }) =>
       runToolSafely(context, async () => {
-        const webClient = requireWebClient(context);
+        const webClient = requireOverleafWebClient(context);
         const { overleafProjectId } = context.projectRegistry.resolveProjectId(project);
         // Overleaf creates a thread for any id it is sent a message for. Checking first keeps a
         // mistyped id from becoming a new thread that no text in the paper points to.
@@ -196,7 +197,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     async ({ project, threadId, reopen, path }) =>
       runToolSafely(context, () =>
         withReviewSession(context, project, async (session) => {
-          const webClient = requireWebClient(context);
+          const webClient = requireOverleafWebClient(context);
           const located = await locateCommentThread(session, threadId, path);
           await setCommentThreadResolved(
             webClient,
@@ -230,7 +231,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     async ({ project, threadId, path }) =>
       runToolSafely(context, () =>
         withReviewSession(context, project, async (session) => {
-          const webClient = requireWebClient(context);
+          const webClient = requireOverleafWebClient(context);
           const located = await locateCommentThread(session, threadId, path);
           await deleteCommentThread(
             webClient,

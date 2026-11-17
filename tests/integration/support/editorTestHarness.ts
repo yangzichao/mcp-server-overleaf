@@ -5,25 +5,13 @@ import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
 
 /**
- * The review tools need both fakes at once: the Git bridge the server always talks to, and
- * the editor (real-time socket plus web routes) the review tools talk to.
+ * The tools that use the session cookie need both fakes at once: the Git bridge the server
+ * always talks to, and the editor (real-time socket plus web routes) the cookie reaches.
  */
 
 export const PAPER = "\\documentclass{article}\n\\begin{document}\nHello world.\n\\end{document}";
 
-export const REVIEW_TOOL_NAMES = [
-  "list_tracked_changes",
-  "suggest_edit",
-  "list_comments",
-  "add_comment",
-  "reply_to_comment",
-  "resolve_comment",
-  "delete_comment",
-  "accept_tracked_changes",
-  "reject_tracked_changes",
-];
-
-export class ReviewTestHarness {
+export class EditorTestHarness {
   private currentGitRemote: FakeOverleafRemote | undefined;
   private currentEditor: FakeOverleafRealtime | undefined;
   private currentMainDocumentId: string | undefined;
@@ -80,8 +68,8 @@ export class ReviewTestHarness {
 }
 
 /** A harness set up before and torn down after every test in the calling file. */
-export function useReviewTestHarness(): ReviewTestHarness {
-  const harness = new ReviewTestHarness();
+export function useEditorTestHarness(): EditorTestHarness {
+  const harness = new EditorTestHarness();
   beforeEach(() => harness.setUp());
   afterEach(() => harness.tearDown());
   return harness;

@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { REVIEW_TOOL_NAMES, useReviewTestHarness } from "./reviewTestHarness.js";
+import { useEditorTestHarness } from "../support/editorTestHarness.js";
+
+const REVIEW_TOOL_NAMES = [
+  "list_tracked_changes",
+  "suggest_edit",
+  "list_comments",
+  "add_comment",
+  "reply_to_comment",
+  "resolve_comment",
+  "delete_comment",
+  "accept_tracked_changes",
+  "reject_tracked_changes",
+];
 
 /**
  * The review tools through the MCP protocol: which are offered, and the suggestion half of
@@ -8,7 +20,7 @@ import { REVIEW_TOOL_NAMES, useReviewTestHarness } from "./reviewTestHarness.js"
  */
 
 describe("the review tools", () => {
-  const harness = useReviewTestHarness();
+  const harness = useEditorTestHarness();
 
   it("is not offered at all when no session cookie is configured", async () => {
     const client = await harness.startClient(harness.gitRemote.environment());

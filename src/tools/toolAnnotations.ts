@@ -68,3 +68,22 @@ export const SUGGESTS_IN_OVERLEAF: OverleafToolAnnotations = {
   idempotentHint: false,
   openWorldHint: true,
 };
+
+/** Creates something new in Overleaf, such as a project; changes nothing that already exists. */
+export const CREATES_IN_OVERLEAF: OverleafToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+/**
+ * Reads from Overleaf and may save what it read to a local file, replacing an earlier download
+ * of the same kind at that path. The paper itself is not changed.
+ */
+export const DOWNLOADS_FROM_OVERLEAF: OverleafToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: true,
+};
