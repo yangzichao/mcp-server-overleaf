@@ -33,6 +33,8 @@ export class FakeOverleafAccount {
   compileStatus = "success";
   producesPdf = true;
   compileLog = "This is pdfTeX, Version 3.141592653\n(./main.tex)\nOutput written on output.pdf (1 page).\n";
+  /** What BibTeX left in output.blg; undefined when the compile ran no BibTeX. */
+  bibliographyLog: string | undefined;
   /** How many compiles to refuse as too recent before one is allowed. */
   refuseCompilesAsTooRecent = 0;
   private nextProjectNumber = 1;
@@ -95,6 +97,9 @@ export class FakeOverleafAccount {
     const outputUrl = (file: string): string =>
       `/project/${this.realtime.projectId}/user/${this.realtime.userId}/build/${BUILD_ID}/output/${file}`;
     const outputFiles = [{ path: "output.log", url: outputUrl("output.log"), type: "log", build: BUILD_ID }];
+    if (this.bibliographyLog !== undefined) {
+      outputFiles.push({ path: "output.blg", url: outputUrl("output.blg"), type: "blg", build: BUILD_ID });
+    }
     if (this.producesPdf) {
       outputFiles.unshift({ path: "output.pdf", url: outputUrl("output.pdf"), type: "pdf", build: BUILD_ID });
     }
@@ -121,6 +126,9 @@ export class FakeOverleafAccount {
       return { status: 200, contentType: "application/pdf", body: FAKE_PDF_BYTES };
     }
     if (file === "output.log") return { status: 200, contentType: "text/plain", body: this.compileLog };
+    if (file === "output.blg" && this.bibliographyLog !== undefined) {
+      return { status: 200, contentType: "text/plain", body: this.bibliographyLog };
+    }
     return NOT_FOUND;
   }
 }

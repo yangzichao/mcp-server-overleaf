@@ -12,6 +12,8 @@ const LOG_TAIL_LINES = 30;
 export interface OverleafCompileReport {
   readonly result: OverleafCompileResult;
   readonly log: string | undefined;
+  /** output.blg, which BibTeX or biber leave when they ran. */
+  readonly bibliographyLog?: string | undefined;
   readonly savedPdf: { readonly path: string; readonly size: string } | undefined;
 }
 
@@ -32,7 +34,9 @@ function describeVerdict(result: OverleafCompileResult, errorCount: number): str
 }
 
 export function describeOverleafCompile(report: OverleafCompileReport): string {
-  const diagnostics = report.log ? collectLatexDiagnostics(report.log) : { errorLines: [], warningLines: [] };
+  const diagnostics = collectLatexDiagnostics(
+    [report.log, report.bibliographyLog].filter((log) => log !== undefined).join("\n"),
+  );
   const lines = [describeVerdict(report.result, diagnostics.errorLines.length)];
 
   if (diagnostics.errorLines.length > 0) {

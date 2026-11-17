@@ -19,7 +19,7 @@ export function registerCompileOnOverleafTool(server: McpServer, context: ToolCo
         "It compiles what is in Overleaf now, so local edits count only after push_changes; compile_project compiles the local clone instead, and needs a TeX installation. " +
         "It uses the project's compiler and TeX Live version from Overleaf's settings, and the account's plan decides the time limit. " +
         "Pass savePdfTo to also download the PDF; without it nothing is written locally. " +
-        "Returns a verdict line, then errors, then warnings, then where the PDF was saved and which output files exist.",
+        "Returns a verdict line, then errors, then warnings, including BibTeX's and biber's from output.blg, then where the PDF was saved and which output files exist.",
       inputSchema: z.object({
         project: projectArgument,
         mainTexFile: z
@@ -57,10 +57,13 @@ export function registerCompileOnOverleafTool(server: McpServer, context: ToolCo
           stopOnFirstError,
         });
 
-        const logFile = findOutputFile(result, "output.log");
-        const log = logFile
-          ? (await downloadOutputFile(webClient, result, logFile)).toString("utf8")
-          : undefined;
+        const readTextOutput = async (name: string): Promise<string | undefined> => {
+          const file = findOutputFile(result, name);
+          return file ? (await downloadOutputFile(webClient, result, file)).toString("utf8") : undefined;
+        };
+        const log = await readTextOutput("output.log");
+        // Present only when BibTeX or biber ran; it is the one place their errors appear.
+        const bibliographyLog = await readTextOutput("output.blg");
 
         let savedPdf: { path: string; size: string } | undefined;
         const pdfFile = findOutputFile(result, "output.pdf");
@@ -72,7 +75,7 @@ export function registerCompileOnOverleafTool(server: McpServer, context: ToolCo
           };
         }
 
-        const report = describeOverleafCompile({ result, log, savedPdf });
+        const report = describeOverleafCompile({ result, log, bibliographyLog, savedPdf });
         const pdfNote = savePdfTo && !pdfFile ? "\n\nNo PDF was produced, so nothing was saved." : "";
         return textResult(truncateForModel(`${report}${pdfNote}`));
       }),

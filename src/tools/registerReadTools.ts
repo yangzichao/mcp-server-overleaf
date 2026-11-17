@@ -7,7 +7,9 @@ import {
 import { extractSectionText, findSectionByTitle, parseLatexSections } from "../latex/parseLatexSections.js";
 import { formatSearchMatches, searchProjectFiles } from "../latex/searchProjectFiles.js";
 import { requireSynchronizedWithOverleaf } from "../workflow/synchronizeWithOverleaf.js";
+import { registerCheckReferencesTool } from "./latex/checkReferencesTool.js";
 import { ANY_OTHER_PROJECT, projectArgument } from "./projectArgument.js";
+import { registerListSectionsTool } from "./reading/listSectionsTool.js";
 import { registerProjectInventoryTools } from "./reading/projectInventoryTools.js";
 import { registerReadFileTool } from "./reading/readFileTool.js";
 import { READS_LOCAL_CONFIGURATION, READS_OVERLEAF } from "./toolAnnotations.js";
@@ -52,42 +54,9 @@ export function registerReadTools(server: McpServer, context: ToolContext): void
 
   registerReadFileTool(server, context);
   registerProjectInventoryTools(server, context);
+  registerCheckReferencesTool(server, context);
 
-  server.registerTool(
-    "list_sections",
-    {
-      title: "List LaTeX sections",
-      description:
-        "List the sectioning commands in one .tex file, \\part down to \\subparagraph including starred forms, with their nesting depth and line ranges. " +
-        "Call it before read_section or edit_section to get the exact titles they match, and to address part of a paper by title instead of line numbers that shift with every edit. " +
-        "path names a single file: \\input and \\include are not followed, so list each included file separately, and commented-out headings are skipped. " +
-        "Pulls from Overleaf first. Returns one line per heading, indented by depth, as \\section{Title} [lines start-end], or says the file has none; a missing, binary or out-of-project path fails.",
-      inputSchema: z.object({
-        project: projectArgument,
-        path: z.string().describe("Path to the .tex file relative to the project root, e.g. main.tex."),
-      }),
-      annotations: READS_OVERLEAF,
-    },
-    async ({ project, path }) =>
-      runToolSafely(context, () =>
-        context.projectRegistry.withRepository(project, async (repository) => {
-          await requireSynchronizedWithOverleaf(repository);
-
-          const sections = parseLatexSections(await repository.readTextFile(path));
-          if (sections.length === 0) {
-            return textResult(`No sectioning commands found in ${path}.`);
-          }
-          return textResult(
-            sections
-              .map(
-                (section) =>
-                  `${"  ".repeat(section.depth)}\\${section.level}{${section.title}}  [lines ${section.startLine}-${section.endLine}]`,
-              )
-              .join("\n"),
-          );
-        }),
-      ),
-  );
+  registerListSectionsTool(server, context);
 
   server.registerTool(
     "read_section",

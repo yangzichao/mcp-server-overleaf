@@ -34,7 +34,7 @@ it("starts with no credentials, lists every tool, and names the missing token wh
     OVERLEAF_MCP_WORKSPACE_DIR: join(isolatedHome, "projects"),
   });
 
-  expect(await client.listToolNames()).toHaveLength(21);
+  expect(await client.listToolNames()).toHaveLength(22);
   expect(client.stderr).toContain(MISSING_TOKEN);
   expect(await client.call("list_projects")).toContain(MISSING_TOKEN);
 

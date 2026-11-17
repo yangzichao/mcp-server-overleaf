@@ -62,6 +62,21 @@ describe("compiling on Overleaf", () => {
     expect(report).toContain("LaTeX Warning: Reference `fig:missing' on page 1 undefined");
   });
 
+  it("reads BibTeX's output.blg too, where a missing entry is reported", async () => {
+    harness.editor.web.account.bibliographyLog = [
+      "This is BibTeX, Version 0.99d (TeX Live 2025)",
+      'Warning--I didn\'t find a database entry for "smith2020"',
+      "I couldn't open database file refs.bib",
+      "(There was 1 error message)",
+    ].join("\n");
+    const client = await harness.startClient();
+    const report = await client.call("compile_on_overleaf", {});
+    expect(report).toContain("Compiled on Overleaf with 1 error; a PDF was still produced.");
+    expect(report).toContain("I couldn't open database file refs.bib");
+    expect(report).toContain('Warning--I didn\'t find a database entry for "smith2020"');
+    expect(harness.editor.web.account.outputDownloads).toContain("output.blg");
+  });
+
   it("says no PDF was produced on failure, with the end of the log", async () => {
     harness.editor.web.account.compileStatus = "failure";
     harness.editor.web.account.producesPdf = false;
