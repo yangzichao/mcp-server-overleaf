@@ -7,6 +7,7 @@ import {
   materializeFullCheckout,
 } from "./checkout/sparseCheckout.js";
 import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
+import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
 
@@ -263,6 +264,13 @@ export class OverleafGitRepository {
     return absolutePath;
   }
 
+  /** A validated client path in the form Git prints and takes: relative, with forward slashes. */
+  private async toGitPath(relativePath: string): Promise<string> {
+    return relative(this.options.repositoryDirectory, await this.resolveClientPath(relativePath))
+      .split(sep)
+      .join("/");
+  }
+
   async readTextFile(relativePath: string): Promise<string> {
     await this.materializePathIfNeeded(relativePath);
     const contents = await readFile(await this.resolveClientPath(relativePath));
@@ -275,6 +283,33 @@ export class OverleafGitRepository {
       );
     }
     return contents.toString("utf8");
+  }
+
+  /** Bytes as they are, for figures and other binary files. */
+  async writeFileBytes(relativePath: string, content: Buffer): Promise<void> {
+    await this.materializePathIfNeeded(relativePath);
+    const absolutePath = await this.resolveClientPath(relativePath);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, content);
+  }
+
+  /**
+   * Puts one file back to its content at an earlier commit, in the working tree only, so the
+   * restore is pushed like any other edit. Git writes the bytes itself, which keeps binary
+   * files intact.
+   */
+  async restoreFileFromCommit(commitHash: string, relativePath: string): Promise<void> {
+    const gitPath = await this.toGitPath(relativePath);
+    await this.git(["restore", `--source=${commitHash}`, "--worktree", "--", `:(literal)${gitPath}`]);
+  }
+
+  /** History queries, kept in src/overleaf/history so this class stays about the working copy. */
+  history(): ProjectHistory {
+    return new ProjectHistory({
+      git: (args, options) => this.git(args, options),
+      toGitPath: (relativePath) => this.toGitPath(relativePath),
+      latestOverleafRevision: async () => `origin/${await this.getBranchName()}`,
+    });
   }
 
   async writeTextFile(relativePath: string, content: string): Promise<void> {
@@ -338,12 +373,14 @@ export class OverleafGitRepository {
       .filter((line) => line !== "");
   }
 
-  async getPendingDiff(): Promise<string> {
+  async getPendingDiff(relativePath?: string): Promise<string> {
     const branchName = await this.getBranchName();
+    const gitPath = relativePath ? await this.toGitPath(relativePath) : undefined;
     return pendingProjectDiff(
       (args, options) => this.git(args, options),
       `origin/${branchName}`,
       (path) => this.resolveClientPath(path),
+      gitPath,
     );
   }
 

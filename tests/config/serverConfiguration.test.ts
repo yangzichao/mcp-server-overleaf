@@ -202,3 +202,25 @@ describe("OVERLEAF_PROJECT_ID", () => {
     ).toThrow(ConfigurationError);
   });
 });
+
+describe("citation lookup endpoints", () => {
+  it("defaults to the public services", () => {
+    expect(loadServerConfigurationFromEnvironment(environmentWith()).citationLookup).toEqual({
+      doiResolverUrl: "https://doi.org",
+      crossrefApiUrl: "https://api.crossref.org",
+      arxivApiUrl: "http://export.arxiv.org/api",
+    });
+  });
+
+  it("takes a mirror without its trailing slash, and refuses something that is not a web address", () => {
+    const configuration = loadServerConfigurationFromEnvironment(
+      environmentWith({ OVERLEAF_MCP_CROSSREF_API_URL: "https://crossref.example.org/api/" }),
+    );
+    expect(configuration.citationLookup?.crossrefApiUrl).toBe("https://crossref.example.org/api");
+    expect(() =>
+      loadServerConfigurationFromEnvironment(
+        environmentWith({ OVERLEAF_MCP_DOI_RESOLVER_URL: "file:///etc" }),
+      ),
+    ).toThrow(ConfigurationError);
+  });
+});

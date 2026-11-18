@@ -1,3 +1,4 @@
+import { mergeHandshakeCookies } from "./handshakeCookies.js";
 import {
   decodeSocketIoFrame,
   encodeSocketIoDisconnect,
@@ -133,7 +134,8 @@ export class SocketIoZeroNineClient {
     }
 
     const socketUrl = `${toWebSocketUrl(options.baseUrl)}/socket.io/1/websocket/${handshake.sessionId}?${query.toString()}`;
-    const socket = new WebSocket(socketUrl, { headers: { cookie: options.cookieHeader } });
+    const upgradeCookieHeader = mergeHandshakeCookies(options.cookieHeader, response.headers.getSetCookie());
+    const socket = new WebSocket(socketUrl, { headers: { cookie: upgradeCookieHeader } });
     const client = new SocketIoZeroNineClient(socket, options.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS);
     await client.waitForConnectPacket(options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS);
     return client;

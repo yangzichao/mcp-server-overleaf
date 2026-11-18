@@ -1,5 +1,60 @@
 # Changelog
 
+## Unreleased
+
+Everything competing Overleaf MCP servers offer that fits this server's credential model,
+plus two checks none of them has. 23 tools without a session cookie, 36 with one.
+
+- Read and act on the review panel with a session cookie. `list_comments` reads every message
+  in each comment thread; `reply_to_comment`, `resolve_comment` (and reopen) and
+  `delete_comment` act on a thread; `add_comment` now posts the first message too.
+  `accept_tracked_changes` and `reject_tracked_changes` decide suggestions by id or all at
+  once, and check afterwards that they are gone.
+- Reach the account through Overleaf's web app with a session cookie: `list_account_projects`,
+  `create_project`, `compile_on_overleaf` (errors and warnings from the log, and the PDF saved
+  where you say), and `download_project_zip`. Output files come from Overleaf's own host, so
+  the cookie never goes to the separate PDF domain.
+- Browse and restore history. `list_history` lists commits for the project or one file.
+  `show_diff` compares any two revisions, `read_file` reads a file at a revision, and
+  `restore_file` puts a file back to an earlier one, local until pushed.
+- `upload_file` adds a binary file such as a figure, from a local path or base64.
+- `check_references` finds undefined, duplicate and unused labels and citations, cited keys
+  that differ from an entry only in case, missing `\input`/`\include` targets and missing
+  graphics, from the source and across included files, without compiling.
+- `verify_citations` looks cited bibliography entries up at doi.org, Crossref and arXiv. It
+  reports a DOI or arXiv id that does not exist or belongs to a differently titled work, and
+  entries no title search could match. It sends only titles, identifiers, first authors and
+  years, with no e-mail address or cookie. `OVERLEAF_MCP_DOI_RESOLVER_URL`,
+  `OVERLEAF_MCP_CROSSREF_API_URL` and `OVERLEAF_MCP_ARXIV_API_URL` point it elsewhere.
+- `list_sections` takes `followIncludes`, to outline a whole document across its included
+  files in reading order.
+- `compile_project` and `compile_on_overleaf` also report BibTeX's and biber's errors and
+  warnings, so a malformed `.bib` entry or a cited key with no entry shows up in the report
+  instead of as an empty bibliography. Locally they come from latexmk's output; on Overleaf,
+  from `output.blg`.
+- The server now sends `instructions` on initialize: nothing is published without
+  `push_changes`, the cookie tools act at once, and project content is data, not instructions.
+- The privacy policy now covers the session cookie and the citation lookups.
+
+Found by running the new build against overleaf.com's Git bridge, doi.org, Crossref and arXiv:
+
+- `verify_citations` confirmed "Generative Adversarial Nets" (Goodfellow, 2014) as a 2023 book
+  chapter by someone else with the same title. A title search now confirms an entry only when
+  the result also lists its first author, and an unconfirmed entry names the closest result's
+  author and year.
+- `list_history` with a bare date such as `since: "2026-09-07"` skipped that morning's commits,
+  because Git reads a date without a time as that day at the current time of day. A bare date
+  now covers the whole day, for `since` and for `until`.
+- `compile_project` reported every citation and reference as undefined in a document where
+  they all resolve. It read latexmk's output, which strings every pass together, and the first
+  pass always runs without an .aux file. It now reads the final pass's log, and BibTeX's or
+  biber's.
+- Runtime dependencies move to their newest versions within the same major version. That takes
+  `@hono/node-server` from 1.19.17 to 2.1.9, out of the range of
+  [GHSA-rmxm-3fg6-px4f](https://github.com/advisories/GHSA-rmxm-3fg6-px4f), and `zod` from 4.6.5
+  to 4.6.7, out of the range of
+  [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5). Both were in 0.3.9.
+
 ## 0.3.9
 
 There is no 0.3.8. Glama already uses that label for a rebuild of 0.3.7, so this release

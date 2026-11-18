@@ -45,9 +45,10 @@ explicitly approve `push_changes`, and `show_diff` lets you inspect them first. 
 read and push, the server checks for collaborator changes. If both sides changed the same
 lines, it stops and shows the conflict instead of choosing a winner.
 
-With an optional Overleaf session cookie, three additional tools can send an edit to the
-Overleaf review panel as a tracked-change suggestion, read existing tracked changes and
-comments, and comment on a passage. The cookie stays on the user's computer.
+With an optional Overleaf session cookie, thirteen additional tools can send an edit to the
+Overleaf review panel as a tracked-change suggestion, accept or reject suggestions, read,
+answer and resolve comment threads, and compile on Overleaf's servers. The cookie stays on the
+user's computer.
 
 This is an independent community project and is not affiliated with or endorsed by
 Overleaf.

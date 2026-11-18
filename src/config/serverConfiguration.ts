@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { type CitationLookupEndpoints, loadCitationLookupEndpoints } from "./citationLookupConfiguration.js";
 import { ConfigurationError } from "./configurationError.js";
 import { resolveGitToken } from "./projects/projectCredentials.js";
 import { selectProjects } from "./projects/projectSelection.js";
@@ -27,6 +28,8 @@ export interface ServerConfiguration {
   readonly gitCommitAuthorEmail: string;
   /** Absent unless a session cookie is configured; only the review tools need it. */
   readonly reviewCredentials?: OverleafReviewCredentials;
+  /** Where verify_citations looks entries up; the public services when absent. */
+  readonly citationLookup?: CitationLookupEndpoints;
 }
 
 function parsePositiveInteger(rawValue: string | undefined, fallback: number, variableName: string): number {
@@ -75,5 +78,6 @@ export function loadServerConfigurationFromEnvironment(
     gitCommitAuthorEmail:
       environment.OVERLEAF_MCP_GIT_AUTHOR_EMAIL?.trim() || "mcp-server-overleaf@localhost",
     reviewCredentials: loadReviewCredentials(environment),
+    citationLookup: loadCitationLookupEndpoints(environment),
   };
 }

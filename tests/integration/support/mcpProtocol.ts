@@ -20,6 +20,7 @@ export interface JsonRpcResponse {
     readonly tools?: McpToolDescription[];
     readonly isError?: boolean;
     readonly protocolVersion?: string;
+    readonly instructions?: string;
   };
   readonly error?: { code: number; message: string };
 }

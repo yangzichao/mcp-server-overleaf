@@ -1,8 +1,10 @@
-# Tracked changes and review comments
+# Tracked changes, review comments and Overleaf's web app
 
-Three tools reach Overleaf's editor instead of its Git bridge, so an edit can arrive as a
-suggestion in the review panel rather than as finished text. They are off by default, need a
-credential the other eighteen tools do not use, and this page is about that trade.
+Thirteen tools reach Overleaf's editor and web application instead of its Git bridge. With
+them an edit can arrive as a suggestion in the review panel rather than as finished text, a
+comment thread can be read and answered, and a project can be compiled on Overleaf without a
+local TeX installation. They are off by default and need a credential the other twenty-three
+tools do not use. This page is about that trade.
 
 ## Why the Git bridge cannot do this
 
@@ -49,11 +51,15 @@ That means:
 This is why the tools are optional. With no cookie configured, the server does not register
 them at all, and everything else works exactly as before.
 
+The cookie is sent only to the web host below. Compiled output is fetched from that host
+too, with the compile group and server id the editor uses, and never from Overleaf's separate
+PDF domain, so the cookie does not travel to a second host.
+
 ## Configure it
 
 | Variable | Meaning |
 | --- | --- |
-| `OVERLEAF_SESSION_COOKIE` | The `overleaf_session2` cookie from a signed-in browser. Turns the review tools on. |
+| `OVERLEAF_SESSION_COOKIE` | The `overleaf_session2` cookie from a signed-in browser. Turns these tools on. |
 | `OVERLEAF_SESSION_COOKIE_FILE` | Absolute path to a file holding the same value. Preferred. |
 | `OVERLEAF_WEB_BASE_URL` | The Overleaf web address. Default `https://www.overleaf.com`. |
 
@@ -68,33 +74,61 @@ OVERLEAF_SESSION_COOKIE=s%3A...
 
 ## The tools
 
+Review, over the real-time editor connection and the web application:
+
 | Tool | What it does |
 | --- | --- |
 | `list_tracked_changes` | Reads the suggestions and comment-thread anchors on one document, with line numbers. |
 | `suggest_edit` | Replaces an exact snippet so it arrives as a tracked change, waiting to be accepted or rejected. |
-| `add_comment` | Anchors a review-panel comment thread to an exact passage. |
+| `accept_tracked_changes` | Accepts suggestions by id, or all of them in a document. |
+| `reject_tracked_changes` | Rejects them: a suggested insertion goes, a suggested deletion comes back. |
+| `list_comments` | Reads comment threads with every message, their anchors, and whether they are resolved. |
+| `add_comment` | Starts a thread on an exact passage, with its first message. |
+| `reply_to_comment` | Adds a message to a thread. |
+| `resolve_comment` | Resolves a thread, or reopens a resolved one. |
+| `delete_comment` | Deletes a thread and every message in it. |
 
-`suggest_edit` takes effect in Overleaf immediately. There is no separate `push_changes` step,
-because nothing went through a clone. That is the opposite of every other editing tool here,
-and deliberate: a suggestion is already reversible by the person reviewing it.
+The account and its projects, over the web application:
+
+| Tool | What it does |
+| --- | --- |
+| `list_account_projects` | Every project the account can open, with its access level and address. |
+| `create_project` | A new blank project, or one from Overleaf's example paper. |
+| `compile_on_overleaf` | Compiles on Overleaf's servers and reports errors and warnings; can save the PDF. |
+| `download_project_zip` | Saves the whole project, binary files included, as a ZIP. |
+
+Every one of these takes effect in Overleaf immediately. There is no separate `push_changes`
+step, because nothing went through a clone. That is the opposite of every Git-bridge editing
+tool, and deliberate for suggestions: a suggestion is already reversible by the person
+reviewing it. Accepting, rejecting, resolving and deleting are not reversible from here, so
+a client should confirm them with the user first.
 
 Overleaf requires review permission for a tracked change, so read-only access is refused before
-anything is sent. A reviewer who may not write plain text can still suggest.
+anything is sent. A reviewer who may not write plain text can still suggest. Accepting and
+rejecting need edit permission and are refused up front for review-only and read-only access.
+Both re-read the document afterwards and report a suggestion that is still there.
+
+Rejecting has no route of its own in Overleaf. The editor undoes each suggestion with an
+ordinary edit flagged as an undo, working from the end of the document backwards so earlier
+positions stay valid, and this server does the same.
 
 ## What it cannot do
 
-- **Comment text.** `add_comment` anchors the thread; the first message has to be written in
-  Overleaf. `list_tracked_changes` reads which passage each thread hangs on, not what anyone
-  said in it. The thread messages come from an HTTP route that is not in Overleaf's open-source
-  tree, so nothing here is written against a verified contract for it.
-- **Accept or reject.** Neither is implemented yet.
+- **A verified contract for comment messages.** The routes `list_comments`, `add_comment`,
+  `reply_to_comment`, `resolve_comment` and `delete_comment` use are the ones the open-source
+  editor calls in `services/web/frontend/js/features/review-panel/`, but the server side of
+  them lives in a module outside Overleaf's open-source tree. They follow what the editor
+  sends, not a published interface.
+- **History-OT documents.** A document Overleaf has moved to its newer history-OT format
+  refuses the real-time protocol this server speaks, so the review tools explain that and stop.
+  The Git-bridge tools still work on it.
 - **A guarantee of stability.** The Git bridge is a documented, supported interface. The
-  real-time protocol is internal to Overleaf and can change without notice. If it does, the
-  review tools break and the other eighteen do not.
+  real-time protocol and the web routes are internal to Overleaf and can change without
+  notice. If they do, these thirteen tools break and the other twenty-three do not.
 
 ## Verification
 
-`tests/integration/trackedChanges.test.ts` and `tests/integration/reviewTools.test.ts` run
+`tests/integration/trackedChanges.test.ts` and the suites in `tests/integration/review/` run
 against `tests/integration/fakeOverleafRealtime.ts`, a real HTTP and WebSocket server speaking
 the real 0.9 protocol and reproducing the behaviour read out of `overleaf/overleaf`: the
 handshake, the permission check in `WebsocketController._assertClientCanApplyUpdate`, the
@@ -105,5 +139,9 @@ every packet this server encodes was compared byte for byte with the output of
 `overleaf/socket.io-client` at `0.9.17-overleaf-5`, and every packet shape it decodes was
 compared with that parser's reading of the same frame.
 
-Neither test suite has been run against a live Overleaf account, and this feature has not been
-exercised end to end against overleaf.com or a self-hosted instance.
+The web tools in `tests/integration/web/` run against `tests/integration/fakeOverleafWeb.ts`
+and `fakeOverleafAccount.ts`, which serve the routes, CSRF meta tag and login redirect the
+open-source web application has.
+
+None of these suites has been run against a live Overleaf account, and these features have not
+been exercised end to end against overleaf.com or a self-hosted instance.

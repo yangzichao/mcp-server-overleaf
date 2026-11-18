@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 
@@ -10,8 +8,10 @@ import {
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF, SUGGESTS_IN_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+import { registerCommentThreadTools } from "./commentThreadTools.js";
 import { describeDocumentRanges, findTextOffset } from "./describeTrackedChanges.js";
 import { requireDocument, requireReviewCapableProject, withReviewSession } from "./openReviewSession.js";
+import { registerTrackedChangeDecisionTools } from "./trackedChangeDecisionTools.js";
 
 /**
  * The tools that reach Overleaf's editor rather than its Git bridge.
@@ -22,16 +22,12 @@ import { requireDocument, requireReviewCapableProject, withReviewSession } from 
  * edit arrives in the review panel as a suggestion a co-author accepts or rejects.
  *
  * They need a session cookie rather than a Git token, so they are registered only when one is
- * configured. A server without it offers the other eighteen tools unchanged.
+ * configured. A server without it offers the Git-bridge tools unchanged.
  */
 
 const pathArgument = z
   .string()
   .describe("Path of the document relative to the project root, for example main.tex.");
-
-function newThreadId(): string {
-  return randomBytes(12).toString("hex");
-}
 
 export function registerReviewTools(server: McpServer, context: ToolContext): void {
   server.registerTool(
@@ -42,7 +38,7 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
         "Read the tracked changes and review-panel comment anchors on a document, as Overleaf's review panel shows them. " +
         "This reads the live editor rather than the Git bridge, so it sees suggestions nobody has accepted yet, which no other tool here can. " +
         "Call it to find out what is already pending review before suggesting more. " +
-        "Comment threads come back as their anchored text only; the messages inside them are not readable through this connection.",
+        "Comment threads come back as their anchored text only; list_comments reads the messages inside them.",
       inputSchema: z.object({ project: projectArgument, path: pathArgument }),
       annotations: READS_OVERLEAF,
     },
@@ -67,7 +63,7 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
         "Unlike every other editing tool here, this reaches Overleaf immediately and there is no separate push, because it goes through the editor rather than the Git bridge. " +
         "Use it when proposing a change to someone else's paper; use replace_text when the edit should simply be made. " +
         "The snippet must match exactly and appear exactly once in the document. " +
-        "This server cannot accept or reject a suggestion afterwards — that is done in Overleaf.",
+        "accept_tracked_changes and reject_tracked_changes decide it afterwards, if the account has edit access.",
       inputSchema: z.object({
         project: projectArgument,
         path: pathArgument,
@@ -109,42 +105,6 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
       ),
   );
 
-  server.registerTool(
-    "add_comment",
-    {
-      title: "Comment on a passage",
-      description:
-        "Anchor a review-panel comment thread to an exact snippet of text, for raising a question without changing the prose. " +
-        "Takes effect in Overleaf immediately; there is no separate push. " +
-        "The thread arrives empty: this connection cannot carry the comment text, so the first message has to be typed in Overleaf. " +
-        "Say so when reporting the result, and put the point you wanted to make in your own reply rather than assuming it reached the co-author.",
-      inputSchema: z.object({
-        project: projectArgument,
-        path: pathArgument,
-        quoteText: z
-          .string()
-          .describe(
-            "Exact text the comment should be anchored to, matched literally. Must occur exactly once in the document.",
-          ),
-      }),
-      annotations: SUGGESTS_IN_OVERLEAF,
-    },
-    async ({ project, path, quoteText }) =>
-      runToolSafely(context, () =>
-        withReviewSession(context, project, async (session) => {
-          const document = requireDocument(session, path);
-          const joined = await session.joinDocument(document.documentId);
-          const position = findTextOffset(joined.lines, quoteText, "unique");
-          const threadId = newThreadId();
-
-          await session.applyOperations(document.documentId, joined.version, [
-            { p: position, c: quoteText, t: threadId },
-          ]);
-          return textResult(
-            `Anchored a comment thread on "${quoteText}" in ${document.path} (thread ${threadId}).\n` +
-              "Open the review panel in Overleaf to write the first message.",
-          );
-        }),
-      ),
-  );
+  registerCommentThreadTools(server, context);
+  registerTrackedChangeDecisionTools(server, context);
 }

@@ -38,10 +38,15 @@ Environment:
   OVERLEAF_MCP_CHECKOUT_MODE   full (default) or text-only sparse checkout
   OVERLEAF_MCP_HTTP_AUTH_TOKEN bearer token required by --http unless --allow-anonymous
 
-Tracked changes (optional; these three tools appear only once a cookie is set):
+Review and web tools (optional; these thirteen tools appear only once a cookie is set):
   OVERLEAF_SESSION_COOKIE      your overleaf_session2 cookie, copied from a signed-in browser
   OVERLEAF_SESSION_COOKIE_FILE absolute path to a file holding that cookie instead
   OVERLEAF_WEB_BASE_URL        Overleaf instance to connect to (default https://www.overleaf.com)
+
+Citation lookups (verify_citations; each defaults to the public service):
+  OVERLEAF_MCP_DOI_RESOLVER_URL  DOI resolver (default https://doi.org)
+  OVERLEAF_MCP_CROSSREF_API_URL  Crossref REST API (default https://api.crossref.org)
+  OVERLEAF_MCP_ARXIV_API_URL     arXiv API (default http://export.arxiv.org/api)
 
 With OVERLEAF_MCP_ENV_FILE, read that file and let process environment values override it.
 Otherwise use the process environment, or the install's .env when the client supplies no

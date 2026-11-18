@@ -52,6 +52,19 @@ export function requireReviewCapableProject(session: OverleafRealtimeSession): v
   }
 }
 
+/**
+ * Accepting or rejecting a suggestion changes the paper, which Overleaf keeps for accounts that
+ * can edit. A reviewer may suggest and comment but not decide, so that is refused up front.
+ */
+export function requireEditCapableProject(session: OverleafRealtimeSession): void {
+  if (session.permissionsLevel === "readOnly" || session.permissionsLevel === "review") {
+    throw new Error(
+      `This account has ${session.permissionsLevel === "review" ? "review" : "read-only"} access to the project. ` +
+        "Accepting or rejecting suggestions needs edit access; ask the project owner to decide them, or to raise this account's access.",
+    );
+  }
+}
+
 /** Names the paths that do exist, because a wrong path is the likeliest reason to be here. */
 export function requireDocument(session: OverleafRealtimeSession, path: string): OverleafDocumentEntry {
   const document = findDocument(session.project, path);
