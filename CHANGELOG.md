@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 Everything competing Overleaf MCP servers offer that fits this server's credential model,
 plus two checks none of them has. 23 tools without a session cookie, 36 with one.
