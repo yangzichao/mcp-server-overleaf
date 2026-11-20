@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.1
+
+Work on an Overleaf plan without Git integration. With only a session cookie the server
+offers 17 tools: `list_projects`, the 13 review, comment, compile and account tools, and `list_files`,
+`read_file` and `replace_text` over the real-time editor. Verified against overleaf.com on
+2026-11-20 with a cookie and no Git token.
+
+- Reach Overleaf with only `OVERLEAF_SESSION_COOKIE_FILE`. A project may be registered
+  without a Git token once a cookie is configured. Without a Git credential the Git-bridge
+  tools are not offered, and the server instructions say so.
+- `list_files`, `read_file` and `replace_text` run over the editor on such a server, under
+  the same names. `replace_text` changes the live document at once, needs edit access, and
+  points a reviewer at `suggest_edit`. `read_file` returns pending suggestions as if
+  accepted, and refuses a binary upload by name.
+- The desktop bundle's Git token is now optional. A setting still holding its
+  `${user_config.*}` placeholder is treated as unset. A registered project with no
+  credential at all now starts unconfigured instead of exiting, and every call says what to
+  fill in. A configuration where some projects have a token and others have none to fall
+  back on still fails.
+- `replace_text` and `suggest_edit` over the editor refuse emoji and other characters
+  outside the Basic Multilingual Plane, and NUL. Overleaf itself replaces them with U+FFFD.
+- `list_account_projects` prints "can edit" for an invited collaborator. Overleaf calls that
+  access `readWrite`, not the `readAndWrite` of link sharing, so it used to be printed raw.
+- The release waits for the published tarball, not just the version listing, before
+  installing it. 0.4.0's verification hit a CDN-cached 404.
+
 ## 0.4.0
 
 Everything competing Overleaf MCP servers offer that fits this server's credential model,
