@@ -27,18 +27,24 @@ function validateProjectCredentials(
     }
     names.add(project.projectName);
     projectIds.add(project.overleafProjectId);
-    // With a session cookie, a project with no Git credential is still reachable through the
-    // editor tools. That is the whole configuration on a plan without Git integration.
-    if (!project.overleafGitToken && !overleafGitToken && !sessionCookieConfigured) {
-      throw new ConfigurationError(
-        "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile. " +
-          "Without Git integration, set OVERLEAF_SESSION_COOKIE_FILE to reach it through the editor instead.",
-      );
-    }
   }
-  // No token and no project at all is not an error here: the server starts unconfigured,
-  // and the calls that need Overleaf say so (see missingOverleafCredential.ts). A project
-  // registered without any token, above, is a half-written configuration and still fails.
+
+  // No credential anywhere is not an error: the server starts unconfigured and every call that
+  // needs Overleaf says what to set (see missingOverleafCredential.ts). The desktop bundle can
+  // only ask for its project address as required, so a user who fills in neither the token nor
+  // the cookie lands here, and a server that exits looks broken rather than unconfigured.
+  // With a session cookie, a project with no Git credential is still reachable through the
+  // editor tools, which is the whole configuration on a plan without Git integration.
+  const someProjectHasToken = registeredProjects.some((project) => Boolean(project.overleafGitToken));
+  if (overleafGitToken || sessionCookieConfigured || !someProjectHasToken) return;
+
+  // Some projects carry a token and others have none to fall back on: a half-written file.
+  if (registeredProjects.some((project) => !project.overleafGitToken)) {
+    throw new ConfigurationError(
+      "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile. " +
+        "Without Git integration, set OVERLEAF_SESSION_COOKIE_FILE to reach it through the editor instead.",
+    );
+  }
 }
 
 /**

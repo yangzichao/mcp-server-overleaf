@@ -77,8 +77,8 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         type: "string",
         title: "Overleaf Git token",
         description:
-          "Create one at https://www.overleaf.com/user/settings under Git integration. Any account can generate one, and it expires after a year. Whether Git works for a given paper depends on the subscription of whoever owns it.",
-        required: true,
+          "Create one at https://www.overleaf.com/user/settings under Git integration. Any account can generate one, and it expires after a year. Whether Git works for a given paper depends on the subscription of whoever owns it. Leave it empty on a plan without Git integration and fill in the session cookie below instead.",
+        required: false,
         sensitive: true,
       },
       overleaf_project_url: {
@@ -93,7 +93,7 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         type: "string",
         title: "Overleaf session cookie (optional)",
         description:
-          "Leave empty unless you want edits to arrive as suggestions in Overleaf's review panel. That needs your browser session rather than the Git token, so it covers your whole account and stops working when you sign out. Copy the value of the overleaf_session2 cookie from a browser where you are signed in to Overleaf.",
+          "Needed on a plan without Git integration, and for edits that arrive as suggestions in Overleaf's review panel. It is your browser session rather than a token, so it covers your whole account and stops working when you sign out. Copy the value of the overleaf_session2 cookie from a browser where you are signed in to Overleaf.",
         required: false,
         sensitive: true,
       },

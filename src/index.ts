@@ -7,6 +7,7 @@ import {
 } from "./config/missingOverleafCredential.js";
 import { PACKAGE_VERSION } from "./config/packageMetadata.js";
 import { ConfigurationError, loadServerConfigurationFromEnvironment } from "./config/serverConfiguration.js";
+import { dropUnfilledBundleSettings } from "./config/unfilledBundleSettings.js";
 import { createToolContext } from "./server/createOverleafMcpServer.js";
 import { SetupError } from "./setup/setupError.js";
 import { serveOverStdio } from "./transport/serveOverStdio.js";
@@ -109,6 +110,8 @@ async function main(): Promise<void> {
 
   const options = parseCommandLine(argv);
 
+  // Before the .env fallback, which counts any configuration variable that is set as the client's.
+  dropUnfilledBundleSettings();
   // Resolve explicit configuration independently of the client's working directory.
   loadEnvironmentFileIfPresent();
 

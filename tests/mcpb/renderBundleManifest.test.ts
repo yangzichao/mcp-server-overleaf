@@ -57,9 +57,9 @@ describe("renderBundleManifest", () => {
     // biome-ignore-end lint/suspicious/noTemplateCurlyInString: end of MCPB syntax
   });
 
-  it("marks the token as sensitive so the install panel masks it", () => {
+  it("marks the token as sensitive, and optional for a plan without Git integration", () => {
     expect(render().user_config.overleaf_git_token.sensitive).toBe(true);
-    expect(render().user_config.overleaf_git_token.required).toBe(true);
+    expect(render().user_config.overleaf_git_token.required).toBe(false);
   });
 
   it("leaves the session cookie optional, so the bundle still installs without one", () => {
