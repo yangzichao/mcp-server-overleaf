@@ -7,6 +7,7 @@ import { extractOverleafProjectId, looksLikeOverleafProjectId } from "./projectI
 function validateProjectCredentials(
   registeredProjects: readonly RegisteredOverleafProject[],
   overleafGitToken: string,
+  sessionCookieConfigured: boolean,
 ): void {
   const names = new Set<string>();
   const projectIds = new Set<string>();
@@ -26,9 +27,12 @@ function validateProjectCredentials(
     }
     names.add(project.projectName);
     projectIds.add(project.overleafProjectId);
-    if (!project.overleafGitToken && !overleafGitToken) {
+    // With a session cookie, a project with no Git credential is still reachable through the
+    // editor tools. That is the whole configuration on a plan without Git integration.
+    if (!project.overleafGitToken && !overleafGitToken && !sessionCookieConfigured) {
       throw new ConfigurationError(
-        "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile.",
+        "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile. " +
+          "Without Git integration, set OVERLEAF_SESSION_COOKIE_FILE to reach it through the editor instead.",
       );
     }
   }
@@ -53,7 +57,11 @@ function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
   return `${environment.OVERLEAF_PROJECT_NAME?.trim() || "default"}=${overleafProjectId}`;
 }
 
-export function selectProjects(environment: NodeJS.ProcessEnv, overleafGitToken: string) {
+export function selectProjects(
+  environment: NodeJS.ProcessEnv,
+  overleafGitToken: string,
+  sessionCookieConfigured: boolean,
+) {
   // Explicit environment project selection wins as a whole, without merging credentials by position.
   const hasEnvironmentProjects = Boolean(
     environment.OVERLEAF_PROJECTS?.trim() || environment.OVERLEAF_PROJECT_ID?.trim(),
@@ -62,7 +70,7 @@ export function selectProjects(environment: NodeJS.ProcessEnv, overleafGitToken:
   const registeredProjects = hasEnvironmentProjects
     ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS?.trim() || singleProjectEntry(environment))
     : (projectFile?.projects ?? []);
-  validateProjectCredentials(registeredProjects, overleafGitToken);
+  validateProjectCredentials(registeredProjects, overleafGitToken, sessionCookieConfigured);
   const explicitDefault = environment.OVERLEAF_DEFAULT_PROJECT?.trim() || projectFile?.defaultProject;
   if (explicitDefault && !registeredProjects.some((project) => project.projectName === explicitDefault)) {
     throw new ConfigurationError(

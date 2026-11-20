@@ -50,6 +50,9 @@ const CLIENT_OWNS_CONFIGURATION_VARIABLES = [
   "OVERLEAF_GIT_TOKEN_FILE",
   "OVERLEAF_PROJECTS_CONFIG",
   "OVERLEAF_PROJECT_ID",
+  // A session cookie alone is a whole configuration on a plan without Git integration.
+  "OVERLEAF_SESSION_COOKIE",
+  "OVERLEAF_SESSION_COOKIE_FILE",
 ] as const;
 
 export function clientSuppliedConfiguration(environment: NodeJS.ProcessEnv): boolean {

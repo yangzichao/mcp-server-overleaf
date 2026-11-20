@@ -2,7 +2,10 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { hasOverleafCredential } from "../../src/config/missingOverleafCredential.js";
+import {
+  hasAnyOverleafCredential,
+  hasGitBridgeCredential,
+} from "../../src/config/missingOverleafCredential.js";
 import {
   ConfigurationError,
   loadServerConfigurationFromEnvironment,
@@ -49,13 +52,24 @@ describe("required configuration", () => {
       registeredProjects: [],
       defaultProjectName: null,
     });
-    expect(hasOverleafCredential(configuration)).toBe(false);
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 
   it("refuses a registered project when no token covers it", () => {
     expect(() => loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` })).toThrow(
       ConfigurationError,
     );
+  });
+
+  it("accepts a project with no Git token when a session cookie reaches it through the editor", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      OVERLEAF_PROJECTS: `paper=${paperId}`,
+      OVERLEAF_SESSION_COOKIE: "s%3Aplaceholder",
+    });
+    expect(configuration.registeredProjects).toEqual([{ projectName: "paper", overleafProjectId: paperId }]);
+    expect(configuration.defaultProjectName).toBe("paper");
+    expect(hasGitBridgeCredential(configuration)).toBe(false);
+    expect(hasAnyOverleafCredential(configuration)).toBe(true);
   });
 
   it("refuses a token that is only whitespace", () => {

@@ -457,8 +457,9 @@ their configured project credentials.
 | `push_changes` | Commit and publish, with the collaborator check |
 
 With a session cookie, thirteen more tools reach Overleaf's editor and web app directly.
-They take effect at once, with no `push_changes` step. Details and the credential trade-off
-are in [tracked changes](docs/tracked-changes.md).
+They take effect at once, with no `push_changes` step. They also work on a plan without Git
+integration: configure only the cookie and the server offers these and `list_projects`.
+Details and the credential trade-off are in [tracked changes](docs/tracked-changes.md).
 
 | Tool | What it does |
 | --- | --- |

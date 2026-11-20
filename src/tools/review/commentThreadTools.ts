@@ -161,7 +161,7 @@ export function registerCommentThreadTools(server: McpServer, context: ToolConte
     async ({ project, threadId, message }) =>
       runToolSafely(context, async () => {
         const webClient = requireOverleafWebClient(context);
-        const { overleafProjectId } = context.projectRegistry.resolveProjectId(project);
+        const { overleafProjectId } = context.projectRegistry.resolveEditorProject(project);
         // Overleaf creates a thread for any id it is sent a message for. Checking first keeps a
         // mistyped id from becoming a new thread that no text in the paper points to.
         const threads = await fetchCommentThreads(webClient, overleafProjectId);

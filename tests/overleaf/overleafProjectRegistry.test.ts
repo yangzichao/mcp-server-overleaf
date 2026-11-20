@@ -1,4 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { rename } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -173,3 +175,49 @@ describe("serializing tool calls per project", () => {
     await expect(attempt).rejects.toBeInstanceOf(UnknownProjectError);
   });
 });
+
+describe("projects reached with only a session cookie", () => {
+  const cookieOnly: NodeJS.ProcessEnv = {
+    OVERLEAF_PROJECTS: `paper=${thesisId}`,
+    OVERLEAF_SESSION_COOKIE: "s%3Aplaceholder",
+  };
+
+  it("resolves a registered project for the editor tools without any Git token", () => {
+    const registry = new OverleafProjectRegistry(loadServerConfigurationFromEnvironment(cookieOnly));
+    expect(registry.resolveEditorProject(undefined).overleafProjectId).toBe(thesisId);
+    expect(registry.resolveEditorProject(`https://www.overleaf.com/project/${remote.projectId}`)).toEqual({
+      projectName: remote.projectId,
+      overleafProjectId: remote.projectId,
+    });
+  });
+
+  it("refuses the Git-bridge tools on that project and names the missing token", async () => {
+    const registry = new OverleafProjectRegistry(loadServerConfigurationFromEnvironment(cookieOnly));
+    await expect(registry.openRepository(undefined)).rejects.toThrow(/OVERLEAF_GIT_TOKEN is not set/);
+  });
+
+  it("refuses a token-less project for Git while another project carries its own token", () => {
+    const registry = new OverleafProjectRegistry(
+      loadServerConfigurationFromEnvironment({
+        OVERLEAF_SESSION_COOKIE: "s%3Aplaceholder",
+        OVERLEAF_PROJECTS_CONFIG: writeProjectsConfiguration({
+          paper: { projectId: remote.projectId, gitToken: "olp_paper_only" },
+          thesis: { projectId: thesisId },
+        }),
+      }),
+    );
+    expect(registry.resolveGitProject("paper").overleafGitToken).toBe("olp_paper_only");
+    expect(() => registry.resolveGitProject("thesis")).toThrow(/Project "thesis" has no Git token/);
+    expect(registry.resolveEditorProject("thesis").overleafProjectId).toBe(thesisId);
+  });
+
+  it("refuses the editor path when no session cookie is configured", () => {
+    expect(() => registryWith().resolveEditorProject(undefined)).toThrow(/session cookie/);
+  });
+});
+
+function writeProjectsConfiguration(projects: Record<string, unknown>): string {
+  const filePath = join(mkdtempSync(join(tmpdir(), "overleaf-registry-")), "projects.json");
+  writeFileSync(filePath, JSON.stringify({ projects }));
+  return filePath;
+}
