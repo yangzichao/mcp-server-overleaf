@@ -26,12 +26,32 @@ async function fetchRegistryDocument(url, headers = {}) {
   return undefined;
 }
 
+// The tarball can lag the documents that list it, and the registry's CDN caches a 404 for the
+// tarball for minutes: 0.4.0's install asked twelve seconds after npm listed the version and
+// kept getting 404 for about five minutes. Asking for the plain URL here would plant that 404,
+// so this asks with a query string, which reaches the origin under a different cache key, and
+// leaves the plain URL for `npm install`'s first request.
+async function tarballIsServed(tarballUrl) {
+  const probeUrl = new URL(tarballUrl);
+  probeUrl.searchParams.set("published-check", String(Date.now()));
+  const response = await fetch(probeUrl, { method: "HEAD", signal: AbortSignal.timeout(15_000) });
+  assert.ok(
+    response.ok || response.status === 404 || response.status >= 500,
+    `Registry returned ${response.status} for the tarball`,
+  );
+  return response.ok;
+}
+
 const registryVisibilityDeadline = Date.now() + registryVisibilityTimeoutMilliseconds;
 let publishedMetadata;
 while (Date.now() < registryVisibilityDeadline) {
   const versionDocument = await fetchRegistryDocument(`${packageUrl}/${manifest.version}`);
   const installPackument = await fetchRegistryDocument(packageUrl, { accept: abbreviatedPackumentMediaType });
-  if (versionDocument && installPackument?.versions?.[manifest.version]) {
+  if (
+    versionDocument &&
+    installPackument?.versions?.[manifest.version] &&
+    (await tarballIsServed(versionDocument.dist.tarball))
+  ) {
     publishedMetadata = versionDocument;
     break;
   }
