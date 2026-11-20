@@ -67,6 +67,10 @@ describe("clientSuppliedConfiguration", () => {
     expect(clientSuppliedConfiguration({ OVERLEAF_PROJECTS: "paper=x" })).toBe(true);
   });
 
+  it("is true when the client set only a session cookie, the whole setup without Git integration", () => {
+    expect(clientSuppliedConfiguration({ OVERLEAF_SESSION_COOKIE_FILE: "/home/me/cookie" })).toBe(true);
+  });
+
   it("treats a blank value as not configured", () => {
     expect(clientSuppliedConfiguration({ OVERLEAF_GIT_TOKEN: "   " })).toBe(false);
   });

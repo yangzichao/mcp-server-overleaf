@@ -30,7 +30,7 @@ export function registerDownloadProjectZipTool(server: McpServer, context: ToolC
     async ({ project, saveTo }) =>
       runToolSafely(context, async () => {
         const webClient = requireOverleafWebClient(context);
-        const { overleafProjectId } = context.projectRegistry.resolveProjectId(project);
+        const { overleafProjectId } = context.projectRegistry.resolveEditorProject(project);
         const bytes = await downloadProjectArchive(webClient, overleafProjectId);
         const savedPath = await saveDownloadedFile(saveTo, bytes, ZIP_DOWNLOAD);
         return textResult(`Saved the project archive (${describeByteSize(bytes.length)}) to ${savedPath}.`);

@@ -72,6 +72,26 @@ the whole cookie string, a single `name=value` pair, or the bare value.
 OVERLEAF_SESSION_COOKIE=s%3A...
 ```
 
+## Without Git integration
+
+Overleaf's Git bridge is a paid feature; the editor is not. A server configured with only a
+session cookie, and no `OVERLEAF_GIT_TOKEN`, still offers every tool below, plus
+`list_projects`. The Git-bridge tools are not offered at all, since each of them would only
+answer with a setup note.
+
+```bash
+OVERLEAF_SESSION_COOKIE_FILE=/home/you/.overleaf-mcp/session-cookie
+OVERLEAF_PROJECTS=paper=64a1b2c3d4e5f6a7b8c9d0e1   # optional: a name and a default
+```
+
+Name a project by its Overleaf address, its id, or a name registered as above, or call
+`list_account_projects` to find it. A project in `OVERLEAF_PROJECTS_CONFIG` may leave out
+`gitToken` when a cookie is configured; the Git-bridge tools then refuse that one project and
+say why, while projects with a token keep working through Git.
+
+Reading and editing whole files without Git is not here yet: on this setup, `download_project_zip`
+is the way to get the source.
+
 ## The tools
 
 Review, over the real-time editor connection and the web application:

@@ -50,7 +50,7 @@ export function registerCompileOnOverleafTool(server: McpServer, context: ToolCo
     async ({ project, mainTexFile, draft, stopOnFirstError, savePdfTo }) =>
       runToolSafely(context, async () => {
         const webClient = requireOverleafWebClient(context);
-        const { overleafProjectId } = context.projectRegistry.resolveProjectId(project);
+        const { overleafProjectId } = context.projectRegistry.resolveEditorProject(project);
         const result = await compileOnOverleaf(webClient, overleafProjectId, {
           rootResourcePath: mainTexFile,
           draft,

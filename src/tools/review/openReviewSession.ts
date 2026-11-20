@@ -24,7 +24,7 @@ export async function withReviewSession<T>(
   const credentials = context.configuration.reviewCredentials;
   if (!credentials) throw new ConfigurationError(REVIEW_CREDENTIALS_MISSING_MESSAGE);
 
-  const resolved = context.projectRegistry.resolveProjectId(project);
+  const resolved = context.projectRegistry.resolveEditorProject(project);
   const session = await OverleafRealtimeSession.open({
     baseUrl: credentials.webBaseUrl,
     cookieHeader: credentials.cookieHeader,

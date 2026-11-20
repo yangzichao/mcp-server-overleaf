@@ -26,7 +26,10 @@ export interface ServerConfiguration {
   readonly checkoutMode?: "full" | "text-only";
   readonly gitCommitAuthorName: string;
   readonly gitCommitAuthorEmail: string;
-  /** Absent unless a session cookie is configured; only the review tools need it. */
+  /**
+   * Absent unless a session cookie is configured. The editor and web tools need it, and on a plan
+   * without Git integration it is the only credential.
+   */
   readonly reviewCredentials?: OverleafReviewCredentials;
   /** Where verify_citations looks entries up; the public services when absent. */
   readonly citationLookup?: CitationLookupEndpoints;
@@ -48,7 +51,12 @@ export function loadServerConfigurationFromEnvironment(
     environment.OVERLEAF_GIT_TOKEN,
     environment.OVERLEAF_GIT_TOKEN_FILE,
   );
-  const { registeredProjects, defaultProjectName } = selectProjects(environment, overleafGitToken);
+  const reviewCredentials = loadReviewCredentials(environment);
+  const { registeredProjects, defaultProjectName } = selectProjects(
+    environment,
+    overleafGitToken,
+    reviewCredentials !== undefined,
+  );
   const checkoutMode = environment.OVERLEAF_MCP_CHECKOUT_MODE?.trim() || "full";
   if (checkoutMode !== "full" && checkoutMode !== "text-only") {
     throw new ConfigurationError("OVERLEAF_MCP_CHECKOUT_MODE must be full or text-only.");
@@ -77,7 +85,7 @@ export function loadServerConfigurationFromEnvironment(
     gitCommitAuthorName: environment.OVERLEAF_MCP_GIT_AUTHOR_NAME?.trim() || "mcp-server-overleaf",
     gitCommitAuthorEmail:
       environment.OVERLEAF_MCP_GIT_AUTHOR_EMAIL?.trim() || "mcp-server-overleaf@localhost",
-    reviewCredentials: loadReviewCredentials(environment),
+    reviewCredentials,
     citationLookup: loadCitationLookupEndpoints(environment),
   };
 }

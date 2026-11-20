@@ -1,10 +1,11 @@
 import { join } from "node:path";
 
 import {
-  hasOverleafCredential,
+  hasGitBridgeCredential,
   MISSING_OVERLEAF_CREDENTIAL_MESSAGE,
 } from "../config/missingOverleafCredential.js";
 import { extractOverleafProjectId } from "../config/projects/projectIdentity.js";
+import { REVIEW_CREDENTIALS_MISSING_MESSAGE } from "../config/review/reviewCredentials.js";
 import {
   ConfigurationError,
   type RegisteredOverleafProject,
@@ -39,15 +40,40 @@ export class OverleafProjectRegistry {
   }
 
   /**
-   * Public because the review tools reach Overleaf's editor rather than a clone, so they need
-   * the project id without opening a repository.
+   * The project a Git-bridge tool means, which must have a Git credential: its own token, or the
+   * default one.
    */
-  resolveProjectId(requestedProject: string | undefined): RegisteredOverleafProject {
+  resolveGitProject(requestedProject: string | undefined): RegisteredOverleafProject {
     // Checked before the project argument, so an unconfigured server names the missing token
     // rather than a missing default project.
-    if (!hasOverleafCredential(this.configuration)) {
+    if (!hasGitBridgeCredential(this.configuration)) {
       throw new ConfigurationError(MISSING_OVERLEAF_CREDENTIAL_MESSAGE);
     }
+    const project = this.findProject(requestedProject);
+    if (project.overleafGitToken || this.configuration.overleafGitToken) return project;
+    const registered = this.configuration.registeredProjects.includes(project);
+    throw new UnknownProjectError(
+      registered
+        ? `Project "${project.projectName}" has no Git token and no default OVERLEAF_GIT_TOKEN covers it, so the Git-bridge tools cannot reach it. ` +
+            "Add a gitToken for it to OVERLEAF_PROJECTS_CONFIG, or use the editor tools, which need only the session cookie."
+        : "This project id is not registered and no default Git credential is configured. Add its credentials to OVERLEAF_PROJECTS_CONFIG.",
+    );
+  }
+
+  /**
+   * The project an editor or web tool means. These reach Overleaf with the session cookie, which
+   * covers every project in the account, so no Git credential is needed: this is the path a plan
+   * without Git integration takes.
+   */
+  resolveEditorProject(requestedProject: string | undefined): RegisteredOverleafProject {
+    if (!this.configuration.reviewCredentials) {
+      throw new ConfigurationError(REVIEW_CREDENTIALS_MISSING_MESSAGE);
+    }
+    return this.findProject(requestedProject);
+  }
+
+  /** Name, default, address or raw id onto a project, with no opinion on credentials. */
+  private findProject(requestedProject: string | undefined): RegisteredOverleafProject {
     const requested = requestedProject?.trim();
 
     if (!requested) {
@@ -57,7 +83,7 @@ export class OverleafProjectRegistry {
             "to a single project, or set OVERLEAF_DEFAULT_PROJECT.",
         );
       }
-      return this.resolveProjectId(this.configuration.defaultProjectName);
+      return this.findProject(this.configuration.defaultProjectName);
     }
 
     const registeredByName = this.configuration.registeredProjects.find(
@@ -84,14 +110,7 @@ export class OverleafProjectRegistry {
     const registeredById = this.configuration.registeredProjects.find(
       (project) => project.overleafProjectId === overleafProjectId,
     );
-    if (registeredById) return registeredById;
-
-    if (!this.configuration.overleafGitToken) {
-      throw new UnknownProjectError(
-        "This project id is not registered and no default Git credential is configured. Add its credentials to OVERLEAF_PROJECTS_CONFIG.",
-      );
-    }
-    return { projectName: overleafProjectId, overleafProjectId };
+    return registeredById ?? { projectName: overleafProjectId, overleafProjectId };
   }
 
   /**
@@ -107,7 +126,7 @@ export class OverleafProjectRegistry {
     requestedProject: string | undefined,
     action: (repository: OverleafGitRepository) => Promise<T>,
   ): Promise<T> {
-    const { overleafProjectId } = this.resolveProjectId(requestedProject);
+    const { overleafProjectId } = this.resolveGitProject(requestedProject);
     const previous = this.projectLocks.get(overleafProjectId) ?? Promise.resolve();
 
     // Nested inside the in-process queue on purpose: this process never contends with
@@ -134,10 +153,10 @@ export class OverleafProjectRegistry {
     return join(this.configuration.workspaceDirectory, ".locks", `${overleafProjectId}.lock`);
   }
 
-  // Deliberately async: resolveProjectId throws, and a method that returns a Promise must
+  // Deliberately async: resolveGitProject throws, and a method that returns a Promise must
   // reject rather than throw synchronously, or callers' .catch() misses it.
   async openRepository(requestedProject: string | undefined): Promise<OverleafGitRepository> {
-    const { overleafProjectId, overleafGitToken } = this.resolveProjectId(requestedProject);
+    const { overleafProjectId, overleafGitToken } = this.resolveGitProject(requestedProject);
 
     const cached = this.repositoryCache.get(overleafProjectId);
     if (cached) {
