@@ -133,13 +133,15 @@ Verify it directly in step 3 instead.
 ## Install into Claude Desktop with one click
 
 Download **[mcp-server-overleaf.mcpb](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
-and double-click it. Claude Desktop opens an install panel, asks for the two values below,
+and double-click it. Claude Desktop opens an install panel, asks for the values below,
 and starts the server itself. No terminal, no Node installation, no build.
 
 - **Overleaf project address** — open the project in Overleaf and copy the whole URL from
   the address bar.
 - **Overleaf Git token** — generate one at <https://www.overleaf.com/user/settings> under
   Git integration. Claude Desktop stores it in the operating system keychain.
+- **Overleaf session cookie** — optional; on a plan without Git integration, leave the token
+  empty and fill this in instead.
 
 The bundle carries the same server npm publishes, with its locked runtime dependencies and
 nothing else. It is macOS and Windows only, because that is where Claude Desktop runs. For

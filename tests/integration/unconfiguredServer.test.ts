@@ -44,3 +44,27 @@ it("starts with no credentials, lists every tool, and names the missing token wh
     expect(response.result?.content?.[0]?.text).toContain(MISSING_TOKEN);
   }
 });
+
+/**
+ * Claude Desktop with only the required project address filled in. The specification does not say
+ * whether an empty optional setting arrives as "" or as its placeholder, so both are tried.
+ */
+// biome-ignore lint/suspicious/noTemplateCurlyInString: the literal MCPB placeholder under test
+it.each(["", "${user_config.overleaf_git_token}"])(
+  "starts from the desktop bundle with a project and no credential (token %j)",
+  async (unfilledToken) => {
+    const emptyEnvironmentFile = join(isolatedHome, "empty.env");
+    writeFileSync(emptyEnvironmentFile, "");
+    client = await McpStdioClient.start({
+      HOME: isolatedHome,
+      XDG_CONFIG_HOME: join(isolatedHome, ".config"),
+      OVERLEAF_MCP_ENV_FILE: emptyEnvironmentFile,
+      OVERLEAF_MCP_WORKSPACE_DIR: join(isolatedHome, "projects"),
+      OVERLEAF_PROJECT_ID: "https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1",
+      OVERLEAF_GIT_TOKEN: unfilledToken,
+      OVERLEAF_SESSION_COOKIE: unfilledToken.replace("git_token", "session_cookie"),
+    });
+    expect(await client.listToolNames()).toHaveLength(23);
+    expect(await client.call("read_file", { path: "main.tex" })).toContain(MISSING_TOKEN);
+  },
+);

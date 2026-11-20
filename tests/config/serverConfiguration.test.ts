@@ -55,10 +55,12 @@ describe("required configuration", () => {
     expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 
-  it("refuses a registered project when no token covers it", () => {
-    expect(() => loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` })).toThrow(
-      ConfigurationError,
-    );
+  it("starts unconfigured with a registered project when there is no credential at all", () => {
+    // The desktop bundle requires a project address but neither credential, since a plan without
+    // Git integration has no token to give. Leaving both empty must not stop the server starting.
+    const configuration = loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` });
+    expect(configuration.defaultProjectName).toBe("paper");
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 
   it("accepts a project with no Git token when a session cookie reaches it through the editor", () => {
@@ -72,10 +74,12 @@ describe("required configuration", () => {
     expect(hasAnyOverleafCredential(configuration)).toBe(true);
   });
 
-  it("refuses a token that is only whitespace", () => {
-    expect(() =>
-      loadServerConfigurationFromEnvironment(environmentWith({ OVERLEAF_GIT_TOKEN: "  " })),
-    ).toThrow(ConfigurationError);
+  it("treats a token that is only whitespace as no token", () => {
+    const configuration = loadServerConfigurationFromEnvironment(
+      environmentWith({ OVERLEAF_GIT_TOKEN: "  " }),
+    );
+    expect(configuration.overleafGitToken).toBe("");
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 });
 
