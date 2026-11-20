@@ -27,7 +27,7 @@ export function stripLineComment(line: string): string {
 const OPAQUE_ENVIRONMENT_PATTERN = /\\begin\s*\{(verbatim\*?|Verbatim\*?|lstlisting|minted|comment)\}/g;
 
 function endOfEnvironmentPattern(environment: string): RegExp {
-  return new RegExp(`\\\\end\\s*\\{${environment.replace("*", "\\*")}\\}`, "g");
+  return new RegExp(`\\\\end\\s*\\{${environment.replaceAll("*", "\\*")}\\}`, "g");
 }
 
 function keepNewlinesOnly(text: string): string {
