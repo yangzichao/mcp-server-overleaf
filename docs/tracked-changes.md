@@ -75,9 +75,9 @@ OVERLEAF_SESSION_COOKIE=s%3A...
 ## Without Git integration
 
 Overleaf's Git bridge is a paid feature; the editor is not. A server configured with only a
-session cookie, and no `OVERLEAF_GIT_TOKEN`, still offers every tool below, plus
-`list_projects`. The Git-bridge tools are not offered at all, since each of them would only
-answer with a setup note.
+session cookie, and no `OVERLEAF_GIT_TOKEN`, offers every tool below, `list_projects`, and
+editor versions of `list_files`, `read_file` and `replace_text`: 17 tools. The other Git-bridge
+tools are not offered, since each of them would only answer with a setup note.
 
 ```bash
 OVERLEAF_SESSION_COOKIE_FILE=/home/you/.overleaf-mcp/session-cookie
@@ -89,8 +89,20 @@ Name a project by its Overleaf address, its id, or a name registered as above, o
 `gitToken` when a cookie is configured; the Git-bridge tools then refuse that one project and
 say why, while projects with a token keep working through Git.
 
-Reading and editing whole files without Git is not here yet: on this setup, `download_project_zip`
-is the way to get the source.
+The three file tools keep their names but work on the live editor:
+
+- `list_files` lists Overleaf's file tree, marking uploads such as images `(binary)`.
+- `read_file` reads a document as it stands in the editor, whole or as a line range. It has no
+  `mode`, `revision` or `expectedRevision`, which belong to the clone; `download_project_zip`
+  fetches binary uploads.
+- `replace_text` takes effect in Overleaf at once, with no `push_changes` step and no undo here,
+  and arrives as ordinary text even when the project has track changes on, as a Git push does.
+  It needs edit access; a reviewer is pointed at `suggest_edit`. The edit is sent against the
+  document version it was matched in, so Overleaf transforms it against a co-author's
+  concurrent typing as it does between two open editors.
+
+Not offered on this setup: `write_file`, `edit_section`, sections and search, compiling
+locally, history, and creating, moving or deleting files.
 
 ## The tools
 

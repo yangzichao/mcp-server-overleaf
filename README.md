@@ -458,7 +458,8 @@ their configured project credentials.
 
 With a session cookie, thirteen more tools reach Overleaf's editor and web app directly.
 They take effect at once, with no `push_changes` step. They also work on a plan without Git
-integration: configure only the cookie and the server offers these and `list_projects`.
+integration: configure only the cookie and the server offers these, `list_projects`, and
+`list_files`, `read_file` and `replace_text` working on the live editor.
 Details and the credential trade-off are in [tracked changes](docs/tracked-changes.md).
 
 | Tool | What it does |

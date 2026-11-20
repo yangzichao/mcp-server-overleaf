@@ -22,15 +22,17 @@ describe("a server configured with only a session cookie", () => {
     };
   }
 
-  it("offers the editor tools and list_projects, and none of the Git-bridge tools", async () => {
+  it("offers the editor tools, list_projects and editor-backed file tools, and none of the Git-only tools", async () => {
     const client = await harness.startClient(cookieOnlyEnvironment());
     const names = await client.listToolNames();
     expect(names).toContain("list_projects");
     expect(names).toContain("list_tracked_changes");
     expect(names).toContain("download_project_zip");
-    expect(names).not.toContain("read_file");
+    expect(names).toContain("read_file");
+    expect(names).toContain("replace_text");
     expect(names).not.toContain("push_changes");
-    expect(names).toHaveLength(14);
+    expect(names).not.toContain("write_file");
+    expect(names).toHaveLength(17);
   });
 
   it("reaches a project named by its address", async () => {

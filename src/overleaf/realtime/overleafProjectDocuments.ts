@@ -13,17 +13,25 @@ export interface OverleafDocumentEntry {
   readonly documentId: string;
 }
 
+/** An uploaded file: an image, a PDF, anything Overleaf stores as binary rather than as text. */
+export interface OverleafBinaryFileEntry {
+  readonly path: string;
+  readonly fileId: string;
+}
+
 export interface OverleafProjectTree {
   readonly projectId: string;
   readonly name: string;
   readonly rootDocumentId: string | undefined;
   readonly documents: readonly OverleafDocumentEntry[];
+  readonly binaryFiles: readonly OverleafBinaryFileEntry[];
 }
 
 interface RawFolder {
   readonly name?: unknown;
   readonly folders?: unknown;
   readonly docs?: unknown;
+  readonly fileRefs?: unknown;
 }
 
 function readString(value: unknown): string | undefined {
@@ -34,26 +42,36 @@ function joinPath(parentPath: string, name: string): string {
   return parentPath ? `${parentPath}/${name}` : name;
 }
 
-function readDocumentEntry(entry: unknown, parentPath: string): OverleafDocumentEntry | undefined {
+function readTreeEntry(entry: unknown, parentPath: string): { path: string; id: string } | undefined {
   if (!entry || typeof entry !== "object") return undefined;
   const candidate = entry as { _id?: unknown; name?: unknown };
-  const documentId = readString(candidate._id);
+  const id = readString(candidate._id);
   const name = readString(candidate.name);
-  if (!documentId || !name) return undefined;
-  return { path: joinPath(parentPath, name), documentId };
+  if (!id || !name) return undefined;
+  return { path: joinPath(parentPath, name), id };
 }
 
-function collectDocuments(folder: RawFolder, parentPath: string, collected: OverleafDocumentEntry[]): void {
-  for (const entry of Array.isArray(folder.docs) ? folder.docs : []) {
-    const document = readDocumentEntry(entry, parentPath);
-    if (document) collected.push(document);
+interface CollectedEntries {
+  readonly documents: OverleafDocumentEntry[];
+  readonly binaryFiles: OverleafBinaryFileEntry[];
+}
+
+function readTreeEntries(entries: unknown, parentPath: string): { path: string; id: string }[] {
+  return (Array.isArray(entries) ? entries : []).flatMap((entry) => readTreeEntry(entry, parentPath) ?? []);
+}
+
+function collectEntries(folder: RawFolder, parentPath: string, collected: CollectedEntries): void {
+  for (const { path, id } of readTreeEntries(folder.docs, parentPath)) {
+    collected.documents.push({ path, documentId: id });
+  }
+  for (const { path, id } of readTreeEntries(folder.fileRefs, parentPath)) {
+    collected.binaryFiles.push({ path, fileId: id });
   }
   for (const child of Array.isArray(folder.folders) ? folder.folders : []) {
     if (!child || typeof child !== "object") continue;
     const childFolder = child as RawFolder;
     const name = readString(childFolder.name);
-    // The root folder is named `rootFolder` and contributes no path segment of its own.
-    collectDocuments(childFolder, name ? joinPath(parentPath, name) : parentPath, collected);
+    collectEntries(childFolder, name ? joinPath(parentPath, name) : parentPath, collected);
   }
 }
 
@@ -73,16 +91,19 @@ export function readProjectTree(payload: unknown): OverleafProjectTree | undefin
   const projectId = readString(project._id);
   if (!projectId) return undefined;
   const rootFolders = Array.isArray(project.rootFolder) ? project.rootFolder : [];
-  const documents: OverleafDocumentEntry[] = [];
+  const collected: CollectedEntries = { documents: [], binaryFiles: [] };
   for (const folder of rootFolders) {
-    if (folder && typeof folder === "object") collectDocuments(folder as RawFolder, "", documents);
+    // The root folder is named `rootFolder` and contributes no path segment of its own.
+    if (folder && typeof folder === "object") collectEntries(folder as RawFolder, "", collected);
   }
-  documents.sort((left, right) => left.path.localeCompare(right.path));
+  collected.documents.sort((left, right) => left.path.localeCompare(right.path));
+  collected.binaryFiles.sort((left, right) => left.path.localeCompare(right.path));
   return {
     projectId,
     name: readString(project.name) ?? projectId,
     rootDocumentId: readString(project.rootDoc_id),
-    documents,
+    documents: collected.documents,
+    binaryFiles: collected.binaryFiles,
   };
 }
 
