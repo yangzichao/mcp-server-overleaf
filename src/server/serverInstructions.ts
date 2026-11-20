@@ -33,7 +33,9 @@ const UNTRUSTED_CONTENT =
 const EDITOR_ONLY =
   "No Git credential is configured, so this server reaches Overleaf only through its editor and " +
   "web application, with the session cookie. Name a project by its Overleaf address, or call " +
-  "list_account_projects to find it.";
+  "list_account_projects to find it. list_files and read_file read the live editor, and " +
+  "replace_text changes the paper in Overleaf at once, with no push step and no undo here, so " +
+  "confirm with the user before calling it.";
 
 export interface OfferedToolGroups {
   readonly gitBridgeToolsOffered: boolean;

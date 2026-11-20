@@ -5,6 +5,7 @@ import { PACKAGE_NAME, PACKAGE_VERSION } from "../config/packageMetadata.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
 import { OverleafWebClient } from "../overleaf/web/overleafWebClient.js";
+import { registerEditorFileTools } from "../tools/editor/registerEditorFileTools.js";
 import { registerHistoryTools } from "../tools/history/registerHistoryTools.js";
 import { FileRevisionStore } from "../tools/reading/fileRevisions.js";
 import { registerListProjectsTool } from "../tools/reading/listProjectsTool.js";
@@ -59,6 +60,8 @@ export function createOverleafMcpServer(context: ToolContext): McpServer {
     registerEditTools(server, context);
     registerSyncTools(server, context);
     registerHistoryTools(server, context);
+  } else {
+    registerEditorFileTools(server, context);
   }
   // Offered only when a session cookie is configured: a client that cannot use them is
   // better off not seeing them than seeing tools that always answer with a setup note.

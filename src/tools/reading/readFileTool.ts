@@ -6,6 +6,7 @@ import { revisionArgument } from "../history/revisionArgument.js";
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+import { numberLines } from "./numberLines.js";
 
 interface ReadArguments {
   readonly startLine: number | undefined;
@@ -25,17 +26,6 @@ function assertCompatibleReadArguments(read: ReadArguments): void {
   if (read.startLine !== undefined && read.endLine !== undefined && read.startLine > read.endLine) {
     throw new Error("startLine must not exceed endLine.");
   }
-}
-
-/** startLine alone reads to the end; endLine is clamped to the file. */
-function numberLines(content: string, startLine: number | undefined, endLine: number | undefined): string {
-  const lines = content.split("\n");
-  const firstLine = startLine ?? 1;
-  const lastLine = Math.min(lines.length, endLine ?? lines.length);
-  return lines
-    .slice(firstLine - 1, lastLine)
-    .map((line, offset) => `${firstLine + offset}\t${line}`)
-    .join("\n");
 }
 
 export function registerReadFileTool(server: McpServer, context: ToolContext): void {
