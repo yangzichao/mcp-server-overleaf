@@ -12,8 +12,13 @@ import { requireOverleafWebClient } from "./requireOverleafWebClient.js";
  * only this server's configuration.
  */
 
+/**
+ * `ProjectListController` names the same access two ways: `readWrite` for a collaborator who was
+ * invited, `readAndWrite` for one who joined through a link.
+ */
 const ACCESS_LEVEL_NAMES: Record<string, string> = {
   owner: "owner",
+  readWrite: "can edit",
   readAndWrite: "can edit",
   review: "can review",
   readOnly: "can view",

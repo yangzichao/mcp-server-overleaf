@@ -92,9 +92,9 @@ say why, while projects with a token keep working through Git.
 The three file tools keep their names but work on the live editor:
 
 - `list_files` lists Overleaf's file tree, marking uploads such as images `(binary)`.
-- `read_file` reads a document as it stands in the editor, whole or as a line range. It has no
-  `mode`, `revision` or `expectedRevision`, which belong to the clone; `download_project_zip`
-  fetches binary uploads.
+- `read_file` reads a document as it stands in the editor, whole or as a line range, with
+  pending suggestions read as if accepted. It has no `mode`, `revision` or `expectedRevision`,
+  which belong to the clone; `download_project_zip` fetches binary uploads.
 - `replace_text` takes effect in Overleaf at once, with no `push_changes` step and no undo here,
   and arrives as ordinary text even when the project has track changes on, as a Git push does.
   It needs edit access; a reviewer is pointed at `suggest_edit`. The edit is sent against the
@@ -154,6 +154,20 @@ positions stay valid, and this server does the same.
 - **History-OT documents.** A document Overleaf has moved to its newer history-OT format
   refuses the real-time protocol this server speaks, so the review tools explain that and stop.
   The Git-bridge tools still work on it.
+- **Emoji and other characters outside the Basic Multilingual Plane.** Overleaf's editor
+  replaces them with U+FFFD as they are typed (`filter-characters.ts`), and document-updater
+  does the same to every insertion it receives (`UpdateManager._sanitizeUpdate`), so
+  `replace_text` and `suggest_edit` refuse them rather than store "��". Write the LaTeX command
+  instead.
+- **Project history after a quick review sequence.** On 2026-11-20, rejecting a suggestion,
+  suggesting again on the same words, accepting that and then editing it directly, all within a
+  few seconds, left the live document correct but Overleaf's project history with text missing
+  from that line. On this account the ZIP download is built from that history (the
+  `zip-from-history` split test in `ProjectDownloadsController`), so it had the wrong line too.
+  The same steps with the history flushed between them, by downloading the ZIP after each,
+  did not reproduce it, and one damaged document recovered after a later edit while another did
+  not. Whether Overleaf's own editor does the same when a person works that fast has not been
+  checked.
 - **A guarantee of stability.** The Git bridge is a documented, supported interface. The
   real-time protocol and the web routes are internal to Overleaf and can change without
   notice. If they do, these thirteen tools break and the other twenty-three do not.
@@ -175,5 +189,10 @@ The web tools in `tests/integration/web/` run against `tests/integration/fakeOve
 and `fakeOverleafAccount.ts`, which serve the routes, CSRF meta tag and login redirect the
 open-source web application has.
 
-None of these suites has been run against a live Overleaf account, and these features have not
-been exercised end to end against overleaf.com or a self-hosted instance.
+On 2026-11-20 every one of these tools, plus `list_files`, `read_file` and `replace_text`, was
+run against overleaf.com with only a session cookie configured, on a test project: listing,
+reading (compared byte for byte with the ZIP), compiling with the PDF saved, the ZIP, direct
+edits with Chinese, accents and `$$`, `replaceAll`, suggestions rejected by id and accepted all
+at once, and a comment thread added, replied to, resolved, reopened and deleted. That run found
+the emoji limit, the `readWrite` access name and the history problem above. It is not part of
+the automated suites, and self-hosted instances have not been tried.

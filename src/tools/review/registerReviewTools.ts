@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
-
+import { requireEditorSafeText } from "../../overleaf/realtime/editorSafeText.js";
 import {
   type DocumentOperation,
   generateTrackedChangeIdSeed,
@@ -63,6 +63,7 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
         "Unlike every other editing tool here, this reaches Overleaf immediately and there is no separate push, because it goes through the editor rather than the Git bridge. " +
         "Use it when proposing a change to someone else's paper; use replace_text when the edit should simply be made. " +
         "The snippet must match exactly and appear exactly once in the document. " +
+        "Overleaf's editor cannot store emoji or other characters outside the Basic Multilingual Plane, so a replaceWith containing one is refused; write a LaTeX command instead. " +
         "accept_tracked_changes and reject_tracked_changes decide it afterwards, if the account has edit access.",
       inputSchema: z.object({
         project: projectArgument,
@@ -79,8 +80,9 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
       annotations: SUGGESTS_IN_OVERLEAF,
     },
     async ({ project, path, findText, replaceWith }) =>
-      runToolSafely(context, () =>
-        withReviewSession(context, project, async (session) => {
+      runToolSafely(context, () => {
+        requireEditorSafeText(replaceWith, "replaceWith");
+        return withReviewSession(context, project, async (session) => {
           requireReviewCapableProject(session);
           const document = requireDocument(session, path);
           const joined = await session.joinDocument(document.documentId);
@@ -101,8 +103,8 @@ export function registerReviewTools(server: McpServer, context: ToolContext): vo
             `Suggested in ${document.path}: replace "${findText}" with "${replaceWith}".\n` +
               "It is in Overleaf now, in the review panel, waiting to be accepted or rejected.",
           );
-        }),
-      ),
+        });
+      }),
   );
 
   registerCommentThreadTools(server, context);

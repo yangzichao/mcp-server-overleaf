@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
-
+import { requireEditorSafeText } from "../../overleaf/realtime/editorSafeText.js";
 import type { OverleafRealtimeSession } from "../../overleaf/realtime/overleafRealtimeSession.js";
 import { buildReplacementOperations } from "../../overleaf/realtime/replacementOperations.js";
 import { projectArgument } from "../projectArgument.js";
@@ -35,6 +35,7 @@ export function registerEditorReplaceTextTool(server: McpServer, context: ToolCo
         "The change takes effect at once: co-authors see it immediately, there is no push_changes step and no undo here, so confirm with the user first. " +
         "It arrives as ordinary text even when the project has track changes on; use suggest_edit to propose a change as a tracked change instead. " +
         "findText must match exactly, whitespace and newlines included, and occur once unless replaceAll is set; replaceWith is inserted literally. " +
+        "Overleaf's editor cannot store emoji or other characters outside the Basic Multilingual Plane, so a replaceWith containing one is refused; write a LaTeX command instead. " +
         "If the snippet is missing, or occurs several times without replaceAll, nothing changes and the reply gives the count; widen findText with surrounding text to make it unique. " +
         "Returns how many occurrences were replaced.",
       inputSchema: z.object({
@@ -56,8 +57,9 @@ export function registerEditorReplaceTextTool(server: McpServer, context: ToolCo
       annotations: WRITES_TO_OVERLEAF,
     },
     async ({ project, path, findText, replaceWith, replaceAll }) =>
-      runToolSafely(context, () =>
-        withReviewSession(context, project, async (session) => {
+      runToolSafely(context, () => {
+        requireEditorSafeText(replaceWith, "replaceWith");
+        return withReviewSession(context, project, async (session) => {
           const document = requireDocument(session, path);
           const joined = await session.joinDocument(document.documentId);
           const replacement = buildReplacementOperations(
@@ -81,7 +83,7 @@ export function registerEditorReplaceTextTool(server: McpServer, context: ToolCo
           return textResult(
             `Replaced ${replacement.occurrenceCount} occurrence(s) in ${document.path}. It is in Overleaf now; co-authors see it already.`,
           );
-        }),
-      ),
+        });
+      }),
   );
 }

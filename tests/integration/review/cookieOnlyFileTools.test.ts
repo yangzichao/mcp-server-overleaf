@@ -74,6 +74,20 @@ describe("file tools over the editor, with only a session cookie", () => {
     expect(harness.editor.documentText(documentId)).toBe("yy and yy and yy\n");
   });
 
+  it("refuses an emoji instead of letting Overleaf store it as replacement characters", async () => {
+    const client = await startCookieOnlyClient();
+    for (const toolName of ["replace_text", "suggest_edit"]) {
+      const response = await client.callRaw(toolName, {
+        path: "main.tex",
+        findText: "Hello world.",
+        replaceWith: "Hello 😀.",
+      });
+      expect(response.result?.isError).toBe(true);
+      expect(response.result?.content?.[0]?.text).toContain("U+1F600");
+    }
+    expect(harness.editor.documentText(harness.mainDocumentId)).toBe(PAPER);
+  });
+
   it("sends a reviewer to suggest_edit instead of editing", async () => {
     harness.editor.permissionsLevel = "review";
     const client = await startCookieOnlyClient();

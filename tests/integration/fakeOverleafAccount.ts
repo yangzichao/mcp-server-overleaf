@@ -42,7 +42,8 @@ export class FakeOverleafAccount {
   constructor(private readonly realtime: FakeOverleafRealtime) {
     this.projects = [
       { _id: realtime.projectId, name: realtime.projectName, accessLevel: "owner" },
-      { _id: "64b000000000000000000002", name: "Shared Thesis", accessLevel: "readAndWrite" },
+      // An invited collaborator, which ProjectListController calls readWrite; link sharing is readAndWrite.
+      { _id: "64b000000000000000000002", name: "Shared Thesis", accessLevel: "readWrite" },
       { _id: "64b000000000000000000003", name: "Grant Proposal", accessLevel: "readOnly" },
     ];
   }

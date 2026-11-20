@@ -16,6 +16,7 @@ export function registerEditorReadFileTool(server: McpServer, context: ToolConte
       title: "Read a project file",
       description:
         "Read one text file as it stands in Overleaf's editor now, including edits co-authors have not finished. " +
+        "Pending tracked changes read as if accepted: suggested insertions are in the text and suggested deletions are not; list_tracked_changes shows them. " +
         `${NO_GIT_BRIDGE_NOTE} ` +
         "Plain calls return the text; with startLine or endLine the lines come back numbered, startLine alone reads to the end, and endLine is clamped to the file. " +
         "Text is cut off after 60,000 characters, so use a line range to sample a large file. " +
