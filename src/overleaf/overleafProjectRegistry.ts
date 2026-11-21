@@ -39,10 +39,6 @@ export class OverleafProjectRegistry {
     return this.configuration.registeredProjects.map((project) => project.projectName);
   }
 
-  /**
-   * The project a Git-bridge tool means, which must have a Git credential: its own token, or the
-   * default one.
-   */
   resolveGitProject(requestedProject: string | undefined): RegisteredOverleafProject {
     // Checked before the project argument, so an unconfigured server names the missing token
     // rather than a missing default project.
@@ -60,11 +56,6 @@ export class OverleafProjectRegistry {
     );
   }
 
-  /**
-   * The project an editor or web tool means. These reach Overleaf with the session cookie, which
-   * covers every project in the account, so no Git credential is needed: this is the path a plan
-   * without Git integration takes.
-   */
   resolveEditorProject(requestedProject: string | undefined): RegisteredOverleafProject {
     if (!this.configuration.reviewCredentials) {
       throw new ConfigurationError(REVIEW_CREDENTIALS_MISSING_MESSAGE);
@@ -72,7 +63,6 @@ export class OverleafProjectRegistry {
     return this.findProject(requestedProject);
   }
 
-  /** Name, default, address or raw id onto a project, with no opinion on credentials. */
   private findProject(requestedProject: string | undefined): RegisteredOverleafProject {
     const requested = requestedProject?.trim();
 
@@ -153,8 +143,6 @@ export class OverleafProjectRegistry {
     return join(this.configuration.workspaceDirectory, ".locks", `${overleafProjectId}.lock`);
   }
 
-  // Deliberately async: resolveGitProject throws, and a method that returns a Promise must
-  // reject rather than throw synchronously, or callers' .catch() misses it.
   async openRepository(requestedProject: string | undefined): Promise<OverleafGitRepository> {
     const { overleafProjectId, overleafGitToken } = this.resolveGitProject(requestedProject);
 

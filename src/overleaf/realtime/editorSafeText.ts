@@ -1,8 +1,8 @@
 /**
  * Overleaf's editor cannot hold characters outside the Basic Multilingual Plane, such as emoji or
  * the mathematical alphanumerics (𝔸, 𝒞), nor a NUL. The web editor's `filter-characters.ts`
- * replaces them with U+FFFD as they are typed, and document-updater's `_sanitizeUpdate` does the
- * same to every insertion it receives, so one sent here would arrive as "��". Refusing it says so
+ * replaces all of them with U+FFFD as they are typed, and document-updater's `_sanitizeUpdate`
+ * replaces every surrogate in an insertion it receives, so an emoji sent here would arrive as "��". Refusing it says so
  * before the paper is changed; LaTeX has a command for each of them.
  */
 const UNSUPPORTED_CHARACTER_PATTERN = /[\0\uD800-\uDFFF]/;

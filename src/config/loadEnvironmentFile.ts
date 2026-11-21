@@ -3,6 +3,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ConfigurationError } from "./serverConfiguration.js";
+import { dropUnfilledBundleSettings } from "./unfilledBundleSettings.js";
 
 /**
  * An MCP client spawns this server as a bare subprocess, so the shell environment a
@@ -50,7 +51,6 @@ const CLIENT_OWNS_CONFIGURATION_VARIABLES = [
   "OVERLEAF_GIT_TOKEN_FILE",
   "OVERLEAF_PROJECTS_CONFIG",
   "OVERLEAF_PROJECT_ID",
-  // A session cookie alone is a whole configuration on a plan without Git integration.
   "OVERLEAF_SESSION_COOKIE",
   "OVERLEAF_SESSION_COOKIE_FILE",
 ] as const;
@@ -67,6 +67,7 @@ export function loadEnvironmentFileIfPresent(
   environment: NodeJS.ProcessEnv = process.env,
   environmentFilePath: string = resolve(packageRootDirectory(), ".env"),
 ): void {
+  dropUnfilledBundleSettings(environment);
   const explicitFilePath = environment.OVERLEAF_MCP_ENV_FILE?.trim();
   if (explicitFilePath) {
     if (!isAbsolute(explicitFilePath)) {
