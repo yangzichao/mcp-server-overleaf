@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { PAPER, useEditorTestHarness } from "../support/editorTestHarness.js";
 
-/**
- * list_files, read_file and replace_text on a server with only a session cookie: the same names
- * as the Git-bridge tools, working on the live editor instead.
- */
-
 describe("file tools over the editor, with only a session cookie", () => {
   const harness = useEditorTestHarness();
 
@@ -99,5 +94,17 @@ describe("file tools over the editor, with only a session cookie", () => {
     expect(response.result?.isError).toBe(true);
     expect(response.result?.content?.[0]?.text).toContain("Use suggest_edit instead");
     expect(harness.editor.documentText(harness.mainDocumentId)).toBe(PAPER);
+  });
+
+  it("tells a reviewer about a wrong snippet the same way it tells an editor", async () => {
+    harness.editor.permissionsLevel = "review";
+    const client = await startCookieOnlyClient();
+    const response = await client.callRaw("replace_text", {
+      path: "main.tex",
+      findText: "Not in the paper.",
+      replaceWith: "Goodbye.",
+    });
+    expect(response.result?.isError).not.toBe(true);
+    expect(response.result?.content?.[0]?.text).toContain("Text not found in main.tex");
   });
 });

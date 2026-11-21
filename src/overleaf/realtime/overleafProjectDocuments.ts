@@ -13,7 +13,6 @@ export interface OverleafDocumentEntry {
   readonly documentId: string;
 }
 
-/** An uploaded file: an image, a PDF, anything Overleaf stores as binary rather than as text. */
 export interface OverleafBinaryFileEntry {
   readonly path: string;
   readonly fileId: string;

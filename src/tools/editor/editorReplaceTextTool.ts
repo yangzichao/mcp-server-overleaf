@@ -77,7 +77,6 @@ export function registerEditorReplaceTextTool(server: McpServer, context: ToolCo
                 "Include more surrounding context to make the match unique, or set replaceAll.",
             );
           }
-          // Checked after matching, so a wrong snippet is reported the same way at every access level.
           requireWriteAccess(session);
           await session.applyOperations(document.documentId, joined.version, replacement.operations);
           return textResult(

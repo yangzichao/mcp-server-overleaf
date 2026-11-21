@@ -1,4 +1,3 @@
-/** startLine alone reads to the end; endLine is clamped to the file. */
 export function numberLines(
   content: string,
   startLine: number | undefined,

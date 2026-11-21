@@ -2,12 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { useEditorTestHarness } from "../support/editorTestHarness.js";
 
-/**
- * A plan without Git integration has no Git token to give. With only the session cookie, the
- * editor and web tools must still reach the project, and the Git-bridge tools, which could only
- * answer with a setup note, are not offered.
- */
-
 describe("a server configured with only a session cookie", () => {
   const harness = useEditorTestHarness();
 
@@ -16,7 +10,6 @@ describe("a server configured with only a session cookie", () => {
       OVERLEAF_SESSION_COOKIE: harness.editor.cookieHeader,
       OVERLEAF_WEB_BASE_URL: harness.editor.baseUrl,
       OVERLEAF_MCP_WORKSPACE_DIR: harness.gitRemote.workspaceDirectory,
-      // Keeps the per-user projects.json of whoever runs the tests out of it.
       XDG_CONFIG_HOME: harness.gitRemote.workspaceDirectory,
       ...overrides,
     };

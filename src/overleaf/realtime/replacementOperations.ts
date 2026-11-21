@@ -1,11 +1,5 @@
 import type { DocumentOperation } from "./overleafRealtimeSession.js";
 
-/**
- * Turns "replace this exact text" into the operations Overleaf's editor applies, with the same
- * matching rules as replace_text over the Git bridge: literal, non-overlapping, left to right,
- * and exactly one match unless every one is wanted.
- */
-
 export type ReplacementOperations =
   | { readonly status: "not-found" }
   | { readonly status: "ambiguous"; readonly occurrenceCount: number }

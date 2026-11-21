@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
+import { unfilledBundlePlaceholder } from "../support/bundlePlaceholder.js";
 import { McpStdioClient } from "./mcpStdioClient.js";
 
 const MISSING_TOKEN = "OVERLEAF_GIT_TOKEN is not set";
@@ -49,10 +50,15 @@ it("starts with no credentials, lists every tool, and names the missing token wh
  * Claude Desktop with only the required project address filled in. The specification does not say
  * whether an empty optional setting arrives as "" or as its placeholder, so both are tried.
  */
-// biome-ignore lint/suspicious/noTemplateCurlyInString: the literal MCPB placeholder under test
-it.each(["", "${user_config.overleaf_git_token}"])(
-  "starts from the desktop bundle with a project and no credential (token %j)",
-  async (unfilledToken) => {
+it.each([
+  { unfilledToken: "", unfilledCookie: "" },
+  {
+    unfilledToken: unfilledBundlePlaceholder("overleaf_git_token"),
+    unfilledCookie: unfilledBundlePlaceholder("overleaf_session_cookie"),
+  },
+])(
+  "starts from the desktop bundle with a project and no credential (token $unfilledToken)",
+  async ({ unfilledToken, unfilledCookie }) => {
     const emptyEnvironmentFile = join(isolatedHome, "empty.env");
     writeFileSync(emptyEnvironmentFile, "");
     client = await McpStdioClient.start({
@@ -62,7 +68,7 @@ it.each(["", "${user_config.overleaf_git_token}"])(
       OVERLEAF_MCP_WORKSPACE_DIR: join(isolatedHome, "projects"),
       OVERLEAF_PROJECT_ID: "https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1",
       OVERLEAF_GIT_TOKEN: unfilledToken,
-      OVERLEAF_SESSION_COOKIE: unfilledToken.replace("git_token", "session_cookie"),
+      OVERLEAF_SESSION_COOKIE: unfilledCookie,
     });
     expect(await client.listToolNames()).toHaveLength(23);
     expect(await client.call("read_file", { path: "main.tex" })).toContain(MISSING_TOKEN);

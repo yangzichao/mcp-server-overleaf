@@ -4,6 +4,11 @@ import { parseRegisteredProjects } from "./parseRegisteredProjects.js";
 import { loadProjectConfigurationFile } from "./projectConfigurationFile.js";
 import { extractOverleafProjectId, looksLikeOverleafProjectId } from "./projectIdentity.js";
 
+function hasMixedGitTokenCoverage(registeredProjects: readonly RegisteredOverleafProject[]): boolean {
+  const projectsWithToken = registeredProjects.filter((project) => Boolean(project.overleafGitToken)).length;
+  return projectsWithToken > 0 && projectsWithToken < registeredProjects.length;
+}
+
 function validateProjectCredentials(
   registeredProjects: readonly RegisteredOverleafProject[],
   overleafGitToken: string,
@@ -29,17 +34,8 @@ function validateProjectCredentials(
     projectIds.add(project.overleafProjectId);
   }
 
-  // No credential anywhere is not an error: the server starts unconfigured and every call that
-  // needs Overleaf says what to set (see missingOverleafCredential.ts). The desktop bundle can
-  // only ask for its project address as required, so a user who fills in neither the token nor
-  // the cookie lands here, and a server that exits looks broken rather than unconfigured.
-  // With a session cookie, a project with no Git credential is still reachable through the
-  // editor tools, which is the whole configuration on a plan without Git integration.
-  const someProjectHasToken = registeredProjects.some((project) => Boolean(project.overleafGitToken));
-  if (overleafGitToken || sessionCookieConfigured || !someProjectHasToken) return;
-
-  // Some projects carry a token and others have none to fall back on: a half-written file.
-  if (registeredProjects.some((project) => !project.overleafGitToken)) {
+  if (overleafGitToken || sessionCookieConfigured) return;
+  if (hasMixedGitTokenCoverage(registeredProjects)) {
     throw new ConfigurationError(
       "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile. " +
         "Without Git integration, set OVERLEAF_SESSION_COOKIE_FILE to reach it through the editor instead.",

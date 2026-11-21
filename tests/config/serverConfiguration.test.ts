@@ -56,8 +56,6 @@ describe("required configuration", () => {
   });
 
   it("starts unconfigured with a registered project when there is no credential at all", () => {
-    // The desktop bundle requires a project address but neither credential, since a plan without
-    // Git integration has no token to give. Leaving both empty must not stop the server starting.
     const configuration = loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` });
     expect(configuration.defaultProjectName).toBe("paper");
     expect(hasAnyOverleafCredential(configuration)).toBe(false);

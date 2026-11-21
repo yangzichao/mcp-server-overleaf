@@ -8,10 +8,6 @@ import { ANY_OTHER_PROJECT } from "../projectArgument.js";
 import { READS_LOCAL_CONFIGURATION } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult } from "../toolContext.js";
 
-/**
- * Registered on every server, with or without Git integration, because it reads only the local
- * configuration and every other tool takes the names it lists.
- */
 export function registerListProjectsTool(server: McpServer, context: ToolContext): void {
   server.registerTool(
     "list_projects",

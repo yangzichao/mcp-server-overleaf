@@ -11,11 +11,6 @@ export const MISSING_OVERLEAF_CREDENTIAL_MESSAGE =
   "Configure a token, token file, or OVERLEAF_PROJECTS_CONFIG, or run `npx mcp-server-overleaf setup`. " +
   "On a plan without Git integration, set OVERLEAF_SESSION_COOKIE_FILE instead to use the editor tools.";
 
-/**
- * Whether the Git-bridge tools can reach any project. A project registered without a token of its
- * own is covered only by the default token: with a session cookie configured, a project may be
- * registered for the editor tools alone.
- */
 export function hasGitBridgeCredential(configuration: ServerConfiguration): boolean {
   return (
     configuration.overleafGitToken !== "" ||
@@ -23,7 +18,6 @@ export function hasGitBridgeCredential(configuration: ServerConfiguration): bool
   );
 }
 
-/** Whether anything at all can reach Overleaf: a Git credential, a session cookie, or both. */
 export function hasAnyOverleafCredential(configuration: ServerConfiguration): boolean {
   return hasGitBridgeCredential(configuration) || configuration.reviewCredentials !== undefined;
 }

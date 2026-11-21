@@ -26,10 +26,6 @@ export interface ServerConfiguration {
   readonly checkoutMode?: "full" | "text-only";
   readonly gitCommitAuthorName: string;
   readonly gitCommitAuthorEmail: string;
-  /**
-   * Absent unless a session cookie is configured. The editor and web tools need it, and on a plan
-   * without Git integration it is the only credential.
-   */
   readonly reviewCredentials?: OverleafReviewCredentials;
   /** Where verify_citations looks entries up; the public services when absent. */
   readonly citationLookup?: CitationLookupEndpoints;
