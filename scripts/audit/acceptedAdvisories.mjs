@@ -18,13 +18,4 @@ export const acceptedAdvisories = [
       "renders itself. The fix is zod 4.6.6 and no 3.x release has it; 2.1.2 is the newest mcpb. The server " +
       "itself runs zod 4.6.7.",
   },
-  {
-    advisory: "GHSA-fc5q-39xc-vjpf",
-    package: "picomatch",
-    reviewBy: "2027-01-17",
-    reason:
-      "Development only, through vitest, vite and tinyglobby. The ReDoS needs an attacker-supplied glob " +
-      "pattern; the patterns here come from this repository's own vitest and coverage configuration. No " +
-      "picomatch release fixes it: 4.0.7 is the newest and is affected.",
-  },
 ];
