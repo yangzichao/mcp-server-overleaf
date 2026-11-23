@@ -13,15 +13,11 @@ export const reviewPaperPrompt: OverleafPrompt<z.infer<typeof reviewPaperArgumen
     "Read a paper end to end and report problems by severity, from broken references to unclear writing, without changing anything.",
   argumentsSchema: reviewPaperArguments,
   isOffered: () => true,
-  buildText: ({ project }, groups) => {
+  buildText: ({ project }) => {
     const steps = [
       "Call read_project for the overview, then its outline view, to see how the paper is organised.",
-      ...(groups.gitBridge
-        ? [
-            "Run check_references for undefined, duplicate and unused labels and citations, and missing files.",
-            "Run look_up_citations (action verify) to find bibliography entries that name the wrong work or none.",
-          ]
-        : []),
+      "Run check_references for undefined, duplicate and unused labels and citations, and missing files.",
+      "Run look_up_citations (action verify) to find bibliography entries that name the wrong work or none.",
       "Run compile_project and read its errors and warnings.",
       "Read the paper section by section with read_file (sectionTitle), looking for unclear sentences, undefined notation, inconsistent terms, claims without support, and figures or tables never referred to.",
     ];

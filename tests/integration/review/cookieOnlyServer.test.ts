@@ -26,6 +26,7 @@ describe("a server configured with only a session cookie", () => {
         "read_file",
         "search_project",
         "check_references",
+        "look_up_citations",
         "compile_project",
         "read_review",
         "edit_file",

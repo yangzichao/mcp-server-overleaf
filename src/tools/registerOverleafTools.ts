@@ -6,6 +6,7 @@ import { registerManageFilesTool } from "./editing/manageFilesTool.js";
 import { registerEditorCheckReferencesTool } from "./editor/editorCheckReferencesTool.js";
 import { registerEditorEditFileTool } from "./editor/editorEditFileTool.js";
 import { registerEditorManageFilesTool } from "./editor/editorFiles/editorManageFilesTool.js";
+import { registerEditorLookUpCitationsTool } from "./editor/editorLookUpCitationsTool.js";
 import { registerEditorReadFileTool } from "./editor/editorReadFileTool.js";
 import { registerEditorReadProjectTool } from "./editor/editorReadProjectTool.js";
 import { registerEditorSearchProjectTool } from "./editor/editorSearchProjectTool.js";
@@ -47,6 +48,7 @@ export function registerOverleafTools(
     registerEditorReadFileTool(server, context);
     registerEditorSearchProjectTool(server, context);
     registerEditorCheckReferencesTool(server, context);
+    registerEditorLookUpCitationsTool(server, context);
   }
   registerCompileProjectTool(server, context, offered);
   if (offered.sessionCookieToolsOffered) registerReadReviewTool(server, context);

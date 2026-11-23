@@ -51,11 +51,11 @@ describe("file tools over the editor, with only a session cookie", () => {
     expect(response.result?.isError === true || response.error !== undefined).toBe(true);
   });
 
-  it("refuses a binary upload and points at manage_project", async () => {
+  it("refuses an upload it cannot show, saying why", async () => {
     const client = await startCookieOnlyClient();
     const response = await client.callRaw("read_file", { path: "figure.png" });
     expect(response.result?.isError).toBe(true);
-    expect(response.result?.content?.[0]?.text).toContain("manage_project (action download_zip)");
+    expect(response.result?.content?.[0]?.text).toContain("looks damaged or cut short");
   });
 
   it("replaces text in Overleaf at once, as an ordinary edit rather than a suggestion", async () => {

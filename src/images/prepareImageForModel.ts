@@ -47,8 +47,11 @@ function textStart(bytes: Uint8Array): string {
 
 const RENDER_FIRST = "Render it to PNG first, then read the PNG";
 
-/** Why a file that is not PNG, JPEG, GIF or WebP cannot be shown, with what to do instead. */
-function explainUnsupported(bytes: Uint8Array, path: string): string {
+/**
+ * How to make a PDF, PostScript or SVG figure visible, told by its first bytes or its name; an
+ * empty `bytes` decides by name alone. Undefined for any other file.
+ */
+export function suggestImageConversion(bytes: Uint8Array, path: string): string | undefined {
   const start = textStart(bytes);
   const extension = extensionOf(path);
   if (start.startsWith("%PDF-") || extension === "pdf") {
@@ -64,7 +67,15 @@ function explainUnsupported(bytes: Uint8Array, path: string): string {
   ) {
     return `${path} is an SVG drawing, which is not sent as an image. ${RENDER_FIRST}, for example with \`rsvg-convert\` or Inkscape. Its source is text, so it can also be read as a file.`;
   }
-  return `${path} is not a PNG, JPEG, GIF or WebP image, the formats the model can see. Convert it to PNG first.`;
+  return undefined;
+}
+
+/** Why a file that is not PNG, JPEG, GIF or WebP cannot be shown, with what to do instead. */
+function explainUnsupported(bytes: Uint8Array, path: string): string {
+  return (
+    suggestImageConversion(bytes, path) ??
+    `${path} is not a PNG, JPEG, GIF or WebP image, the formats the model can see. Convert it to PNG first.`
+  );
 }
 
 /**

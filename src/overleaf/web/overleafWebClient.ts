@@ -1,4 +1,9 @@
-import { describeFailedResponse, expiredSessionError, OverleafWebRequestError } from "./overleafWebErrors.js";
+import {
+  DownloadTooLargeError,
+  describeFailedResponse,
+  expiredSessionError,
+  OverleafWebRequestError,
+} from "./overleafWebErrors.js";
 
 /**
  * Overleaf's web application, reached the way its own editor reaches it: JSON over HTTP, with
@@ -208,8 +213,8 @@ function tooLargeToDownload(
   size: number,
   maximumBytes: number,
   status: number,
-): OverleafWebRequestError {
-  return new OverleafWebRequestError(
+): DownloadTooLargeError {
+  return new DownloadTooLargeError(
     `Overleaf offered ${size} bytes for ${path}, more than the ${maximumBytes} this server will download.`,
     status,
   );

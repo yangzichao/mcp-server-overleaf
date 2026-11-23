@@ -61,24 +61,48 @@ export interface RunGitCommandOptions {
   readonly tolerateFailure?: boolean;
 }
 
+function withOverriddenConfiguration(args: readonly string[]): string[] {
+  return [...OVERRIDDEN_GIT_CONFIGURATION.flatMap((setting) => ["-c", setting]), ...args];
+}
+
+function gitEnvironment(overleafGitToken: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    OVERLEAF_GIT_TOKEN: overleafGitToken,
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_ASKPASS: "",
+    GIT_CONFIG_NOSYSTEM: "1",
+    LC_ALL: "C",
+  };
+}
+
+/**
+ * Redact the assembled message, not just the parts: `args` can itself carry the token, for
+ * instance in a remote url, and this message is what reaches the model.
+ */
+function gitCommandFailure(
+  args: readonly string[],
+  summary: string | undefined,
+  stdout: string,
+  stderr: string,
+  overleafGitToken: string,
+): GitCommandError {
+  const message = redactSecrets(
+    `git ${args.join(" ")} failed: ${summary ?? "git command failed"}\n${stderr}`.trim(),
+    [overleafGitToken],
+  );
+  return new GitCommandError(message, stdout, stderr);
+}
+
 export async function runGitCommand(options: RunGitCommandOptions): Promise<GitCommandResult> {
   const { workingDirectory, args, overleafGitToken, timeoutMs = 120_000, tolerateFailure = false } = options;
 
-  const gitArguments = [...OVERRIDDEN_GIT_CONFIGURATION.flatMap((setting) => ["-c", setting]), ...args];
-
   try {
-    const { stdout, stderr } = await execFileAsync("git", gitArguments, {
+    const { stdout, stderr } = await execFileAsync("git", withOverriddenConfiguration(args), {
       cwd: workingDirectory,
       timeout: timeoutMs,
       maxBuffer: 32 * 1024 * 1024,
-      env: {
-        ...process.env,
-        OVERLEAF_GIT_TOKEN: overleafGitToken,
-        GIT_TERMINAL_PROMPT: "0",
-        GIT_ASKPASS: "",
-        GIT_CONFIG_NOSYSTEM: "1",
-        LC_ALL: "C",
-      },
+      env: gitEnvironment(overleafGitToken),
     });
     return {
       stdout: redactSecrets(stdout, [overleafGitToken]),
@@ -92,12 +116,36 @@ export async function runGitCommand(options: RunGitCommandOptions): Promise<GitC
     if (tolerateFailure) {
       return { stdout, stderr, exitCode: typeof failure.code === "number" ? failure.code : null };
     }
-    // Redact the assembled message, not just the parts: `args` can itself carry the token,
-    // for instance in a remote url, and this message is what reaches the model.
-    const summary = failure.message ?? "git command failed";
-    const message = redactSecrets(`git ${args.join(" ")} failed: ${summary}\n${stderr}`.trim(), [
-      overleafGitToken,
-    ]);
-    throw new GitCommandError(message, stdout, stderr);
+    throw gitCommandFailure(args, failure.message, stdout, stderr, overleafGitToken);
+  }
+}
+
+/**
+ * Room above Overleaf's default upload limit of 50 MB, which is also projectFileDownload's
+ * default cap. A larger blob fails with Git's buffer error instead of filling memory.
+ */
+const MAXIMUM_BLOB_BYTES = 64 * 1024 * 1024;
+
+/**
+ * stdout as bytes, for a blob such as a figure, which decoding as text would corrupt. Nothing
+ * is redacted from the bytes, so this is only for commands whose output is file content.
+ */
+export async function runGitCommandForBytes(
+  options: Omit<RunGitCommandOptions, "tolerateFailure">,
+): Promise<Buffer> {
+  const { workingDirectory, args, overleafGitToken, timeoutMs = 120_000 } = options;
+  try {
+    const { stdout } = await execFileAsync("git", withOverriddenConfiguration(args), {
+      cwd: workingDirectory,
+      timeout: timeoutMs,
+      maxBuffer: MAXIMUM_BLOB_BYTES,
+      env: gitEnvironment(overleafGitToken),
+      encoding: "buffer",
+    });
+    return stdout;
+  } catch (error) {
+    const failure = error as { stderr?: Buffer | string; message?: string };
+    const stderr = redactSecrets(String(failure.stderr ?? ""), [overleafGitToken]);
+    throw gitCommandFailure(args, failure.message, "", stderr, overleafGitToken);
   }
 }

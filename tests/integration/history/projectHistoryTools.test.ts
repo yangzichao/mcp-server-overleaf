@@ -104,8 +104,8 @@ describe("the project history tools", () => {
     expect(await mcp.call("read_file", { path: "main.tex", revision: "deadbeef" })).toContain(
       "No commit deadbeef in this project's history",
     );
-    expect(await mcp.call("read_file", { path: "figures/plot.png", revision: firstDraftHash })).toContain(
-      "did not exist at revision",
+    expect(await mcp.call("read_file", { path: "notes.tex", revision: firstDraftHash })).toContain(
+      "notes.tex did not exist at revision",
     );
   });
 
