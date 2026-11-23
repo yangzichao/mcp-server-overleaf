@@ -24,31 +24,31 @@ const PACKET_TYPE_NAMES = [
   "noop",
 ] as const;
 
-export type SocketIoPacketTypeName = (typeof PACKET_TYPE_NAMES)[number];
+type SocketIoPacketTypeName = (typeof PACKET_TYPE_NAMES)[number];
 
-export interface SocketIoHeartbeatPacket {
+interface SocketIoHeartbeatPacket {
   readonly type: "heartbeat";
 }
 
-export interface SocketIoDisconnectPacket {
+interface SocketIoDisconnectPacket {
   readonly type: "disconnect";
 }
 
-export interface SocketIoConnectPacket {
+interface SocketIoConnectPacket {
   readonly type: "connect";
 }
 
-export interface SocketIoNoopPacket {
+interface SocketIoNoopPacket {
   readonly type: "noop";
 }
 
-export interface SocketIoErrorPacket {
+interface SocketIoErrorPacket {
   readonly type: "error";
   readonly reason: string;
   readonly advice: string;
 }
 
-export interface SocketIoEventPacket {
+interface SocketIoEventPacket {
   readonly type: "event";
   readonly name: string;
   readonly args: readonly unknown[];
@@ -56,7 +56,7 @@ export interface SocketIoEventPacket {
   readonly acknowledgementId?: number;
 }
 
-export interface SocketIoAcknowledgementPacket {
+interface SocketIoAcknowledgementPacket {
   readonly type: "ack";
   readonly acknowledgementId: number;
   readonly args: readonly unknown[];
