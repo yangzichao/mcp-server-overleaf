@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { withoutTrailing } from "../text/withoutTrailing.js";
 import { type CitationLookupEndpoints, loadCitationLookupEndpoints } from "./citationLookupConfiguration.js";
 import { ConfigurationError } from "./configurationError.js";
 import { resolveGitToken } from "./projects/projectCredentials.js";
@@ -66,9 +67,9 @@ export function loadServerConfigurationFromEnvironment(
   return {
     overleafGitToken,
     checkoutMode,
-    overleafGitBaseUrl: (environment.OVERLEAF_GIT_BASE_URL?.trim() || "https://git.overleaf.com").replace(
-      /\/+$/,
-      "",
+    overleafGitBaseUrl: withoutTrailing(
+      environment.OVERLEAF_GIT_BASE_URL?.trim() || "https://git.overleaf.com",
+      "/",
     ),
     workspaceDirectory,
     registeredProjects,

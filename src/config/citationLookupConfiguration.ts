@@ -1,3 +1,4 @@
+import { withoutTrailing } from "../text/withoutTrailing.js";
 import { ConfigurationError } from "./configurationError.js";
 
 /**
@@ -31,7 +32,7 @@ function readEndpoint(rawValue: string | undefined, fallback: string, variableNa
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new ConfigurationError(`${variableName} must be an http or https URL, received "${trimmed}".`);
   }
-  return trimmed.replace(/\/+$/, "");
+  return withoutTrailing(trimmed, "/");
 }
 
 export function loadCitationLookupEndpoints(environment: NodeJS.ProcessEnv): CitationLookupEndpoints {

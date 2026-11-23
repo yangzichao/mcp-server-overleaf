@@ -32,6 +32,39 @@ describe("findLabels properties", () => {
   });
 });
 
+const listingOpening = fc.constantFrom(
+  "\\begin{lstlisting}",
+  "\\begin{minted}",
+  "\\begin{tcolorbox}",
+  "\\lstinputlisting",
+  "\\inputminted",
+);
+const otherListingOption = fc.constantFrom(
+  "language=Python",
+  "caption={[Short]Long}",
+  "title={Note [1]}",
+  "frame=single",
+);
+
+describe("findLabels properties for listing options", () => {
+  it("reads label= among a listing's options, whatever the other options hold", () => {
+    fc.assert(
+      fc.property(
+        listingOpening,
+        fc.array(otherListingOption, { maxLength: 3 }),
+        fc.array(otherListingOption, { maxLength: 3 }),
+        referenceKey,
+        (opening, before, after, key) => {
+          const options = [...before, `label=${key}`, ...after].join(", ");
+          expect(
+            findLabels(scanSource("main.tex", `${opening}[${options}]`)).map((label) => label.key),
+          ).toEqual([key]);
+        },
+      ),
+    );
+  });
+});
+
 describe("findReferences properties", () => {
   it("reads back every key of every reference written, in order", () => {
     fc.assert(
@@ -55,6 +88,20 @@ describe("findReferences properties", () => {
         (command, first, last) => {
           const references = findReferences(scanSource("main.tex", `\\${command}{${first}}{${last}}`));
           expect(references.map((reference) => reference.key)).toEqual([first, last]);
+        },
+      ),
+    );
+  });
+
+  it("reads the key whatever optional arguments come before it", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom("vpageref", "fref", "zref", "ref"),
+        fc.constantFrom("", "[here]", "[here][there]", " [above]\n[below] "),
+        referenceKey,
+        (command, options, key) => {
+          const references = findReferences(scanSource("main.tex", `\\${command}${options}{${key}}`));
+          expect(references.map((reference) => reference.key)).toEqual([key]);
         },
       ),
     );

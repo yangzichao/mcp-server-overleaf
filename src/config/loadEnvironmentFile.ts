@@ -11,7 +11,7 @@ import { dropUnfilledBundleSettings } from "./unfilledBundleSettings.js";
  * install lets the Overleaf token live in one file the user can chmod 600, instead of
  * being copied into every client's configuration file.
  */
-const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
+const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/;
 
 function stripSurroundingQuotes(rawValue: string): string {
   const trimmed = rawValue.trim();
@@ -24,7 +24,7 @@ function stripSurroundingQuotes(rawValue: string): string {
 
 export function parseEnvironmentFile(fileContents: string): Record<string, string> {
   const parsed: Record<string, string> = {};
-  for (const line of fileContents.split("\n")) {
+  for (const line of fileContents.split(/\r?\n/)) {
     if (line.trim().startsWith("#")) continue;
     const match = ASSIGNMENT_PATTERN.exec(line);
     const [, name, rawValue] = match ?? [];

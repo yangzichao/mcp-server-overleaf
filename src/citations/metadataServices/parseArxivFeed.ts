@@ -32,15 +32,24 @@ export type ArxivFeedEntry =
   | { readonly kind: "error"; readonly summary: string }
   | { readonly kind: "none" };
 
+/**
+ * What lies between the first <name ...> and the </name> after it. An attribute value cannot hold
+ * "<" in XML, so the opening tag ends before the next tag starts.
+ */
+function readFirstElementContent(xml: string, elementName: string): string | undefined {
+  const openingTag = new RegExp(`<${elementName}\\b[^<>]*>`).exec(xml);
+  if (!openingTag) return undefined;
+  const contentStart = openingTag.index + openingTag[0].length;
+  const contentEnd = xml.indexOf(`</${elementName}>`, contentStart);
+  return contentEnd === -1 ? undefined : xml.slice(contentStart, contentEnd);
+}
+
 export function parseFirstArxivEntry(atomFeed: string): ArxivFeedEntry {
-  const entry = /<entry\b[^>]*>([\s\S]*?)<\/entry>/.exec(atomFeed)?.[1];
+  const entry = readFirstElementContent(atomFeed, "entry");
   if (entry === undefined) return { kind: "none" };
-  const title = decodeXmlText(/<title\b[^>]*>([\s\S]*?)<\/title>/.exec(entry)?.[1] ?? "");
+  const title = decodeXmlText(readFirstElementContent(entry, "title") ?? "");
   if (title === "Error") {
-    return {
-      kind: "error",
-      summary: decodeXmlText(/<summary\b[^>]*>([\s\S]*?)<\/summary>/.exec(entry)?.[1] ?? ""),
-    };
+    return { kind: "error", summary: decodeXmlText(readFirstElementContent(entry, "summary") ?? "") };
   }
   return title === "" ? { kind: "none" } : { kind: "article", title };
 }

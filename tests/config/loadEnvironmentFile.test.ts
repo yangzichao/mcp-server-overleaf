@@ -56,6 +56,10 @@ describe("parseEnvironmentFile", () => {
   it("does not strip mismatched quotes", () => {
     expect(parseEnvironmentFile('A="unbalanced')).toEqual({ A: '"unbalanced' });
   });
+
+  it("reads a file saved with Windows line endings", () => {
+    expect(parseEnvironmentFile('# c\r\nA=1\r\nB = "two"\r\n')).toEqual({ A: "1", B: "two" });
+  });
 });
 
 describe("clientSuppliedConfiguration", () => {

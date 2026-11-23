@@ -4,6 +4,7 @@ import {
 } from "../../../latex/flatten/flattenLatexDocument.js";
 import type { ProjectSourceReader } from "../../../latex/includes/walkIncludedFiles.js";
 import { describeLocation } from "../../../latex/source/scannedSource.js";
+import { withoutTrailing } from "../../../text/withoutTrailing.js";
 import { truncateForModel } from "../../toolContext.js";
 
 function describeWhatWasInlined(rootPath: string, flattened: FlattenedLatexDocument): string[] {
@@ -40,8 +41,10 @@ function describeWhatWasInlined(rootPath: string, flattened: FlattenedLatexDocum
 export async function readFileWithIncludes(reader: ProjectSourceReader, path: string): Promise<string> {
   const rootPath = path.replace(/^\.?\//, "");
   const flattened = await flattenLatexDocument(reader, rootPath);
-  const withoutTrailingNewlines = flattened.text.replace(/\n+$/, "");
-  return [truncateForModel(withoutTrailingNewlines), "", ...describeWhatWasInlined(rootPath, flattened)].join(
-    "\n",
-  );
+  const textWithoutTrailingNewlines = withoutTrailing(flattened.text, "\n");
+  return [
+    truncateForModel(textWithoutTrailingNewlines),
+    "",
+    ...describeWhatWasInlined(rootPath, flattened),
+  ].join("\n");
 }

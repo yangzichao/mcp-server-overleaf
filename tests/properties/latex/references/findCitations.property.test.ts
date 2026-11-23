@@ -9,7 +9,11 @@ const citationCommand = fc.constantFrom(
   "cite",
   "citep",
   "citet",
+  "Citet",
+  "Citep",
+  "Cite",
   "parencite",
+  "Parencite",
   "textcite",
   "footcite",
   "nocite",
@@ -79,6 +83,22 @@ describe("findCitations properties", () => {
           );
           expect(scan.citesEveryEntry).toBe(true);
           expect(scan.citations.map((citation) => citation.key)).toEqual([...before, ...after]);
+        },
+      ),
+    );
+  });
+
+  it("reads every bracket-and-key group of a multicite command", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom("cites", "Cites", "parencites", "textcites"),
+        fc.array(fc.tuple(optionalArguments, referenceKey), { minLength: 1, maxLength: 4 }),
+        (command, groups) => {
+          const text = `\\${command}${groups.map(([options, key]) => `${options}{${key}}`).join("")}`;
+          const scan = findCitations(scanSource("main.tex", text));
+          expect(scan.citations.map((citation) => [citation.command, citation.key])).toEqual(
+            groups.map(([, key]) => [command, key]),
+          );
         },
       ),
     );
