@@ -29,7 +29,8 @@ function describeThread(entry: AnchoredCommentThread, thread: CommentThread | un
   const heading = `- [thread ${entry.anchor.threadId}] line ${entry.lineNumber}, on "${quote(entry.anchor.quotedText)}" (${describeStatus(thread)})`;
   const messages = (thread?.messages ?? []).map((message) => {
     const when = message.postedAt ? ` ${message.postedAt}` : "";
-    return `    ${message.authorName}${when}: ${quote(message.content, 2000)}`;
+    const id = message.messageId ? `[message ${message.messageId}] ` : "";
+    return `    ${id}${message.authorName}${when}: ${quote(message.content, 2000)}`;
   });
   return [heading, ...messages].join("\n");
 }

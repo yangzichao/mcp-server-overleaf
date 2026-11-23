@@ -15,7 +15,7 @@ const readReviewInput = z.object({
   view: z
     .enum(REVIEW_VIEWS)
     .describe(
-      "What to read: tracked_changes (one document's suggestions, with the ids manage_tracked_changes takes) or comments (comment threads with their messages, with the ids manage_comments takes).",
+      "What to read: tracked_changes (one document's suggestions, with the ids manage_tracked_changes takes) or comments (comment threads with their messages, with the thread and message ids manage_comments takes).",
     ),
   path: z
     .string()
@@ -63,7 +63,7 @@ export function registerReadReviewTool(server: McpServer, context: ToolContext):
       description:
         "Read what is waiting in Overleaf's review panel; view picks what. " +
         "tracked_changes lists the suggestions on one document, which path names, each with its line, its text and the id manage_tracked_changes takes, plus the text each comment thread there is anchored to. " +
-        "comments lists comment threads with every message, its author and time, the anchored text, and whether the thread is open or resolved, with the thread ids manage_comments takes; resolved threads are left out unless includeResolved is true, and without path every document is read, one after another. " +
+        "comments lists comment threads with every message, its id, author and time, the anchored text, and whether the thread is open or resolved, with the thread and message ids manage_comments takes; resolved threads are left out unless includeResolved is true, and without path every document is read, one after another. " +
         "This reads the live editor rather than the Git bridge, so it sees suggestions nobody has accepted yet, which no other tool here can. " +
         "Call it before suggesting, deciding, replying or resolving, to see what is already there. " +
         "A path that is not an editable document fails, and the reply names the documents that exist. " +
