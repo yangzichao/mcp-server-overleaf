@@ -2,6 +2,7 @@ import { lstat, mkdir, rename, rm, stat } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 
 import type { GitCommandResult } from "../gitCommandRunner.js";
+import { isAtOrInsideDirectory } from "./isAtOrInsideDirectory.js";
 import { isNothingAtPathError } from "./isNothingAtPathError.js";
 import { requireFileShapedPath } from "./requireFileShapedPath.js";
 
@@ -71,7 +72,7 @@ export class ProjectDirectories {
     // resolveClientPath contains a path that does not exist yet by checking its nearest
     // existing ancestor, so a symlinked directory cannot carry the files out of the clone.
     const toAbsolutePath = await this.access.resolveClientPath(toRelativePath);
-    if (toAbsolutePath === fromAbsolutePath || toAbsolutePath.startsWith(`${fromAbsolutePath}${sep}`)) {
+    if (await isAtOrInsideDirectory(toAbsolutePath, fromAbsolutePath)) {
       throw new Error(
         `${toRelativePath} is inside ${fromRelativePath}, and a directory cannot be moved into itself. Nothing was moved.`,
       );

@@ -1,22 +1,8 @@
 import { realpath } from "node:fs/promises";
-import { dirname, relative, sep } from "node:path";
+import { relative, sep } from "node:path";
 
+import { realPathOfNearestExistingAncestor } from "./realPathOfNearestExistingAncestor.js";
 import { leavesBaseDirectory, UnsafeRepositoryPathError } from "./repositoryPaths.js";
-
-/** The nearest ancestor of `path` that exists on disk, with every symlink resolved. */
-async function realPathOfNearestExistingAncestor(path: string): Promise<string> {
-  let candidate = path;
-  for (;;) {
-    try {
-      return await realpath(candidate);
-    } catch {
-      const parent = dirname(candidate);
-      // The filesystem root always exists, so this terminates.
-      if (parent === candidate) return candidate;
-      candidate = parent;
-    }
-  }
-}
 
 /**
  * Second half of the path guard, checking what `resolvePathInsideRepository` cannot.
