@@ -40,6 +40,8 @@ describeWithLatex("compile_project", () => {
     expect(report).toContain("Compiled main.tex.");
     const pdfPath = join(remote.workspaceDirectory, ".build", remote.projectId, "main.pdf");
     expect(report).toContain(`The PDF is at ${pdfPath}.`);
+    const synctexPath = join(remote.workspaceDirectory, ".build", remote.projectId, "main.synctex.gz");
+    expect(report).toContain(`Its SyncTeX map is at ${synctexPath}.`);
   });
 
   // Build artifacts must never end up staged and pushed into a co-author's project.

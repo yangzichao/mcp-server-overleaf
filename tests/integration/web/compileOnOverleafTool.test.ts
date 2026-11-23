@@ -113,9 +113,53 @@ describe("compiling on Overleaf", () => {
     expect(report).toContain(`Saved the log to ${logPath}.`);
     expect(readFileSync(pdfPath)).toEqual(FAKE_PDF_BYTES);
     expect(readFileSync(logPath, "utf8")).toBe(harness.editor.web.account.compileLog);
-    expect(harness.editor.web.account.outputDownloads).toEqual(["output.log", "output.pdf"]);
+    // In the order the compile lists them, which puts the PDF first.
+    expect(harness.editor.web.account.outputDownloads).toEqual(["output.pdf", "output.log"]);
     // The build directory is outside the clone, so nothing compiled is ever pushed.
     expect(await client.call("read_project", { view: "changes" })).toBe("No local changes pending.");
+  });
+
+  it("also saves the bibliography, its log and the SyncTeX map, and lists every saved path", async () => {
+    const account = harness.editor.web.account;
+    account.bibliography =
+      "\\begin{thebibliography}{1}\n\\bibitem{knuth1984} D. Knuth.\n\\end{thebibliography}\n";
+    account.bibliographyLog = "This is BibTeX, Version 0.99d (TeX Live 2025)\n";
+    account.synctexBytes = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0x01, 0x02]);
+    const client = await harness.startClient();
+    const report = await client.call("compile_project", { where: "overleaf" });
+    const directory = overleafOutputDirectory();
+    expect(report).toContain(
+      `Saved the PDF (${FAKE_PDF_BYTES.length} bytes) to ${join(directory, "output.pdf")}.`,
+    );
+    expect(report).toContain(`Saved the log to ${join(directory, "output.log")}.`);
+    expect(report).toContain(
+      `Saved the bibliography BibTeX or Biber wrote (output.bbl) to ${join(directory, "output.bbl")}.`,
+    );
+    expect(report).toContain(
+      `Saved the BibTeX or Biber log (output.blg) to ${join(directory, "output.blg")}.`,
+    );
+    expect(report).toContain(
+      `Saved the SyncTeX map from PDF positions to source lines (output.synctex.gz) to ${join(directory, "output.synctex.gz")}.`,
+    );
+    expect(readFileSync(join(directory, "output.bbl"), "utf8")).toBe(account.bibliography);
+    expect(readFileSync(join(directory, "output.blg"), "utf8")).toBe(account.bibliographyLog);
+    expect(readFileSync(join(directory, "output.synctex.gz"))).toEqual(account.synctexBytes);
+  });
+
+  it("removes the bibliography and SyncTeX map an earlier compile left when this one has none", async () => {
+    const account = harness.editor.web.account;
+    account.bibliography = "\\begin{thebibliography}{1}\n\\end{thebibliography}\n";
+    account.synctexBytes = Buffer.from([0x1f, 0x8b, 0x08, 0x00]);
+    const client = await harness.startClient();
+    await client.call("compile_project", { where: "overleaf" });
+    expect(existsSync(join(overleafOutputDirectory(), "output.bbl"))).toBe(true);
+
+    account.bibliography = undefined;
+    account.synctexBytes = undefined;
+    const report = await client.call("compile_project", { where: "overleaf" });
+    expect(report).not.toContain("output.bbl) to");
+    expect(existsSync(join(overleafOutputDirectory(), "output.bbl"))).toBe(false);
+    expect(existsSync(join(overleafOutputDirectory(), "output.synctex.gz"))).toBe(false);
   });
 
   it("removes an earlier PDF when a later compile produces none, so a stale PDF is never mistaken for this one", async () => {

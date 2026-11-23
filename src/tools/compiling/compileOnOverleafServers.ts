@@ -2,9 +2,14 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { ServerConfiguration } from "../../config/serverConfiguration.js";
-import { compileOnOverleaf, downloadOutputFile, findOutputFile } from "../../overleaf/web/overleafCompile.js";
+import {
+  type DownloadedCompileOutput,
+  downloadCompileOutputs,
+  KEPT_COMPILE_OUTPUTS,
+} from "../../overleaf/web/compileOutputDownloads.js";
+import { compileOnOverleaf } from "../../overleaf/web/overleafCompile.js";
 import { type ToolContext, type ToolTextResult, textResult, truncateForModel } from "../toolContext.js";
-import { describeOverleafCompile } from "../web/describeOverleafCompile.js";
+import { describeOverleafCompile, type SavedCompileOutput } from "../web/describeOverleafCompile.js";
 import { requireOverleafWebClient } from "../web/requireOverleafWebClient.js";
 import { describeByteSize, PDF_DOWNLOAD, saveDownloadedFile } from "../web/saveDownloadedFile.js";
 
@@ -16,7 +21,7 @@ export interface OverleafCompileRequest {
 }
 
 /**
- * Where an Overleaf compile's PDF and log are kept: this server's build cache, beside the
+ * Where an Overleaf compile's outputs are kept: this server's build cache, beside the
  * directory latexmk uses for the same project, and outside any clone so nothing is pushed.
  */
 export function overleafOutputDirectory(
@@ -27,8 +32,41 @@ export function overleafOutputDirectory(
 }
 
 /**
- * Compiles on Overleaf's servers and keeps output.pdf and output.log, replacing the ones an
- * earlier compile left, so the directory always holds the latest compile and nothing older.
+ * Saves the outputs worth keeping and removes the ones this compile did not produce, so the
+ * directory always holds the latest compile and nothing older. The PDF is never written over a
+ * file that is not a PDF; the rest live only in this server's build cache.
+ */
+async function saveCompileOutputs(
+  outputDirectory: string,
+  downloads: readonly DownloadedCompileOutput[],
+): Promise<SavedCompileOutput[]> {
+  await mkdir(outputDirectory, { recursive: true });
+  const downloaded = new Map(downloads.map((download) => [download.file.path, download.bytes]));
+  const saved: SavedCompileOutput[] = [];
+  for (const name of KEPT_COMPILE_OUTPUTS) {
+    const target = join(outputDirectory, name);
+    const bytes = downloaded.get(name);
+    if (!bytes) {
+      await rm(target, { force: true });
+      continue;
+    }
+    if (name === "output.pdf") {
+      saved.push({
+        name,
+        path: await saveDownloadedFile(target, bytes, PDF_DOWNLOAD),
+        size: describeByteSize(bytes.length),
+      });
+    } else {
+      await writeFile(target, bytes);
+      saved.push({ name, path: target, size: describeByteSize(bytes.length) });
+    }
+  }
+  return saved;
+}
+
+/**
+ * Compiles on Overleaf's servers and keeps the PDF, the log, the bibliography BibTeX or Biber
+ * wrote with its log, and the SyncTeX map, whichever of them the compile produced.
  */
 export async function compileOnOverleafServers(
   context: ToolContext,
@@ -42,37 +80,20 @@ export async function compileOnOverleafServers(
     stopOnFirstError: request.stopOnFirstError,
   });
 
-  const downloadOutput = async (name: string): Promise<Buffer | undefined> => {
-    const file = findOutputFile(result, name);
-    return file ? await downloadOutputFile(webClient, result, file) : undefined;
-  };
-  const logBytes = await downloadOutput("output.log");
-  // Present only when BibTeX or biber ran; it is the one place their errors appear.
-  const bibliographyLog = (await downloadOutput("output.blg"))?.toString("utf8");
-  const pdfBytes = await downloadOutput("output.pdf");
-
-  const outputDirectory = overleafOutputDirectory(context.configuration, overleafProjectId);
-  await mkdir(outputDirectory, { recursive: true });
-  const pdfPath = join(outputDirectory, "output.pdf");
-  const logPath = join(outputDirectory, "output.log");
-  let savedPdf: { path: string; size: string } | undefined;
-  if (pdfBytes) {
-    savedPdf = {
-      path: await saveDownloadedFile(pdfPath, pdfBytes, PDF_DOWNLOAD),
-      size: describeByteSize(pdfBytes.length),
-    };
-  } else {
-    await rm(pdfPath, { force: true });
-  }
-  if (logBytes) await writeFile(logPath, logBytes);
-  else await rm(logPath, { force: true });
+  const downloads = await downloadCompileOutputs(webClient, result);
+  const textOf = (name: string): string | undefined =>
+    downloads.find((download) => download.file.path === name)?.bytes.toString("utf8");
+  const saved = await saveCompileOutputs(
+    overleafOutputDirectory(context.configuration, overleafProjectId),
+    downloads,
+  );
 
   const report = describeOverleafCompile({
     result,
-    log: logBytes?.toString("utf8"),
-    bibliographyLog,
-    savedPdf,
-    savedLogPath: logBytes ? logPath : undefined,
+    log: textOf("output.log"),
+    // Present only when BibTeX or Biber ran; it is the one place their errors appear.
+    bibliographyLog: textOf("output.blg"),
+    saved,
   });
   return textResult(truncateForModel(report));
 }

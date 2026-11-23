@@ -8,7 +8,23 @@ import {
   textResult,
   truncateForModel,
 } from "../toolContext.js";
-import { compiledPdfPath, findCompiledPdf, readPdfModificationTime } from "./findCompiledPdf.js";
+import {
+  compiledPdfPath,
+  compiledSynctexPath,
+  findCompiledPdf,
+  readPdfModificationTime,
+} from "./findCompiledPdf.js";
+
+/** Where the PDF and its SyncTeX map are, when this run left a PDF. */
+async function describeCompiledFiles(
+  buildDirectory: string,
+  mainTexFile: string,
+  pdfPath: string,
+): Promise<string> {
+  const synctexPath = compiledSynctexPath(buildDirectory, mainTexFile);
+  const synctexWritten = (await readPdfModificationTime(synctexPath)) !== undefined;
+  return `The PDF is at ${pdfPath}.${synctexWritten ? ` Its SyncTeX map is at ${synctexPath}.` : ""}`;
+}
 
 /** latexmk on the clone as it stands, local edits included, without pulling first. */
 export function compileLocally(
@@ -48,6 +64,9 @@ export function compileLocally(
       succeeded: result.succeeded,
     });
     const report = truncateForModel(formatCompileReport(result));
-    return textResult(pdfPath ? `${report}\n\nThe PDF is at ${pdfPath}.` : report);
+    if (!pdfPath) return textResult(report);
+    return textResult(
+      `${report}\n\n${await describeCompiledFiles(buildDirectory, resolvedMainTexFile, pdfPath)}`,
+    );
   });
 }
