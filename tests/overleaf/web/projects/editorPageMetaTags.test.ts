@@ -22,6 +22,15 @@ describe("reading the editor page's meta tags", () => {
     expect(readMetaTag(page, "ol-languag")).toBeUndefined();
   });
 
+  it("reads a page of meta tags that never close at once", () => {
+    const openTags = `${"<meta\t".repeat(1000)}${'name="ol-x"'.repeat(1000)}`;
+    const oneOpenTag = `<meta\t${'name="ol-x"'.repeat(20_000)}`;
+    const started = performance.now();
+    expect(readMetaTag(openTags, "ol-x")).toBeUndefined();
+    expect(readMetaTag(oneOpenTag, "ol-x")).toBeUndefined();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("keeps an image the account may not switch to as not allowed, and skips malformed entries", () => {
     const images = JSON.stringify([
       { imageName: "texlive-full:2025.1", imageDesc: "TeX Live 2025" },

@@ -23,9 +23,24 @@ function escapeForPattern(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** A tag ends at the next `<` or `>`, so one left open does not run into the next. */
+const META_TAG = /<meta\s[^<>]*>/gi;
+
+/**
+ * The tag is found first and its name checked after: one pattern for both backtracks
+ * quadratically on a tag that repeats `name="…"` and never closes.
+ */
+function findMetaTag(html: string, name: string): string | undefined {
+  const namedAs = new RegExp(`name=["']${escapeForPattern(name)}["']`, "i");
+  for (const [tag] of html.matchAll(META_TAG)) {
+    if (namedAs.test(tag.slice("<meta ".length))) return tag;
+  }
+  return undefined;
+}
+
 /** Undefined when the page has no such tag. */
 export function readMetaTag(html: string, name: string): MetaTag | undefined {
-  const tag = new RegExp(`<meta\\s[^>]*name=["']${escapeForPattern(name)}["'][^>]*>`, "i").exec(html)?.[0];
+  const tag = findMetaTag(html, name);
   if (!tag) return undefined;
   const quoted = /\scontent=(?:"([^"]*)"|'([^']*)')/i.exec(tag);
   if (quoted) return { content: decodeHtmlEntities(quoted[1] ?? quoted[2] ?? "") };
