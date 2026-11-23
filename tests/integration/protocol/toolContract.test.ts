@@ -185,15 +185,15 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     expect(await client.call("read_file", { path: "main.tex" })).toBe(paper);
   });
 
-  it("keeps ambiguous edits unchanged and publishes a reviewed section and new file", async () => {
-    expect(
-      await client.call("edit_file", {
-        action: "replace_text",
-        path: "main.tex",
-        findText: "Repeated.",
-        replaceWith: "Changed.",
-      }),
-    ).toContain("Nothing was changed");
+  it("refuses ambiguous edits and publishes a reviewed section and new file", async () => {
+    const ambiguous = await client.callRaw("edit_file", {
+      action: "replace_text",
+      path: "main.tex",
+      findText: "Repeated.",
+      replaceWith: "Changed.",
+    });
+    expect(ambiguous.result?.isError).toBe(true);
+    expect(ambiguous.result?.content?.[0]?.text).toContain("Nothing was changed");
     expect(await client.call("read_project", { view: "changes" })).toBe("No local changes pending.");
     await client.call("edit_file", {
       action: "replace_text",

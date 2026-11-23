@@ -4,19 +4,20 @@ import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
 import { ConnectedOverleafProject, publishedPaper } from "../support/connectedOverleafProject.js";
+import { callTool, type ToolReply } from "../support/toolReply.js";
 
 const feature = await loadFeature(fileURLToPath(new URL("replacingText.feature", import.meta.url)));
 
 describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps }) => {
   let project: ConnectedOverleafProject;
-  let lastReply = "";
+  let lastReply: ToolReply;
 
   AfterEachScenario(async () => {
     await project.close();
   });
 
   async function replace(path: string, findText: string, replaceWith: string, replaceAll: boolean) {
-    lastReply = await project.client.call("edit_file", {
+    lastReply = await callTool(project.client, "edit_file", {
       action: "replace_text",
       path,
       findText,
@@ -48,7 +49,13 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     );
 
     Step("the reply says {string}", (_context: unknown, expected: string) => {
-      expect(lastReply).toContain(expected);
+      expect(lastReply.isError).toBe(false);
+      expect(lastReply.text).toContain(expected);
+    });
+
+    Step("the replacement is refused with {string}", (_context: unknown, reason: string) => {
+      expect(lastReply.isError).toBe(true);
+      expect(lastReply.text).toContain(reason);
     });
 
     Step(

@@ -71,6 +71,10 @@ export function defineSharedEditorSteps(steps: StepDefinitions, scenario: Overle
       expect(scenario.world.lastReply.isError, scenario.world.lastReply.text).toBe(false);
     });
 
+    keyword("the reply is an error", () => {
+      expect(scenario.world.lastReply.isError, scenario.world.lastReply.text).toBe(true);
+    });
+
     keyword("the paper is unchanged", () => {
       expect(scenario.world.textOf("main.tex")).toBe(editorPaper);
     });

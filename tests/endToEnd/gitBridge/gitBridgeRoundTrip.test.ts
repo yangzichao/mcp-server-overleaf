@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { shouldRunTexTests } from "../../support/texAvailability.js";
 import { LIVE_PROJECT_NAME, LiveOverleafServer, liveRunIdentifier } from "../support/liveOverleafServer.js";
 import { liveGitBridgeConfigured } from "../support/liveOverleafSettings.js";
-import { callSucceeding, listedFilePaths, pushedCommitHash } from "../support/liveToolCalls.js";
+import { callFailing, callSucceeding, listedFilePaths, pushedCommitHash } from "../support/liveToolCalls.js";
 
 const texAvailable = await shouldRunTexTests();
 const runIdentifier = liveRunIdentifier();
@@ -104,10 +104,11 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
     expect(await call("read_project", { view: "overview" })).not.toBe("");
   });
 
-  it("changes nothing when the snippet is missing", async () => {
+  it("refuses a snippet that is missing, and changes nothing", async () => {
     expect(
-      await call("edit_file", {
+      await callFailing(server.client, "edit_file", {
         action: "replace_text",
+        project: LIVE_PROJECT_NAME,
         path: paperPath,
         findText: "text that is not in the paper",
         replaceWith: "anything",

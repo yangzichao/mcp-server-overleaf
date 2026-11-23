@@ -88,14 +88,14 @@ describe("file tools over the editor, with only a session cookie", () => {
   it("replaces every occurrence when asked, and only then", async () => {
     const documentId = harness.editor.addDocument("repeats.tex", "x and x and x\n");
     const client = await startCookieOnlyClient();
-    expect(
-      await client.call("edit_file", {
-        action: "replace_text",
-        path: "repeats.tex",
-        findText: "x",
-        replaceWith: "y",
-      }),
-    ).toContain("appears 3 times");
+    const ambiguous = await client.callRaw("edit_file", {
+      action: "replace_text",
+      path: "repeats.tex",
+      findText: "x",
+      replaceWith: "y",
+    });
+    expect(ambiguous.result?.isError).toBe(true);
+    expect(ambiguous.result?.content?.[0]?.text).toContain("appears 3 times");
     expect(harness.editor.documentText(documentId)).toBe("x and x and x\n");
     await client.call("edit_file", {
       action: "replace_text",
@@ -150,7 +150,7 @@ describe("file tools over the editor, with only a session cookie", () => {
       findText: "Not in the paper.",
       replaceWith: "Goodbye.",
     });
-    expect(response.result?.isError).not.toBe(true);
+    expect(response.result?.isError).toBe(true);
     expect(response.result?.content?.[0]?.text).toContain("Text not found in main.tex");
   });
 });

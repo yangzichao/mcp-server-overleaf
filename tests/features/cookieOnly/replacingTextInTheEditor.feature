@@ -17,6 +17,7 @@ Feature: Without Git integration, edit_file replaces text in Overleaf directly
     Given the project has a document "repeats.tex" reading "x and x and x"
     When I replace "x" with "y" in "repeats.tex"
     Then the reply says "appears 3 times"
+    And the reply is an error
     And Overleaf's copy of "repeats.tex" reads "x and x and x" on line 1
 
   Scenario: Every occurrence is replaced when asked
@@ -27,6 +28,7 @@ Feature: Without Git integration, edit_file replaces text in Overleaf directly
   Scenario: Text that is not in the document changes nothing
     When I replace "Goodbye world." with "Farewell." in "main.tex"
     Then the reply says "Text not found in main.tex. Nothing was changed."
+    And the reply is an error
     And the paper is unchanged
 
   Scenario: Text in other scripts, accents and maths is stored as written
@@ -49,4 +51,4 @@ Feature: Without Git integration, edit_file replaces text in Overleaf directly
     Given my access to the project is "review"
     When I replace "Not in the paper." with "Goodbye." in "main.tex"
     Then the reply says "Text not found in main.tex"
-    And the reply is not an error
+    And the reply is an error

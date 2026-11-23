@@ -1,8 +1,8 @@
 Feature: Replacing text changes exactly the snippet asked for
 
   edit_file (action replace_text) is the narrowest edit there is: nothing outside the snippet
-  is touched. A snippet that is missing, or that appears more than once, changes nothing
-  instead of changing a guess.
+  is touched. A snippet that is missing, or that appears more than once, is refused and changes
+  nothing, instead of changing a guess.
 
   Background:
     Given the co-author has published a paper reporting a sample size of 5000
@@ -14,13 +14,13 @@ Feature: Replacing text changes exactly the snippet asked for
 
   Scenario: Text that is not in the file changes nothing
     When I replace "4000" with "8000" in "main.tex"
-    Then the reply says "Text not found in main.tex. Nothing was changed."
+    Then the replacement is refused with "Text not found in main.tex. Nothing was changed."
     And there is nothing pending
 
   Scenario: Text that appears more than once is not guessed at
     Given the co-author has published "todo.tex" with "TODO" written twice
     When I replace "TODO" with "Done" in "todo.tex"
-    Then the reply says "Text appears 2 times in todo.tex. Nothing was changed."
+    Then the replacement is refused with "Text appears 2 times in todo.tex. Nothing was changed."
     And there is nothing pending
 
   Scenario: Every occurrence is replaced when that is asked for
