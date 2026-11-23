@@ -1,7 +1,7 @@
 import { realpath } from "node:fs/promises";
-import { dirname, isAbsolute, relative, sep } from "node:path";
+import { dirname, relative, sep } from "node:path";
 
-import { UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import { leavesBaseDirectory, UnsafeRepositoryPathError } from "./repositoryPaths.js";
 
 /** The nearest ancestor of `path` that exists on disk, with every symlink resolved. */
 async function realPathOfNearestExistingAncestor(path: string): Promise<string> {
@@ -37,7 +37,7 @@ export async function assertRealPathInsideRepository(
   const realPath = await realPathOfNearestExistingAncestor(absolutePath);
   const pathRelativeToRepository = relative(realRepositoryDirectory, realPath);
 
-  if (pathRelativeToRepository.startsWith("..") || isAbsolute(pathRelativeToRepository)) {
+  if (leavesBaseDirectory(pathRelativeToRepository)) {
     throw new UnsafeRepositoryPathError(
       "File path resolves outside the project once symbolic links are followed.",
     );

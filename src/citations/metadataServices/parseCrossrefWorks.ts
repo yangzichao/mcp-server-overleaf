@@ -33,10 +33,18 @@ function readYear(date: unknown): number | undefined {
   return typeof year === "number" && Number.isInteger(year) ? year : undefined;
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function parseCrossrefSearchCandidates(body: string): SearchCandidate[] {
-  const items = (JSON.parse(body) as { message?: { items?: unknown[] } }).message?.items ?? [];
-  return items.flatMap((item) => {
-    const work = item as CrossrefWork;
+  const answer: unknown = JSON.parse(body);
+  const items = isObject(answer) && isObject(answer.message) ? answer.message.items : undefined;
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item: unknown) => {
+    // A null item is skipped like any other unusable one, instead of failing the whole search.
+    if (!isObject(item)) return [];
+    const work: CrossrefWork = item;
     const titles = titleForms(firstString(work.title), firstString(work.subtitle));
     if (typeof work.DOI !== "string" || titles.length === 0) return [];
     return [

@@ -173,9 +173,16 @@ export function decodeSocketIoPacket(frame: string): SocketIoPacket | undefined 
   }
 }
 
+/** A payload length counts characters, so it is digits only. */
+const PAYLOAD_LENGTH = /^\d+$/;
+
 /**
  * One frame can carry several packets. Overleaf batches applied operations this way, so a
  * client that reads only the first packet of a frame silently loses a co-author's edits.
+ *
+ * Each packet is written as delimiter, length, delimiter, packet. Decoding stops at the first
+ * segment that is not, so a negative or empty length cannot move the cursor back or leave it
+ * in place and keep the loop going forever.
  */
 export function decodeSocketIoFrame(frame: string): SocketIoPacket[] {
   if (!frame.startsWith(PAYLOAD_DELIMITER)) {
@@ -183,15 +190,18 @@ export function decodeSocketIoFrame(frame: string): SocketIoPacket[] {
     return single ? [single] : [];
   }
   const packets: SocketIoPacket[] = [];
-  let cursor = 1;
-  while (cursor < frame.length) {
-    const lengthEnd = frame.indexOf(PAYLOAD_DELIMITER, cursor);
+  let cursor = 0;
+  while (frame.startsWith(PAYLOAD_DELIMITER, cursor)) {
+    const lengthStart = cursor + PAYLOAD_DELIMITER.length;
+    const lengthEnd = frame.indexOf(PAYLOAD_DELIMITER, lengthStart);
     if (lengthEnd === -1) break;
-    const length = Number(frame.slice(cursor, lengthEnd));
-    if (!Number.isFinite(length)) break;
-    const packet = decodeSocketIoPacket(frame.slice(lengthEnd + 1, lengthEnd + 1 + length));
+    const lengthText = frame.slice(lengthStart, lengthEnd);
+    if (!PAYLOAD_LENGTH.test(lengthText)) break;
+    const packetStart = lengthEnd + PAYLOAD_DELIMITER.length;
+    const packetEnd = packetStart + Number(lengthText);
+    const packet = decodeSocketIoPacket(frame.slice(packetStart, packetEnd));
     if (packet) packets.push(packet);
-    cursor = lengthEnd + 1 + length;
+    cursor = packetEnd;
   }
   return packets;
 }

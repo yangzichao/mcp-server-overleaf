@@ -63,6 +63,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:properties": "vitest run tests/properties",
+    "test:properties:explore": "node scripts/testing/exploreProperties.mjs",
     "check": "npm run typecheck && npm run lint && npm run test",
     "package:check": "node scripts/release/verifyPackage.mjs",
     "mcpb:build": "node scripts/mcpb/buildMcpbBundle.mjs",
@@ -86,6 +88,7 @@
     "@types/node": "^26.6.4",
     "@types/ws": "^8.18.2",
     "@vitest/coverage-v8": "^5.0.3",
+    "fast-check": "^4.10.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3",
     "ws": "^8.22.0"

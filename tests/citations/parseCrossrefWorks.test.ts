@@ -33,6 +33,23 @@ describe("parseCrossrefSearchCandidates", () => {
   });
 });
 
+describe("parseCrossrefSearchCandidates on a malformed answer", () => {
+  // Reading null.DOI used to throw, so one null item made the whole search "unavailable".
+  it("skips a null item and keeps the rest", () => {
+    const work = { DOI: "10.1/a", title: ["A"] };
+    expect(parseCrossrefSearchCandidates(JSON.stringify({ message: { items: [null, 5, work] } }))).toEqual([
+      { doi: "10.1/a", titles: ["A"], authorNames: [], year: undefined },
+    ]);
+  });
+
+  it("finds no candidate when items is not a list or the answer is not an object", () => {
+    expect(parseCrossrefSearchCandidates(JSON.stringify({ message: { items: { DOI: "10.1/a" } } }))).toEqual(
+      [],
+    );
+    expect(parseCrossrefSearchCandidates("null")).toEqual([]);
+  });
+});
+
 describe("listsAuthor", () => {
   it("matches a family name through LaTeX accents, case and a particle on one side only", () => {
     expect(listsAuthor(["Müller", "Smith"], 'M{\\"u}ller')).toBe(true);
