@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { prepareArxivSubmissionPrompt } from "../../src/prompts/definitions/prepareArxivSubmissionPrompt.js";
+import { reviewPaperPrompt } from "../../src/prompts/definitions/reviewPaperPrompt.js";
+import { reviseSectionPrompt } from "../../src/prompts/definitions/reviseSectionPrompt.js";
 import type { PromptToolGroups } from "../../src/prompts/overleafPrompt.js";
 import { OVERLEAF_PROMPTS } from "../../src/prompts/registerOverleafPrompts.js";
 
@@ -20,9 +23,13 @@ const COOKIE_TOOLS = [
   "list_projects",
   "read_project",
   "read_file",
-  "edit_file",
+  "search_project",
+  "check_references",
+  "look_up_citations",
   "compile_project",
   "read_review",
+  "edit_file",
+  "manage_files",
   "manage_tracked_changes",
   "manage_comments",
   "manage_project",
@@ -68,6 +75,25 @@ describe("the prompts", () => {
     );
     expect(gitOnly.map((prompt) => prompt.name)).not.toContain("address_review_comments");
     expect(cookieOnly.map((prompt) => prompt.name)).not.toContain("resolve_push_conflict");
+  });
+
+  it("check references and citations before reviewing or submitting, in every configuration", () => {
+    for (const [, groups] of CONFIGURATIONS) {
+      for (const prompt of [reviewPaperPrompt, prepareArxivSubmissionPrompt]) {
+        const text = prompt.buildText({}, groups);
+        expect(text, prompt.name).toContain("check_references");
+        expect(text, prompt.name).toContain("look_up_citations (action verify)");
+      }
+    }
+  });
+
+  it("apply a revised section with replace_section once approved, with or without Git", () => {
+    const cookieOnly = reviseSectionPrompt.buildText(
+      { sectionTitle: "Method" },
+      { gitBridge: false, sessionCookie: true },
+    );
+    expect(cookieOnly).toContain("only after I approve, apply it with edit_file (action replace_section");
+    expect(cookieOnly).toContain("manage_tracked_changes (action suggest");
   });
 
   it("put the named project into every tool call", () => {

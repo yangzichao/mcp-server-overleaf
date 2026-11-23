@@ -14,18 +14,15 @@ export const prepareArxivSubmissionPrompt: OverleafPrompt<z.infer<typeof prepare
   argumentsSchema: prepareArxivSubmissionArguments,
   isOffered: () => true,
   buildText: ({ project }, groups) => {
-    const checks = groups.gitBridge
-      ? [
-          "check_references, and fix anything undefined or missing first.",
-          "look_up_citations (action verify), and show me entries that do not resolve.",
-        ]
-      : [];
+    const checks = [
+      "check_references, and fix anything undefined or missing first.",
+      "look_up_citations (action verify), and show me entries that do not resolve.",
+      "compile_project, and show me every error and any overfull box warning.",
+    ];
     return [
       `Prepare ${describeProject(project)} for arXiv.${projectCallHint(project)}`,
       "",
-      ...[...checks, "compile_project, and show me every error and any overfull box warning."].map(
-        (step, index) => `${index + 1}. ${step}`,
-      ),
+      ...checks.map((step, index) => `${index + 1}. ${step}`),
       "",
       "Then assemble the upload outside the project, never inside the local clone:",
       `- If you can run shell commands, copy the project out${groups.gitBridge ? " of the clone that read_project (view overview) reports" : ""}${groups.sessionCookie ? " or download it with manage_project (action download_zip)" : ""}, strip comments and unused files (arxiv_latex_cleaner with --keep_bib, or latexpand), and test-compile the result.`,

@@ -4,6 +4,7 @@ import { PACKAGE_NAME, PACKAGE_VERSION } from "../config/packageMetadata.js";
 import type { ServerConfiguration } from "../config/serverConfiguration.js";
 import { OverleafProjectRegistry } from "../overleaf/overleafProjectRegistry.js";
 import { OverleafWebClient } from "../overleaf/web/overleafWebClient.js";
+import { registerOverleafPrompts } from "../prompts/registerOverleafPrompts.js";
 import { decideOfferedToolGroups } from "../tools/offeredToolGroups.js";
 import { FileRevisionStore } from "../tools/reading/fileRevisions.js";
 import { registerOverleafTools } from "../tools/registerOverleafTools.js";
@@ -38,5 +39,9 @@ export function createOverleafMcpServer(context: ToolContext): McpServer {
     { instructions: describeServerInstructions(offered) },
   );
   registerOverleafTools(server, context, offered);
+  registerOverleafPrompts(server, {
+    gitBridge: offered.gitBridgeToolsOffered,
+    sessionCookie: offered.sessionCookieToolsOffered,
+  });
   return server;
 }

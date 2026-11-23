@@ -119,6 +119,23 @@ export class McpStdioClient {
     return response.result?.tools ?? [];
   }
 
+  async listPrompts() {
+    const response = await this.request("prompts/list", {});
+    if (response.error) throw new Error(response.error.message);
+    return response.result?.prompts ?? [];
+  }
+
+  /** The raw response, so a test can check both a prompt's messages and a refused request. */
+  getPrompt(name: string, promptArguments: Record<string, string> = {}): Promise<JsonRpcResponse> {
+    return this.request("prompts/get", { name, arguments: promptArguments });
+  }
+
+  private async request(method: string, params: Record<string, unknown>): Promise<JsonRpcResponse> {
+    const id = this.nextRequestId++;
+    this.send({ jsonrpc: "2.0", id, method, params });
+    return await this.waitFor(id);
+  }
+
   /** Calls a tool and returns its text output, or the RPC error rendered as text. */
   async call(toolName: string, toolArguments: Record<string, unknown> = {}): Promise<string> {
     return responseText(await this.callRaw(toolName, toolArguments));

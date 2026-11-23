@@ -35,12 +35,12 @@ export const reviseSectionPrompt: OverleafPrompt<z.infer<typeof reviseSectionArg
       );
     } else {
       lines.push(
-        "3. Show me the revised text first. edit_file changes the live paper at once, so call it only after I approve.",
+        "3. Show me the revised section first. edit_file changes the live paper at once, so only after I approve, apply it with edit_file (action replace_section, or replace_text for a few sentences).",
       );
     }
     if (groups.sessionCookie) {
       lines.push(
-        "If co-authors should review the change, offer to send it as tracked changes with manage_tracked_changes (action suggest) instead.",
+        "If co-authors should review the change, offer to send it as tracked changes instead, with manage_tracked_changes (action suggest, passing sectionTitle and the revised section as content).",
       );
     }
     return lines.join("\n");
