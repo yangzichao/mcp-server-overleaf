@@ -78,7 +78,9 @@ function gitEnvironment(overleafGitToken: string): NodeJS.ProcessEnv {
 
 /**
  * Redact the assembled message, not just the parts: `args` can itself carry the token, for
- * instance in a remote url, and this message is what reaches the model.
+ * instance in a remote url, and this message is what reaches the model. Git's stderr says what
+ * went wrong. Node's summary repeats that stderr after the whole command line, -c overrides
+ * and all, so it stands in only when git printed nothing, as when the command timed out.
  */
 function gitCommandFailure(
   args: readonly string[],
@@ -87,10 +89,8 @@ function gitCommandFailure(
   stderr: string,
   overleafGitToken: string,
 ): GitCommandError {
-  const message = redactSecrets(
-    `git ${args.join(" ")} failed: ${summary ?? "git command failed"}\n${stderr}`.trim(),
-    [overleafGitToken],
-  );
+  const detail = stderr.trim() || summary?.trim() || "git command failed";
+  const message = redactSecrets(`git ${args.join(" ")} failed: ${detail}`, [overleafGitToken]);
   return new GitCommandError(message, stdout, stderr);
 }
 

@@ -31,8 +31,11 @@ export function registerPushChangesTool(server: McpServer, context: ToolContext)
         "Returns the new commit hash and the diff that was published, or reports that there was nothing to push.",
       inputSchema: z.object({
         project: projectArgument,
+        // Git refuses an empty message only after everything is staged, so it is refused here first.
         commitMessage: z
           .string()
+          .trim()
+          .min(1, "Write one line saying what the change does; an empty message cannot be pushed.")
           .describe(
             'Message describing the change, shown in the project\'s Overleaf history. One line, written for a co-author, e.g. "Rewrite Section 4 discussion".',
           ),
