@@ -3,15 +3,19 @@ import { describe, expect, it } from "vitest";
 
 import { parseBibliographyRecords } from "../../../../src/citations/parseBibliographyRecords.js";
 import { parseBibliographyEntries } from "../../../../src/latex/references/parseBibliographyEntries.js";
-import { bibliographyPieces, renderBibliography } from "../../support/bibliographyArbitraries.js";
+import {
+  anyReadingRules,
+  bibliographyPieces,
+  renderBibliography,
+} from "../../support/bibliographyArbitraries.js";
 
 describe("parseBibliographyEntries properties", () => {
-  it("finds every entry key written, on the line its entry starts", () => {
+  it("finds every entry key written, on the line its entry starts, whichever program reads it", () => {
     fc.assert(
-      fc.property(bibliographyPieces, (pieces) => {
+      fc.property(bibliographyPieces, anyReadingRules, (pieces, rules) => {
         const rendered = renderBibliography(pieces);
         expect(
-          parseBibliographyEntries("refs.bib", rendered.text).map((entry) => [
+          parseBibliographyEntries([{ path: "refs.bib", text: rendered.text }], rules).map((entry) => [
             entry.key,
             entry.location.line,
           ]),
@@ -20,17 +24,21 @@ describe("parseBibliographyEntries properties", () => {
     );
   });
 
-  it("agrees with the full record parser on which keys a well-formed file defines", () => {
+  it("agrees with the full record parser on the keys and types of any text", () => {
     fc.assert(
-      fc.property(bibliographyPieces, (pieces) => {
-        const { text } = renderBibliography(pieces);
-        const keysAndTypes = (
-          occurrences: ReadonlyArray<{ key: string; command?: string; entryType?: string }>,
-        ) => occurrences.map((occurrence) => [occurrence.key, occurrence.command ?? occurrence.entryType]);
-        expect(keysAndTypes(parseBibliographyEntries("refs.bib", text))).toEqual(
-          keysAndTypes(parseBibliographyRecords("refs.bib", text)),
-        );
-      }),
+      fc.property(
+        fc.oneof(
+          fc.string(),
+          bibliographyPieces.map((pieces) => renderBibliography(pieces).text),
+        ),
+        anyReadingRules,
+        (text, rules) => {
+          const files = [{ path: "refs.bib", text }];
+          expect(parseBibliographyEntries(files, rules).map((entry) => [entry.key, entry.command])).toEqual(
+            parseBibliographyRecords(files, rules).map((record) => [record.key, record.entryType]),
+          );
+        },
+      ),
     );
   });
 });

@@ -1,5 +1,17 @@
 import fc from "fast-check";
 
+import {
+  BIBER_READING_RULES,
+  BIBTEX_READING_RULES,
+  UNKNOWN_PROGRAM_READING_RULES,
+} from "../../../src/latex/bibliography/bibliographyReadingRules.js";
+
+export const anyReadingRules = fc.constantFrom(
+  BIBTEX_READING_RULES,
+  BIBER_READING_RULES,
+  UNKNOWN_PROGRAM_READING_RULES,
+);
+
 export interface WrittenBibliographyField {
   readonly name: string;
   readonly writtenParts: readonly string[];
@@ -69,13 +81,13 @@ const bibliographyEntry: fc.Arbitrary<WrittenBibliographyEntry> = fc.record({
   }),
 });
 
+/** Text between entries that defines no entry, whichever program reads it. */
 const bibliographyFiller = fc.oneof(
   fc.stringMatching(/^[^@]{0,20}$/),
   fc.constantFrom(
     "@string{acl = {Association for Computational Linguistics}}",
     "@comment{not an entry}",
     '@preamble{"\\newcommand{\\noop}[1]{}"}',
-    "% @article{commented, title = {Gone}}",
   ),
 );
 

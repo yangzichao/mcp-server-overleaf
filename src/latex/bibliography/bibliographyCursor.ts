@@ -46,11 +46,11 @@ export class BibliographyCursor {
     );
   }
 
-  readValue(): string | null {
+  readValue(expandMacro: (name: string) => string): string | null {
     const parts: string[] = [];
     for (;;) {
       this.skipWhitespace();
-      const part = this.readValuePart();
+      const part = this.readValuePart(expandMacro);
       if (part === null) return null;
       parts.push(part);
       this.skipWhitespace();
@@ -59,12 +59,12 @@ export class BibliographyCursor {
     }
   }
 
-  private readValuePart(): string | null {
+  private readValuePart(expandMacro: (name: string) => string): string | null {
     const character = this.peek();
     if (character === "{" || character === '"') return this.readDelimited();
     if (isDigit(character)) return this.readWhile(isDigit);
     const macroName = this.readName();
-    return macroName === "" ? null : macroName;
+    return macroName === "" ? null : expandMacro(macroName);
   }
 
   /**

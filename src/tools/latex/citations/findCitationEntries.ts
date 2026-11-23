@@ -5,6 +5,8 @@ import {
   parseBibliographyRecords,
 } from "../../../citations/parseBibliographyRecords.js";
 import type { CitationLookupEndpoints } from "../../../config/citationLookupConfiguration.js";
+import { UNKNOWN_PROGRAM_READING_RULES } from "../../../latex/bibliography/bibliographyReadingRules.js";
+import { readBibliographyFiles } from "../../../latex/bibliography/readBibliographyFiles.js";
 import type { ProjectSourceReader } from "../../../latex/includes/walkIncludedFiles.js";
 import { type CitationLookupDeadline, stopLookupsAtDeadline } from "./citationLookupDeadline.js";
 import { describeFoundCitations } from "./describeFoundCitations.js";
@@ -17,8 +19,10 @@ export interface ProjectBibliography {
 /** Every entry in every .bib file, cited or not: a new key must not collide with any of them. */
 export async function readProjectBibliography(reader: ProjectSourceReader): Promise<ProjectBibliography> {
   const files = [...reader.projectFiles].filter((path) => /\.bib$/i.test(path)).sort();
-  const entries: BibliographyRecord[] = [];
-  for (const path of files) entries.push(...parseBibliographyRecords(path, await reader.readTextFile(path)));
+  const entries = parseBibliographyRecords(
+    await readBibliographyFiles(reader, files),
+    UNKNOWN_PROGRAM_READING_RULES,
+  );
   return { files, entries };
 }
 
