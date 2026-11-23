@@ -24,15 +24,15 @@ function editorSessionWith(texts: Record<string, string>, binaryPaths: readonly 
         fileId: `74a1b2c3d4e5f6a7b8c9d0${String(index).padStart(2, "0")}`,
       })),
     },
-    async joinDocument(documentId) {
+    joinDocument(documentId) {
       joinedDocumentIds.push(documentId);
       const path = documents.find((document) => document.documentId === documentId)?.path ?? "";
-      return {
+      return Promise.resolve({
         documentId,
         lines: (texts[path] ?? "").split("\n"),
         version: 1,
         ranges: { changes: [], comments: [] },
-      };
+      });
     },
   };
   return { session, joinedDocumentIds };
