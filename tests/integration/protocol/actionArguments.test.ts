@@ -48,7 +48,11 @@ it.each([
     "replace_section needs sectionTitle.",
   ],
   ["edit_file", { action: "write", path: "main.tex" }, "write needs content."],
-  ["read_project", { path: "main.tex" }, "path does not apply to overview; outline, changes and word_count use it."],
+  [
+    "read_project",
+    { path: "main.tex" },
+    "path does not apply to overview; outline, changes and word_count use it.",
+  ],
   [
     "read_project",
     { view: "files", followIncludes: false },
