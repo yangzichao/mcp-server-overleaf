@@ -11,6 +11,21 @@ the unit tests, each in its own folder:
 
 The first two also run inside `npm test`.
 
+## Static checks
+
+These read the code without running it, so they give the same answer on every machine.
+
+| Command | What it catches |
+| --- | --- |
+| `npm run typecheck` | Type errors, plus unused locals and parameters, missing returns, switch fallthrough and side-effect imports whose path does not resolve. |
+| `npm run lint` | Biome, including its type-aware rules for a promise that is never awaited or is used as a condition or as a callback that should return nothing, a switch that misses a case, and import cycles. |
+| `npm run check:unused` | knip: files nothing imports, exports nothing uses and dependencies nothing loads. Part of `npm run check`. |
+| `npm run check:regex` | recheck: a regular expression in `src` that backtracks super-linearly, so crafted LaTeX, BibTeX or an API answer could stall a tool. Takes about 20 seconds, so it runs in CI and `npm run check:release`, not in `npm run check`. |
+
+A pattern that must stay super-linear goes in
+`scripts/checks/regexBacktracking/reviewedRegularExpressions.json` with the reason its input
+cannot grow large. The check fails on a review that no longer matches a slow pattern.
+
 ## Live end-to-end run
 
 Use a throwaway project you own, never a co-author's paper. The run writes a scratch folder

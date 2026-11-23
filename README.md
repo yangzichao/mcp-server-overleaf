@@ -627,7 +627,8 @@ tests/
 npm run check
 ```
 
-Runs the type checker, Biome, the build, and the tests in one pass.
+Runs the type checker, Biome, knip, the build, and the tests in one pass. [docs/testing.md](docs/testing.md)
+describes each layer of tests and the static checks.
 The type checker includes test code. Every Vitest invocation builds the server first,
 including focused runs and coverage, so the subprocess tests cannot use an old `dist`.
 
@@ -637,8 +638,14 @@ including focused runs and coverage, so the subprocess tests cannot use an old `
 | `npm run lint` | Biome lint and format check |
 | `npm run format` | Biome, applying fixes |
 | `npm test` | Build, then Vitest, whole suite |
+| `npm run test:features` | The Gherkin feature suites alone |
+| `npm run test:properties` | The fast-check property tests alone, with the fixed seed CI uses |
+| `npm run test:properties:explore` | The property tests with a new random seed and 2,000 runs each |
+| `npm run test:e2e` | The server against a real Overleaf project you own, see [docs/testing.md](docs/testing.md) |
+| `npm run check:unused` | knip: unused files, exports and dependencies |
+| `npm run check:regex` | Fail on any regular expression in `src` that backtracks super-linearly |
 | `npm run package:check` | Build twice, compare tarballs, install as a user would, and test the installed server |
-| `npm run check:release` | Source checks, package checks, and dependency audit |
+| `npm run check:release` | Source checks, the regular expression check, package checks, and dependency audit |
 | `npm run test:coverage` | Build, then Vitest with v8 coverage |
 
 The suites cover the same tool contract over stdio and HTTP, including schemas, error
