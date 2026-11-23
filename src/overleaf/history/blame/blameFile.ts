@@ -1,3 +1,4 @@
+import { describePathAtCommit } from "../describePathAtCommit.js";
 import type { ProjectHistorySources } from "../projectHistory.js";
 import { type BlameCommit, describeBlamedCommits } from "./blamedCommits.js";
 import { parseBlamePorcelain, UNCOMMITTED_HASH_PATTERN } from "./parseBlamePorcelain.js";
@@ -50,8 +51,11 @@ async function listsPath(sources: ProjectHistorySources, args: readonly string[]
 
 /** Refuses a path the last commit does not have, saying whether it is new or simply absent. */
 async function assertCommitted(sources: ProjectHistorySources, relativePath: string, gitPath: string) {
-  const inHead = await sources.git(["cat-file", "-e", `HEAD:${gitPath}`], { tolerateFailure: true });
-  if (inHead.exitCode === 0) return;
+  const kindInHead = await describePathAtCommit(sources.git, "HEAD", gitPath);
+  if (kindInHead === "file") return;
+  if (kindInHead === "folder") {
+    throw new BlameRefusedError(`${relativePath} is a folder, not a file; blame reads one file.`);
+  }
   const existsInClone =
     (await listsPath(sources, [], gitPath)) || (await listsPath(sources, ["--others"], gitPath));
   throw new BlameRefusedError(

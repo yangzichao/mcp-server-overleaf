@@ -8,9 +8,16 @@ export async function restoreFileAction(
 ): Promise<string> {
   const history = repository.history();
   const commit = await history.describeCommit(revision);
-  if (!(await history.fileExistedAt(commit.hash, path))) {
+  const kind = await history.describePathAt(commit.hash, path);
+  if (kind === "missing") {
     throw new Error(
       `${path} did not exist at revision ${revision}, so there is nothing to restore. To remove the file, use manage_files with action delete.`,
+    );
+  }
+  // git restore on a folder rewrites every file in it and deletes the ones added since.
+  if (kind === "folder") {
+    throw new Error(
+      `${path} was a folder at revision ${revision}. restore puts back one file, so nothing was restored; name each file to restore.`,
     );
   }
   // A text-only checkout keeps binary files off disk, and Git will not restore a path
