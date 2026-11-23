@@ -20,8 +20,10 @@ No tool changes its name or arguments.
   words, without Node's error codes or the clone's absolute path. A blank commit message is
   refused before anything is staged, and a failed Git command reports its error once instead
   of the whole command line.
-- `check_references` and `look_up_citations` read .bib files as BibTeX 0.99d does: an entry
-  written inside another entry's field defines nothing, and a backslash escapes no brace.
+- `check_references` and `look_up_citations` follow BibTeX 0.99d in two places they used to
+  differ: an entry written inside another entry's field defines nothing, and a backslash
+  escapes no brace. `check_references` also counts `key` as defined in `@misc{key}` and
+  `@misc{key title = {T}}`, where no comma follows it, as BibTeX does.
   natbib's `\Citet`, `\Citep` and `\Citeauthor`, biblatex's `\Cite` and `\Cites`,
   `\vpageref[here][there]{key}` and a listing label after `caption={[short]long}` are read.
   `\import{../}{a}` no longer finds the project root's `a.tex`.

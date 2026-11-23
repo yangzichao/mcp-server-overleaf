@@ -83,6 +83,7 @@ describe("scanBibliographyEntries", () => {
     expect(
       keysAndFields(
         [
+          "@misc{nocommaafterthekey title = {A}}",
           "@misc{twocommas, title = {A},, note = {B}}",
           "@misc{nocommabetween, title = {A} note = {B}}",
           "@misc{digitname, 1title = {x}}",
@@ -90,6 +91,7 @@ describe("scanBibliographyEntries", () => {
         ].join("\n"),
       ),
     ).toEqual([
+      ["nocommaafterthekey", "cut short by an error"],
       ["twocommas", "cut short by an error"],
       ["nocommabetween", "cut short by an error"],
       ["digitname", "cut short by an error"],

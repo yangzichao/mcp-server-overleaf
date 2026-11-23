@@ -51,10 +51,8 @@ function readCommandOrEntry(cursor: BibliographyCursor): EntryRead | undefined {
   }
   const key = cursor.readKey(closer);
   cursor.skipWhitespace();
-  // A key needs a comma or the closer after it. BibTeX also defines a key followed by anything
-  // else, with none of its fields read, and reports the error.
-  if (cursor.peek() !== "," && cursor.peek() !== closer) return undefined;
-  const fields = readFields(cursor, closer);
+  const fields =
+    cursor.peek() === "," || cursor.peek() === closer ? readFields(cursor, closer) : "cut short by an error";
   return key === "" ? undefined : { entryTypeInLowerCase, key, fields };
 }
 
