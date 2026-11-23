@@ -37,10 +37,11 @@ These read the code without running it, so they give the same answer on every ma
 
 | Command | What it catches |
 | --- | --- |
-| `npm run typecheck` | Type errors, plus unused locals and parameters, missing returns, switch fallthrough and side-effect imports whose path does not resolve. |
+| `npm run typecheck` | Type errors, plus unused locals and parameters, unreachable code, missing returns, switch fallthrough and side-effect imports whose path does not resolve. |
 | `npm run lint` | Biome, including its type-aware rules for a promise that is never awaited or is used as a condition or as a callback that should return nothing, a switch that misses a case, and import cycles. |
 | `npm run check:unused` | knip: files nothing imports, exports nothing uses and dependencies nothing loads. Part of `npm run check`. |
 | `npm run check:regex` | recheck: a regular expression in `src` that backtracks super-linearly, so crafted LaTeX, BibTeX or an API answer could stall a tool. Takes about 20 seconds, so it runs in CI and `npm run check:release`, not in `npm run check`. |
+| `actionlint` | The workflows in `.github/workflows`, and the shell in their `run` steps through shellcheck. CI downloads a pinned release and checks its SHA-256; locally, `brew install actionlint shellcheck` and run `actionlint`. |
 
 A pattern that must stay super-linear goes in
 `scripts/checks/regexBacktracking/reviewedRegularExpressions.json` with the reason its input
