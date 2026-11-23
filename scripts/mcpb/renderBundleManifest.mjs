@@ -12,19 +12,20 @@ const PRIVACY_POLICY_URL =
 
 const LONG_DESCRIPTION = `Read and edit your Overleaf papers from Claude Desktop.
 
-The extension clones your Overleaf project over the Overleaf Git bridge and keeps the copy on
-your computer. Claude can read the paper, search it, rewrite a section, check its references
-and citations, and compile it locally.
-Nothing reaches Overleaf until you approve \`push_changes\`, and every edit can be inspected with
-\`show_diff\` first. If a co-author changed the same lines, the push stops and shows you both
-versions rather than picking a winner.
+With an Overleaf Git token, the extension keeps a clone of your project on this computer.
+Claude can read the paper, search it, rewrite a section, check its references and citations,
+and compile it. Nothing reaches Overleaf until you approve \`push_changes\`, and
+\`read_project\` shows every pending edit first. If a co-author changed the same lines, the push
+stops and shows you both versions rather than picking a winner.
 
-Add an Overleaf session cookie and thirteen more tools appear. An edit can then arrive in the
-editor as a tracked-change suggestion your co-authors accept or reject, you can read, answer
-and resolve review comments, and you can compile on Overleaf without a local TeX installation.
+With an Overleaf session cookie, an edit can arrive in the editor as a tracked-change suggestion
+your co-authors accept or reject. Claude can also read, answer and resolve review comments,
+compile on Overleaf without a local TeX installation, and organise projects, folders and
+settings.
 
-Requires an Overleaf plan that includes Git integration, and a Git authentication token from
-your Overleaf account settings.`;
+Fill in a Git token, a session cookie, or both. The cookie alone is enough on a plan without Git
+integration; the token comes from your Overleaf account settings, and whether Git works for a
+paper depends on the plan of whoever owns it.`;
 
 export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconPath }) {
   if (!Array.isArray(tools) || tools.length === 0) {

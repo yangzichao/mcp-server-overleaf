@@ -18,15 +18,19 @@ const ICON_PATH = "./assets/icon.png";
 
 const LONG_DESCRIPTION = `Read and edit your Overleaf papers from Codex.
 
-The plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.
-Codex can read the paper, search it, rewrite a section, check its references and citations,
-and compile it locally. Nothing reaches Overleaf until you approve push_changes, and every edit
-can be inspected with show_diff first.
-If a co-author changed the same lines, the push stops and shows you both versions.
+With an Overleaf Git token, the plugin keeps a clone of the project on your computer. Codex can
+read the paper, search it, rewrite a section, check its references and citations, and compile
+it. Nothing reaches Overleaf until you approve push_changes, and read_project shows every
+pending edit first. If a co-author changed the same lines, the push stops and shows you both
+versions.
 
-Add an Overleaf session cookie and thirteen more tools appear. An edit can then arrive in the
-editor as a tracked-change suggestion your co-authors accept or reject, you can read, answer
-and resolve review comments, and you can compile on Overleaf without a local TeX installation.
+With an Overleaf session cookie, an edit can arrive in the editor as a tracked-change suggestion
+your co-authors accept or reject. Codex can also answer and resolve review comments, compile on
+Overleaf, and organise projects, folders and settings. The cookie alone is enough on a plan
+without Git integration.
+
+The plugin's skills run chktex, latexindent, texcount, latexdiff and latexpand on the clone,
+package a paper for arXiv, and render compiled pages to check how they look.
 
 Run \`npx --yes mcp-server-overleaf setup\` once before installing. It stores your Overleaf Git
 token outside this plugin, so the plugin itself carries no credential.`;
