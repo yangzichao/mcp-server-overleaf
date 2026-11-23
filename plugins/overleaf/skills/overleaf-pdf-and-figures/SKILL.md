@@ -7,9 +7,9 @@ description: Look at a compiled Overleaf paper page by page, map a source line t
 
 ## 1. Get a PDF
 
-Call `compile_project`. Its reply gives the path of the PDF it built or downloaded, in this
-server's build directory outside the clone. `where: "overleaf"` compiles on Overleaf and
-also saves the log; the local build needs latexmk.
+Call `compile_project`. Its reply names the files it saved in this server's build directory,
+outside the clone: the PDF and its SyncTeX map (`.synctex.gz`), and with `where: "overleaf"`
+also the log, `.bbl` and `.blg`. The local build needs latexmk.
 
 ## 2. See a page
 
@@ -25,15 +25,19 @@ at it: overfull lines, a figure on the wrong page, a table running into the marg
 
 ## 3. Source line to page and back (SyncTeX)
 
-A build made with `-synctex=1` leaves `<name>.synctex.gz` beside the PDF.
+`compile_project` saves `<name>.synctex.gz` beside the PDF. Prefer the map from a local
+build: it records the paths on this computer, while one from `where: "overleaf"` records the
+paths on Overleaf's compile server.
 
 ```sh
 synctex view -i "42:1:/abs/path/sections/method.tex" -o /abs/path/paper.pdf   # line 42 -> Page:, x:, y:
 synctex edit -o "3:150:200:/abs/path/paper.pdf"                               # page 3 at (150,200) -> Input:, Line:
 ```
 
-Use absolute paths. If there is no `.synctex.gz`, rebuild with
-`latexmk -pdf -synctex=1 -outdir=<a directory outside the clone> main.tex` in the clone.
+Use absolute paths. If there is no `.synctex.gz`, compile again with `compile_project`.
+
+Without a shell, `read_file` on a PNG, JPEG, GIF or WebP file in the project returns the
+image itself, so you can still look at a figure.
 
 ## 4. Convert a figure
 

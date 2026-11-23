@@ -7,7 +7,7 @@ description: Lint, format and word-count an Overleaf paper with local LaTeX tool
 
 The Overleaf MCP server keeps each project in a local Git clone. These tools run in that
 clone. Without a shell, use the server's `check_references` and `look_up_citations` tools
-instead; they need no TeX installation.
+instead, and `read_project` (view `word_count`) for a word count.
 
 ## 1. Find the clone
 
@@ -46,12 +46,16 @@ If it fails with `Can't locate File/HomeDir.pm`, the Perl modules it needs are m
 
 ## 4. Count words
 
+`read_project` (view `word_count`) gives the numbers Overleaf's Word Count menu shows, with
+included files followed. With a session cookie it is Overleaf's own count of what has been
+pushed; with only a Git token it runs texcount in the clone, so unpushed edits count and it
+lists words per file. For a count per section, run texcount yourself:
+
 ```sh
-cd "$CLONE" && texcount -inc -total -sum main.tex        # whole document, includes followed
 cd "$CLONE" && texcount -inc -sub=section main.tex       # per section
 ```
 
-Report "Words in text" as the body count; headers, captions and math are counted
+Report "Words in text" as the body count; headings, captions and math are counted
 separately.
 
 ## 5. Before anything is pushed

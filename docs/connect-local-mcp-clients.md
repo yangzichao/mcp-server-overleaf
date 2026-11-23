@@ -108,14 +108,15 @@ tool_timeout_sec = 120
 
 `default_tools_approval_mode = "writes"` lets read-only tools run without a prompt while
 requiring approval for tools classified as writes. Keep the client’s normal review prompts
-enabled for `push_changes` and `discard_local_changes`.
+enabled for `push_changes` and `manage_files`, whose `discard_local_changes` action deletes
+unpublished work.
 
 You can also configure the server through the desktop or IDE MCP settings:
 
 1. Open **Settings → MCP servers**.
 2. Choose **Add server** and select **STDIO**.
 3. Enter the absolute Node command and the two arguments from the configuration above.
-4. Save, restart the client, and confirm that 23 tools are available. It is 36 if you also
+4. Save, restart the client, and confirm that 11 tools are available. It is 15 if you also
    set `OVERLEAF_SESSION_COOKIE`, which turns on the
    [review and web tools](tracked-changes.md).
 
@@ -225,8 +226,8 @@ Add:
 }
 ```
 
-Open Cursor’s MCP settings, enable the server, and verify that its 23 tools appear under
-Available Tools. Cursor asks before tool calls by default; review mutating calls carefully.
+Open Cursor’s MCP settings, enable the server, and verify that its 11 tools (15 with a
+session cookie) appear under Available Tools. Cursor asks before tool calls by default; review mutating calls carefully.
 
 Reference: [Cursor MCP documentation](https://docs.cursor.com/context/model-context-protocol).
 
@@ -265,19 +266,20 @@ Start with:
 > Use the Overleaf MCP server's `list_projects` tool only. Do not edit, compile, discard,
 > synchronize, or push anything. Show the configured project names and identify the default.
 
-Then call `list_files` for one project. A successful file listing verifies the client,
+Then call `read_project` with `view: "files"` for one project. A successful file listing
+verifies the client,
 stdio process, `.env`, Overleaf Git token, local clone, and remote project access.
 
 Before publishing an edit:
 
-1. Make a narrow edit with `replace_text` or `edit_section`.
-2. Inspect the unpublished change with `show_diff`.
+1. Make a narrow edit with `edit_file`, action `replace_text` or `replace_section`.
+2. Inspect the unpublished change with `read_project`, view `changes`.
 3. Run `compile_project` when a TeX distribution is available.
 4. Call `push_changes` only after the user approves publication and provides a meaningful
    commit message.
 
-`discard_local_changes` deletes unpublished local edits and commits. Treat it as a
-destructive operation.
+`manage_files` with `action: "discard_local_changes"` deletes unpublished local edits and
+commits. Treat it as a destructive operation.
 
 ## Optional: local Streamable HTTP
 
@@ -314,9 +316,9 @@ other users or machines.
 | The server exits immediately | Run the exact command manually and inspect stderr. Check `.env`, the project ID, and the Overleaf token. |
 | JSON parse error | Merge the entry into the existing object and validate commas, braces, and the client-specific top-level key. |
 | The server appears but exposes no tools | Restart the client, inspect its MCP logs, and ensure no launcher writes ordinary text to stdout. |
-| `list_projects` works but `list_files` fails | Re-run `git ls-remote`; check Git integration, project access, network access to Overleaf, and the clone directory. |
+| `list_projects` works but `read_project` fails | Re-run `git ls-remote`; check Git integration, project access, network access to Overleaf, and the clone directory. |
 | A second client waits on the same project | Let the first call finish. The server serializes project operations across processes to protect the local clone. |
-| A write exists locally but is absent from Overleaf | This is expected until `push_changes` succeeds; inspect it with `show_diff`. |
+| A write exists locally but is absent from Overleaf | This is expected until `push_changes` succeeds; inspect it with `read_project`, view `changes`. |
 
 ## Updating or removing the connection
 

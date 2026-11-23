@@ -36,7 +36,10 @@ them):
 ```
 
 The flattened `new.tex` alone is the single-file version a journal asks for; give the user
-its path. If the paper uses BibTeX, `latexpand --expand-bbl main.bbl` also inlines the
+its path. Without a shell, `read_file` with `followIncludes` returns the paper in one call,
+each included file inlined between `% ---- begin` and `% ---- end` comments. That reply is
+cut off like any long read, so use it to read the paper and latexpand to make the file a
+journal gets. If the paper uses BibTeX, `latexpand --expand-bbl main.bbl` also inlines the
 bibliography from a compiled `.bbl`.
 
 ## 4. Diff and compile

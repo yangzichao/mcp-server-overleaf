@@ -1,10 +1,11 @@
 # Tracked changes, review comments and Overleaf's web app
 
-Thirteen tools reach Overleaf's editor and web application instead of its Git bridge. With
-them an edit can arrive as a suggestion in the review panel rather than as finished text, a
-comment thread can be read and answered, and a project can be compiled on Overleaf without a
-local TeX installation. They are off by default and need a credential the other twenty-three
-tools do not use. This page is about that trade.
+With a session cookie, this server also reaches Overleaf's editor and web application instead
+of only its Git bridge. An edit can then arrive as a suggestion in the review panel rather than
+as finished text, a comment thread can be read and answered, a project can be compiled on
+Overleaf without a local TeX installation, and projects, folders and settings can be managed.
+The cookie is optional and is a different kind of credential from the Git token. This page is
+about that trade.
 
 ## Why the Git bridge cannot do this
 
@@ -48,8 +49,10 @@ That means:
 - **It is a credential in your client's configuration.** Prefer `OVERLEAF_SESSION_COOKIE_FILE`,
   pointing at a file only you can read, over putting the value in a client's `env` block.
 
-This is why the tools are optional. With no cookie configured, the server does not register
-them at all, and everything else works exactly as before.
+This is why the cookie is optional. With no cookie configured, the server does not offer
+`read_review`, `manage_tracked_changes`, `manage_comments` or `manage_project`, nor the views
+and actions of other tools that need the web application, and everything else works exactly
+as before.
 
 The cookie is sent only to the web host below. Compiled output is fetched from that host
 too, with the compile group and server id the editor uses, and never from Overleaf's separate
@@ -75,9 +78,8 @@ OVERLEAF_SESSION_COOKIE=s%3A...
 ## Without Git integration
 
 Overleaf's Git bridge is a paid feature; the editor is not. A server configured with only a
-session cookie, and no `OVERLEAF_GIT_TOKEN`, offers every tool below, `list_projects`, and
-editor versions of `list_files`, `read_file` and `replace_text`: 17 tools. The other Git-bridge
-tools are not offered, since each of them would only answer with a setup note.
+session cookie, and no `OVERLEAF_GIT_TOKEN`, offers 13 of the 15 tools. `read_history` and
+`push_changes` are not offered, since both need the clone.
 
 ```bash
 OVERLEAF_SESSION_COOKIE_FILE=/home/you/.overleaf-mcp/session-cookie
@@ -85,55 +87,51 @@ OVERLEAF_PROJECTS=paper=64a1b2c3d4e5f6a7b8c9d0e1   # optional: a name and a defa
 ```
 
 Name a project by its Overleaf address, its id, or a name registered as above, or call
-`list_account_projects` to find it. A project in `OVERLEAF_PROJECTS_CONFIG` may leave out
-`gitToken` when a cookie is configured; the Git-bridge tools then refuse that one project and
-say why, while projects with a token keep working through Git.
+`list_projects` to find it. A project in `OVERLEAF_PROJECTS_CONFIG` may leave out `gitToken`
+when a cookie is configured; the Git-bridge tools then refuse that one project and say why,
+while projects with a token keep working through Git.
 
-The three file tools keep their names but work on the live editor:
+On such a server the reading and editing tools work on the live editor instead of a clone:
 
-- `list_files` lists Overleaf's file tree, marking uploads such as images `(binary)`.
-- `read_file` reads a document as it stands in the editor, whole or as a line range, with
-  pending suggestions read as if accepted. It has no `mode`, `revision` or `expectedRevision`,
-  which belong to the clone; `download_project_zip` fetches binary uploads.
-- `replace_text` takes effect in Overleaf at once, with no `push_changes` step and no undo here,
-  and arrives as ordinary text even when the project has track changes on, as a Git push does.
-  It needs edit access; a reviewer is pointed at `suggest_edit`. The edit is sent against the
-  document version it was matched in, so Overleaf transforms it against a co-author's
-  concurrent typing as it does between two open editors.
+- `read_project` gives the overview, the file tree, the outline across included files, the
+  members and Overleaf's word count. `read_file` reads a document whole, as a line range, as one
+  section, or with its included files inlined, with pending suggestions read as if accepted,
+  and shows a figure as an image.
+- `search_project`, `check_references` and `look_up_citations` read the documents through the
+  editor connection, one join per document per call.
+- `edit_file` and `manage_files` take effect in Overleaf at once, with no `push_changes` step
+  and no undo here, and arrive as ordinary text even when the project has track changes on, as
+  a Git push does. They need edit access; a reviewer is pointed at `manage_tracked_changes`.
+  An edit is sent against the document version it was computed from, so Overleaf transforms it
+  against a co-author's concurrent typing as it does between two open editors.
+- `compile_project` compiles on Overleaf.
 
-Not offered on this setup: `write_file`, `edit_section`, sections and search, compiling
-locally, history, and creating, moving or deleting files.
+What stays with the clone: `mode`, `revision` and `expectedRevision` on reads and edits,
+restoring a file from an earlier revision, discarding local changes, history, the unpushed
+diff, and compiling locally.
 
 ## The tools
 
-Review, over the real-time editor connection and the web application:
+Over the real-time editor connection and the web application:
 
-| Tool | What it does |
+| Tool | What it does with a cookie |
 | --- | --- |
-| `list_tracked_changes` | Reads the suggestions and comment-thread anchors on one document, with line numbers. |
-| `suggest_edit` | Replaces an exact snippet so it arrives as a tracked change, waiting to be accepted or rejected. |
-| `accept_tracked_changes` | Accepts suggestions by id, or all of them in a document. |
-| `reject_tracked_changes` | Rejects them: a suggested insertion goes, a suggested deletion comes back. |
-| `list_comments` | Reads comment threads with every message, their anchors, and whether they are resolved. |
-| `add_comment` | Starts a thread on an exact passage, with its first message. |
-| `reply_to_comment` | Adds a message to a thread. |
-| `resolve_comment` | Resolves a thread, or reopens a resolved one. |
-| `delete_comment` | Deletes a thread and every message in it. |
+| `read_review` | `tracked_changes`: the suggestions and comment anchors on one document, with line numbers. `comments`: every thread with its messages, anchors and state. |
+| `manage_tracked_changes` | `suggest` an edit as a tracked change: an exact snippet, a whole section or a whole file. `accept` or `reject` suggestions by id or all at once in a document. |
+| `manage_comments` | `add` a thread on an exact passage with its first message, `reply`, `resolve`, `reopen`, `delete` a thread, and `edit_message` or `delete_message` inside one. |
+| `manage_project` | `create` a blank or example project, `create_from_zip`, `copy`, `rename`, `archive`/`unarchive`, `trash`/`untrash`, `update_settings` (compiler, main document, TeX Live image, spell-check language, track changes for everyone), `tag`/`untag`, and `download_zip`. |
+| `list_projects` | Every project the account can open, with access level, tags and address, filtered by owned, shared, archived, trashed or tag. |
+| `read_project` | `members`: collaborators and their access, and pending invitations for the owner. `word_count`: Overleaf's own count. |
+| `compile_project` | `where: "overleaf"` compiles on Overleaf's servers, reports errors and warnings, and saves the PDF, log, `.bbl`, `.blg` and SyncTeX file. |
+| `manage_files` | `create_folder`, which a Git push cannot do, since Git does not keep empty folders. |
 
-The account and its projects, over the web application:
-
-| Tool | What it does |
-| --- | --- |
-| `list_account_projects` | Every project the account can open, with its access level and address. |
-| `create_project` | A new blank project, or one from Overleaf's example paper. |
-| `compile_on_overleaf` | Compiles on Overleaf's servers and reports errors and warnings; can save the PDF. |
-| `download_project_zip` | Saves the whole project, binary files included, as a ZIP. |
-
-Every one of these takes effect in Overleaf immediately. There is no separate `push_changes`
+Every write here takes effect in Overleaf immediately. There is no separate `push_changes`
 step, because nothing went through a clone. That is the opposite of every Git-bridge editing
 tool, and deliberate for suggestions: a suggestion is already reversible by the person
-reviewing it. Accepting, rejecting, resolving and deleting are not reversible from here, so
-a client should confirm them with the user first.
+reviewing it. Accepting, rejecting, resolving, deleting, archiving, trashing and changing
+settings are not reversible from here, so a client should confirm them with the user first.
+Permanent project deletion and sharing changes (inviting, removing or transferring) are not
+offered at all: a prompt injected into a paper must not be able to give someone else access.
 
 Overleaf requires review permission for a tracked change, so read-only access is refused before
 anything is sent. A reviewer who may not write plain text can still suggest. Accepting and
@@ -146,18 +144,19 @@ positions stay valid, and this server does the same.
 
 ## What it cannot do
 
-- **A verified contract for comment messages.** The routes `list_comments`, `add_comment`,
-  `reply_to_comment`, `resolve_comment` and `delete_comment` use are the ones the open-source
-  editor calls in `services/web/frontend/js/features/review-panel/`, but the server side of
-  them lives in a module outside Overleaf's open-source tree. They follow what the editor
-  sends, not a published interface.
+- **A verified contract for comments and the track-changes switch.** The routes behind
+  `read_review` (view `comments`), `manage_comments` and `manage_project`'s track-changes
+  setting are the ones the open-source editor calls in
+  `services/web/frontend/js/features/review-panel/`, but their server side lives in a module
+  outside Overleaf's open-source tree. They follow what the editor sends, not a published
+  interface, which is why the tools read the state back after changing it.
 - **History-OT documents.** A document Overleaf has moved to its newer history-OT format
   refuses the real-time protocol this server speaks, so the review tools explain that and stop.
   The Git-bridge tools still work on it.
 - **Emoji and other characters outside the Basic Multilingual Plane.** Overleaf's editor
   replaces them with U+FFFD as they are typed (`filter-characters.ts`), and document-updater
   does the same to every insertion it receives (`UpdateManager._sanitizeUpdate`), so
-  `replace_text` and `suggest_edit` refuse them rather than store "��". Write the LaTeX command
+  editor edits and suggestions refuse them rather than store "��". Write the LaTeX command
   instead.
 - **Project history after a quick review sequence.** On 2026-11-20, rejecting a suggestion,
   suggesting again on the same words, accepting that and then editing it directly, all within a
@@ -170,7 +169,7 @@ positions stay valid, and this server does the same.
   checked.
 - **A guarantee of stability.** The Git bridge is a documented, supported interface. The
   real-time protocol and the web routes are internal to Overleaf and can change without
-  notice. If they do, these thirteen tools break and the other twenty-three do not.
+  notice. If they do, what the cookie adds breaks and what the Git bridge does keeps working.
 
 ## Verification
 
@@ -189,10 +188,26 @@ The web tools in `tests/integration/web/` run against `tests/integration/fakeOve
 and `fakeOverleafAccount.ts`, which serve the routes, CSRF meta tag and login redirect the
 open-source web application has.
 
-On 2026-11-20 every one of these tools, plus `list_files`, `read_file` and `replace_text`, was
-run against overleaf.com with only a session cookie configured, on a test project: listing,
-reading (compared byte for byte with the ZIP), compiling with the PDF saved, the ZIP, direct
-edits with Chinese, accents and `$$`, `replaceAll`, suggestions rejected by id and accepted all
-at once, and a comment thread added, replied to, resolved, reopened and deleted. That run found
-the emoji limit, the `readWrite` access name and the history problem above. It is not part of
-the automated suites, and self-hosted instances have not been tried.
+On 2026-11-20 the 0.4.1 cookie tools were run against overleaf.com with only a session cookie
+configured, on a test project: listing, reading (compared byte for byte with the ZIP),
+compiling with the PDF saved, the ZIP, direct edits with Chinese, accents and `$$`,
+`replaceAll`, suggestions rejected by id and accepted all at once, and a comment thread added,
+replied to, resolved, reopened and deleted. That run found the emoji limit, the `readWrite`
+access name and the history problem above. It is not part of the automated suites, and
+self-hosted instances have not been tried.
+
+What 0.5.0 added on top is tested against the fakes in `tests/integration/fakeWebRoutes/`
+and `fakeOverleafRealtime.ts`, built from the open-source routes. On 2026-11-23 its reads were
+run against overleaf.com on the same test project: `list_projects` with the owned, archived
+and trashed filters, `read_project` views `members` and `word_count`, the cookie-only overview
+with its compiler, TeX Live image, spell check and track-changes lines, the cookie-only
+outline, `search_project` and `check_references` over the editor, `read_history` view
+`blame`, `look_up_citations` on a document whose entries are written with `\bibitem`, its
+`find` action by DOI and by title words, and `compile_project` on Overleaf saving the SyncTeX
+map. texcount in the clone gave the same seven numbers as Overleaf's word count. Three reads
+were only partly tried: arXiv answered 429 to every request from the test machine that day,
+a lone `curl` included, so no arXiv lookup ran; the test project includes no other file, so
+`read_file` with `followIncludes` returned one file as it is; and it holds no image for
+`read_file` to return. Its writes have not been run against overleaf.com: project lifecycle,
+tags, settings and the track-changes switch, the file tree and uploads without Git, editing
+and deleting a single comment message, and editing through the editor.

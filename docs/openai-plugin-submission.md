@@ -41,13 +41,14 @@ Official references:
 
 Read, search, edit, and compile Overleaf papers from ChatGPT or Codex while keeping the
 working clone and Overleaf Git token on your own computer. Edits remain local until you
-explicitly approve `push_changes`, and `show_diff` lets you inspect them first. Before every
+explicitly approve `push_changes`, and `read_project` shows them to you first. Before every
 read and push, the server checks for collaborator changes. If both sides changed the same
 lines, it stops and shows the conflict instead of choosing a winner.
 
-With an optional Overleaf session cookie, thirteen additional tools can send an edit to the
-Overleaf review panel as a tracked-change suggestion, accept or reject suggestions, read,
-answer and resolve comment threads, and compile on Overleaf's servers. The cookie stays on the
+With an optional Overleaf session cookie, the server can also send an edit to the Overleaf
+review panel as a tracked-change suggestion, accept or reject suggestions, read, answer and
+resolve comment threads, compile on Overleaf's servers, and manage projects, folders and
+settings. The cookie alone works on a plan without Git integration, and it stays on the
 user's computer.
 
 This is an independent community project and is not affiliated with or endorsed by
