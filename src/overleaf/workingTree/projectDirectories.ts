@@ -18,6 +18,12 @@ import { requireFileShapedPath } from "./requireFileShapedPath.js";
 
 export type ProjectPathKind = "file" | "directory" | "missing";
 
+/**
+ * How two existing paths relate: one path written two ways, such as ./main.tex and main.tex;
+ * two names of one entry, as main.tex and Main.tex are on a disk that ignores case; or two entries.
+ */
+export type ExistingPathRelation = "same path" | "two names of one entry" | "two entries";
+
 export interface ProjectDirectoryAccess {
   readonly repositoryDirectory: string;
   readonly git: (args: readonly string[]) => Promise<GitCommandResult>;
@@ -55,6 +61,18 @@ export class ProjectDirectories {
       if (isNothingAtPathError(error)) return "missing";
       throw error;
     }
+  }
+
+  /** How two paths that both exist relate. lstat keeps a symlink apart from what it points at. */
+  async compareExistingPaths(
+    firstRelativePath: string,
+    secondRelativePath: string,
+  ): Promise<ExistingPathRelation> {
+    const firstAbsolutePath = await this.access.resolveClientPath(firstRelativePath);
+    const secondAbsolutePath = await this.access.resolveClientPath(secondRelativePath);
+    if (firstAbsolutePath === secondAbsolutePath) return "same path";
+    const [first, second] = await Promise.all([lstat(firstAbsolutePath), lstat(secondAbsolutePath)]);
+    return first.dev === second.dev && first.ino === second.ino ? "two names of one entry" : "two entries";
   }
 
   /** Removes the directory and everything in it; answers with the project files that were in it. */

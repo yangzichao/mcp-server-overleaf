@@ -47,6 +47,10 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
       expect(lastReply).toContain(reason);
     });
 
+    Step("the move is not refused", () => {
+      expect(lastReplyWasRefused).toBe(false);
+    });
+
     Step("there is nothing pending", async () => {
       expect(await project.client.call("read_project", { view: "changes" })).toBe(
         "No local changes pending.",
@@ -82,6 +86,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   Scenario("The pending diff shows a deletion before it is pushed", () => {});
   Scenario("Discarding local changes brings a deleted file back", () => {});
   Scenario("Moving onto a file that already exists is refused and keeps both", () => {});
+  Scenario("Moving a file onto its own path written another way moves nothing", () => {});
   Scenario("Moving a file that is not in the project is refused", () => {});
   Scenario("Pushing a rename publishes the file under its new path only", () => {});
 });

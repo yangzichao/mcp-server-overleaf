@@ -27,6 +27,13 @@ Feature: Removing and renaming files is reversible until it is pushed
     And "notes.tex" reads back the co-author's notes
     And there is nothing pending
 
+  Scenario: Moving a file onto its own path written another way moves nothing
+    When I move "./notes.tex" to "notes.tex"
+    Then the move is not refused
+    And the reply says "path and toPath are the same file (./notes.tex). Nothing was moved."
+    And "notes.tex" reads back the co-author's notes
+    And there is nothing pending
+
   Scenario: Moving a file that is not in the project is refused
     When I move "missing.tex" to "sections/missing.tex"
     Then the move is refused with "missing.tex is not in the project, so there is nothing to move."
