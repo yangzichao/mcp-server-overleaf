@@ -99,7 +99,8 @@ export function formatBibtexEntry(entry: BibtexEntry): string {
     if (value === undefined) return [];
     return [`  ${field} = ${field === "month" && isMonthMacro(value) ? value : `{${value}}`}`];
   });
-  return `@${entry.entryType}{${entry.key},\n${lines.join(",\n")}\n}`;
+  const body = lines.length === 0 ? "" : `${lines.join(",\n")}\n`;
+  return `@${entry.entryType}{${entry.key},\n${body}}`;
 }
 
 /** What a reference list needs that the source left out: someone to credit, a title, a year. */
