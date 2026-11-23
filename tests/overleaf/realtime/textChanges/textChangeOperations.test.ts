@@ -120,6 +120,18 @@ describe("buildTextChangeOperations", () => {
     expect(expectRoundTrip("a\nb\nc\n", "a\nc\n")).toEqual([{ p: 2, d: "b\n" }]);
   });
 
+  it("keeps an edit that joins lines beside a copy of the new line one small change", () => {
+    // The line diff alone keeps the last line, deletes "\\item x\r\n" and inserts "item x\n".
+    expect(expectRoundTrip("b\n\\item x\r\n\\item x\n", "b\n\\item x\nitem x\n")).toEqual([
+      { p: 9, d: "\r\n\\" },
+      { p: 9, i: "\n" },
+    ]);
+    expect(expectRoundTrip("\\item y\n\\item x\n", "\\item x\nitem x\n")).toEqual([
+      { p: 6, d: "y\n\\" },
+      { p: 6, i: "x\n" },
+    ]);
+  });
+
   it("falls back to one change when too many lines differ to search for the smallest", () => {
     const lineCount = MAXIMUM_LINE_EDIT_DISTANCE;
     const oldText = Array.from({ length: lineCount }, (_, index) => `old line ${index}\n`).join("");

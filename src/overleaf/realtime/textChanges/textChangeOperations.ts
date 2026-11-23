@@ -48,16 +48,8 @@ function commonSuffixLength(first: string, second: string, skip: number): number
   return length;
 }
 
-function operationsForRange(
-  range: ChangedLineRange,
-  oldText: string,
-  newText: string,
-  oldStarts: readonly number[],
-  newStarts: readonly number[],
-): TextChangeOperation[] {
-  const oldFrom = oldStarts[range.oldStart] ?? 0;
-  const oldSegment = oldText.slice(oldFrom, oldStarts[range.oldEnd]);
-  const newSegment = newText.slice(newStarts[range.newStart], newStarts[range.newEnd]);
+/** Deletes and inserts what differs between the segments, less what their ends share; `oldSegment` is at `oldFrom`. */
+function trimmedOperations(oldSegment: string, newSegment: string, oldFrom: number): TextChangeOperation[] {
   const prefix = commonPrefixLength(oldSegment, newSegment);
   const suffix = commonSuffixLength(oldSegment, newSegment, prefix);
   const deleted = oldSegment.slice(prefix, oldSegment.length - suffix);
@@ -69,10 +61,33 @@ function operationsForRange(
   return operations;
 }
 
+function operationsForRange(
+  range: ChangedLineRange,
+  oldText: string,
+  newText: string,
+  oldStarts: readonly number[],
+  newStarts: readonly number[],
+): TextChangeOperation[] {
+  const oldFrom = oldStarts[range.oldStart] ?? 0;
+  const oldSegment = oldText.slice(oldFrom, oldStarts[range.oldEnd]);
+  const newSegment = newText.slice(newStarts[range.newStart], newStarts[range.newEnd]);
+  return trimmedOperations(oldSegment, newSegment, oldFrom);
+}
+
+function changedLength(operations: readonly TextChangeOperation[]): number {
+  return operations.reduce(
+    (total, operation) => total + ("d" in operation ? operation.d : operation.i).length,
+    0,
+  );
+}
+
 /**
  * The deletions and insertions that turn `oldText` into `newText` in Overleaf's editor. It
  * compares lines first, then trims the characters each changed run of lines has in common, so
- * an edited word becomes a small change rather than a rewritten line.
+ * an edited word becomes a small change rather than a rewritten line. An edit that joins or
+ * splits lines can make a line its neighbour already is, and the line diff then keeps that
+ * neighbour and rewrites two lines; when one change between the texts' common start and end
+ * is smaller, that change is sent instead.
  *
  * Positions count UTF-16 code units, as Overleaf does, and a surrogate pair is never split.
  * Overleaf applies the operations of one update in order, each against the text the previous
@@ -85,7 +100,9 @@ export function buildTextChangeOperations(oldText: string, newText: string): Tex
   const newLines = splitKeepingLineEnds(newText);
   const oldStarts = lineStartOffsets(oldLines);
   const newStarts = lineStartOffsets(newLines);
-  return findChangedLineRanges(oldLines, newLines)
+  const lineByLine = findChangedLineRanges(oldLines, newLines)
     .reverse()
     .flatMap((range) => operationsForRange(range, oldText, newText, oldStarts, newStarts));
+  const whole = trimmedOperations(oldText, newText, 0);
+  return changedLength(whole) < changedLength(lineByLine) ? whole : lineByLine;
 }
