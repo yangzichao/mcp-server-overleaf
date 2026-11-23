@@ -224,7 +224,7 @@ describe("citation lookup endpoints", () => {
     expect(loadServerConfigurationFromEnvironment(environmentWith()).citationLookup).toEqual({
       doiResolverUrl: "https://doi.org",
       crossrefApiUrl: "https://api.crossref.org",
-      arxivApiUrl: "http://export.arxiv.org/api",
+      arxivApiUrl: "https://export.arxiv.org/api",
     });
   });
 

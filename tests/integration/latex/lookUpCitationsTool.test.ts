@@ -104,4 +104,26 @@ describe("look_up_citations", () => {
     expect(limited).toContain("Confirmed (1): real2017 (DOI)");
     expect(limited).toContain("5 more entries were not looked up");
   });
+
+  it("says why nothing is looked up when the entries are written with \\bibitem", async () => {
+    await remote.collaboratorPushes(
+      "main.tex",
+      [
+        "\\begin{document}",
+        "\\cite{bell1964,aspect1982}",
+        "\\begin{thebibliography}{9}",
+        "\\bibitem{bell1964} J. S. Bell, On the Einstein Podolsky Rosen paradox, 1964.",
+        "\\bibitem{aspect1982} A. Aspect, Experimental test of Bell's inequalities, 1982.",
+        "\\end{thebibliography}",
+        "\\end{document}",
+      ].join("\n"),
+      "Entries in the document",
+    );
+    const mcp = await startClient();
+    expect(await mcp.call("look_up_citations", {})).toBe(
+      "main.tex cites bell1964, aspect1982 but uses no .bib file in the project, so there is no BibTeX entry to look up. " +
+        "Entries written with \\bibitem are not checked; the find action turns a DOI, an arXiv id or a title into BibTeX.",
+    );
+    expect(metadata.requests).toEqual([]);
+  });
 });

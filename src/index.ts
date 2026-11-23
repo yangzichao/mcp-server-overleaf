@@ -47,7 +47,7 @@ manage_project and compiling on Overleaf appear once a cookie is set):
 Citation lookups (look_up_citations; each defaults to the public service):
   OVERLEAF_MCP_DOI_RESOLVER_URL  DOI resolver (default https://doi.org)
   OVERLEAF_MCP_CROSSREF_API_URL  Crossref REST API (default https://api.crossref.org)
-  OVERLEAF_MCP_ARXIV_API_URL     arXiv API (default http://export.arxiv.org/api)
+  OVERLEAF_MCP_ARXIV_API_URL     arXiv API (default https://export.arxiv.org/api)
 
 With OVERLEAF_MCP_ENV_FILE, read that file and let process environment values override it.
 Otherwise use the process environment, or the install's .env when the client supplies no

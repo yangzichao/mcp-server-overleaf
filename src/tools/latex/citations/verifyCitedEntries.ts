@@ -4,6 +4,7 @@ import type { BibliographyRecord } from "../../../citations/parseBibliographyRec
 import { verifyBibliographyEntry } from "../../../citations/verifyBibliographyEntry.js";
 import type { CitationLookupEndpoints } from "../../../config/citationLookupConfiguration.js";
 import { describeCitationVerification, type VerifiedRecord } from "../describeCitationVerification.js";
+import { listNames } from "../describeReferenceCheck.js";
 import type { CitationLookupDeadline } from "./citationLookupDeadline.js";
 
 export const DEFAULT_MAXIMUM_ENTRIES = 30;
@@ -34,16 +35,29 @@ function selectRecords(
   };
 }
 
+/** Why no entry was looked up. A document that writes its entries with \bibitem cites keys but uses no .bib file. */
+function describeNothingToLookUp(
+  request: CitationVerificationRequest,
+  unknownKeys: readonly string[],
+): string {
+  const { bibliography, keys, rootPath } = request;
+  const files = bibliography.bibliographyFiles.join(", ") || "any bibliography file";
+  if (keys) return `None of ${unknownKeys.join(", ")} is an entry in ${files}.`;
+  const citedKeys = bibliography.keysWithoutEntries;
+  if (bibliography.bibliographyFiles.length > 0 || citedKeys.length === 0) {
+    return `${rootPath} cites no entry in ${files}.`;
+  }
+  return (
+    `${rootPath} cites ${listNames(citedKeys)} but uses no .bib file in the project, so there is no BibTeX entry to look up. ` +
+    "Entries written with \\bibitem are not checked; the find action turns a DOI, an arXiv id or a title into BibTeX."
+  );
+}
+
 /** look_up_citations (action verify): one entry at a time, until the entries or the time run out. */
 export async function verifyCitedEntries(request: CitationVerificationRequest): Promise<string> {
   const { bibliography, keys } = request;
   const { selected, unknownKeys } = selectRecords(bibliography, keys);
-  const files = bibliography.bibliographyFiles.join(", ") || "any bibliography file";
-  if (selected.length === 0) {
-    return keys
-      ? `None of ${unknownKeys.join(", ")} is an entry in ${files}.`
-      : `${request.rootPath} cites no entry in ${files}.`;
-  }
+  if (selected.length === 0) return describeNothingToLookUp(request, unknownKeys);
 
   const services = createPublicMetadataServices(request.endpoints);
   const withinMaximum = selected.slice(0, request.maximumEntries);
