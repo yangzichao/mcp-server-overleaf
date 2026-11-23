@@ -1,4 +1,6 @@
-import { type ChangedLineRange, findChangedLineRanges } from "./changedLineRanges.js";
+import { findChangedLineRanges } from "./changedLineRanges.js";
+import { cheapestRuns, type Run } from "./cheapestRuns.js";
+import { changedLength, commonEnds, type TextSpan } from "./textSpan.js";
 
 /** The insert and delete components of Overleaf's text operations; both fit `DocumentOperation`. */
 export type TextChangeOperation =
@@ -17,68 +19,35 @@ function lineStartOffsets(lines: readonly string[]): number[] {
   return starts;
 }
 
-function isHighSurrogate(codeUnit: number): boolean {
-  return codeUnit >= 0xd800 && codeUnit <= 0xdbff;
+/** Where each run of changed lines is in the old text and in the new one. */
+function changedLineSpans(oldText: string, newText: string): TextSpan[] {
+  const oldLines = splitKeepingLineEnds(oldText);
+  const newLines = splitKeepingLineEnds(newText);
+  const oldStarts = lineStartOffsets(oldLines);
+  const newStarts = lineStartOffsets(newLines);
+  return findChangedLineRanges(oldLines, newLines).map((range) => ({
+    oldFrom: oldStarts[range.oldStart] ?? 0,
+    oldTo: oldStarts[range.oldEnd] ?? oldText.length,
+    newFrom: newStarts[range.newStart] ?? 0,
+    newTo: newStarts[range.newEnd] ?? newText.length,
+  }));
 }
 
-function isLowSurrogate(codeUnit: number): boolean {
-  return codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
+/** One span from the start of the first to the end of the last, the lines between included. */
+function spanAcross({ first, last }: Run<TextSpan>): TextSpan {
+  return { oldFrom: first.oldFrom, oldTo: last.oldTo, newFrom: first.newFrom, newTo: last.newTo };
 }
 
-/** Common leading code units, never ending between the two halves of a surrogate pair. */
-function commonPrefixLength(first: string, second: string): number {
-  const limit = Math.min(first.length, second.length);
-  let length = 0;
-  while (length < limit && first.charCodeAt(length) === second.charCodeAt(length)) length += 1;
-  if (length > 0 && isHighSurrogate(first.charCodeAt(length - 1))) length -= 1;
-  return length;
-}
-
-/** Common trailing code units after `skip` leading ones, never starting on a low surrogate. */
-function commonSuffixLength(first: string, second: string, skip: number): number {
-  const limit = Math.min(first.length, second.length) - skip;
-  let length = 0;
-  while (
-    length < limit &&
-    first.charCodeAt(first.length - 1 - length) === second.charCodeAt(second.length - 1 - length)
-  ) {
-    length += 1;
-  }
-  if (length > 0 && isLowSurrogate(first.charCodeAt(first.length - length))) length -= 1;
-  return length;
-}
-
-/** Deletes and inserts what differs between the segments, less what their ends share; `oldSegment` is at `oldFrom`. */
-function trimmedOperations(oldSegment: string, newSegment: string, oldFrom: number): TextChangeOperation[] {
-  const prefix = commonPrefixLength(oldSegment, newSegment);
-  const suffix = commonSuffixLength(oldSegment, newSegment, prefix);
-  const deleted = oldSegment.slice(prefix, oldSegment.length - suffix);
-  const inserted = newSegment.slice(prefix, newSegment.length - suffix);
-  const position = oldFrom + prefix;
+/** Deletes and inserts what differs between the two sides of `span`, less what their ends share. */
+function trimmedOperations(oldText: string, newText: string, span: TextSpan): TextChangeOperation[] {
+  const { prefix, suffix } = commonEnds(oldText, newText, span);
+  const deleted = oldText.slice(span.oldFrom + prefix, span.oldTo - suffix);
+  const inserted = newText.slice(span.newFrom + prefix, span.newTo - suffix);
+  const position = span.oldFrom + prefix;
   const operations: TextChangeOperation[] = [];
   if (deleted !== "") operations.push({ p: position, d: deleted });
   if (inserted !== "") operations.push({ p: position, i: inserted });
   return operations;
-}
-
-function operationsForRange(
-  range: ChangedLineRange,
-  oldText: string,
-  newText: string,
-  oldStarts: readonly number[],
-  newStarts: readonly number[],
-): TextChangeOperation[] {
-  const oldFrom = oldStarts[range.oldStart] ?? 0;
-  const oldSegment = oldText.slice(oldFrom, oldStarts[range.oldEnd]);
-  const newSegment = newText.slice(newStarts[range.newStart], newStarts[range.newEnd]);
-  return trimmedOperations(oldSegment, newSegment, oldFrom);
-}
-
-function changedLength(operations: readonly TextChangeOperation[]): number {
-  return operations.reduce(
-    (total, operation) => total + ("d" in operation ? operation.d : operation.i).length,
-    0,
-  );
 }
 
 /**
@@ -86,8 +55,8 @@ function changedLength(operations: readonly TextChangeOperation[]): number {
  * compares lines first, then trims the characters each changed run of lines has in common, so
  * an edited word becomes a small change rather than a rewritten line. An edit that joins or
  * splits lines can make a line its neighbour already is, and the line diff then keeps that
- * neighbour and rewrites two lines; when one change between the texts' common start and end
- * is smaller, that change is sent instead.
+ * neighbour and rewrites the lines on each side; neighbouring runs, with the lines between
+ * them, are sent as one change wherever that is smaller, and so is the whole edit.
  *
  * Positions count UTF-16 code units, as Overleaf does, and a surrogate pair is never split.
  * Overleaf applies the operations of one update in order, each against the text the previous
@@ -96,13 +65,11 @@ function changedLength(operations: readonly TextChangeOperation[]): number {
  */
 export function buildTextChangeOperations(oldText: string, newText: string): TextChangeOperation[] {
   if (oldText === newText) return [];
-  const oldLines = splitKeepingLineEnds(oldText);
-  const newLines = splitKeepingLineEnds(newText);
-  const oldStarts = lineStartOffsets(oldLines);
-  const newStarts = lineStartOffsets(newLines);
-  const lineByLine = findChangedLineRanges(oldLines, newLines)
-    .reverse()
-    .flatMap((range) => operationsForRange(range, oldText, newText, oldStarts, newStarts));
-  const whole = trimmedOperations(oldText, newText, 0);
-  return changedLength(whole) < changedLength(lineByLine) ? whole : lineByLine;
+  const grouped = cheapestRuns(changedLineSpans(oldText, newText), (run) =>
+    changedLength(oldText, newText, spanAcross(run)),
+  );
+  const whole: TextSpan = { oldFrom: 0, oldTo: oldText.length, newFrom: 0, newTo: newText.length };
+  const spans =
+    changedLength(oldText, newText, whole) < grouped.cost ? [whole] : grouped.runs.map(spanAcross);
+  return spans.reverse().flatMap((span) => trimmedOperations(oldText, newText, span));
 }

@@ -21,6 +21,19 @@ function hasLoneSurrogate(text: string): boolean {
   return /[\uD800-\uDFFF]/u.test(text);
 }
 
+function changedCodeUnits(oldText: string, newText: string): number {
+  return buildTextChangeOperations(oldText, newText).reduce(
+    (total, operation) => total + ("d" in operation ? operation.d.length : operation.i.length),
+    0,
+  );
+}
+
+/**
+ * Ten lines no generated document holds. Any line diff that matched none of them would cost
+ * more than two small edits can, so it keeps them all, and each edit's lines stay on its side.
+ */
+const SEPARATOR = Array.from({ length: 10 }, (_, index) => `%% separator ${index}\n`).join("");
+
 describe("buildTextChangeOperations properties", () => {
   it("gives operations that, applied in order, turn the old text into the new one", () => {
     fc.assert(
@@ -67,11 +80,23 @@ describe("buildTextChangeOperations properties", () => {
   it("changes no more code units than a small edit did", () => {
     fc.assert(
       fc.property(textWithSmallEdit, ({ oldText, newText, editedLength }) => {
-        const changed = buildTextChangeOperations(oldText, newText).reduce(
-          (total, operation) => total + ("d" in operation ? operation.d.length : operation.i.length),
-          0,
+        expect(changedCodeUnits(oldText, newText)).toBeLessThanOrEqual(editedLength);
+      }),
+    );
+  });
+
+  // Found by this property: é typed at the start of the first of two `\item x` lines changed 17
+  // code units, not 1, once another edit sat further down. The line diff kept the first line as
+  // the second and rewrote the lines on each side, and one change across the whole edit, which
+  // had made up for that, now spanned both edits.
+  it("changes no more code units than two small edits far apart did", () => {
+    fc.assert(
+      fc.property(textWithSmallEdit, textWithSmallEdit, (first, second) => {
+        const oldText = `${first.oldText}\n${SEPARATOR}${second.oldText}`;
+        const newText = `${first.newText}\n${SEPARATOR}${second.newText}`;
+        expect(changedCodeUnits(oldText, newText)).toBeLessThanOrEqual(
+          first.editedLength + second.editedLength,
         );
-        expect(changed).toBeLessThanOrEqual(editedLength);
       }),
     );
   });
