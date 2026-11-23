@@ -3,6 +3,7 @@ import { findMainDocumentPath } from "../../editor/editorProjectViews/editorFile
 import { requireDocument, withReviewSession } from "../../review/openReviewSession.js";
 import type { ToolContext } from "../../toolContext.js";
 import { requireOverleafWebClient } from "../../web/requireOverleafWebClient.js";
+import { describeWordCountTotals } from "../projectViews/describeWordCountTotals.js";
 
 /**
  * Overleaf's own word count, the one its editor menu shows, which runs texcount on Overleaf's
@@ -11,16 +12,7 @@ import { requireOverleafWebClient } from "../../web/requireOverleafWebClient.js"
  */
 
 function describeCounts(subject: string, counts: ProjectWordCount): string {
-  const lines = [
-    `Overleaf's word count for ${subject}:`,
-    `Words in text: ${counts.textWords}`,
-    `Words in headings: ${counts.headingWords}`,
-    `Words outside text (captions and the like): ${counts.wordsOutsideText}`,
-    `Headings: ${counts.headingCount}`,
-    `Floats (figures, tables and the like): ${counts.floatCount}`,
-    `Inline math: ${counts.inlineMathCount}`,
-    `Displayed math: ${counts.displayMathCount}`,
-  ];
+  const lines = [`Overleaf's word count for ${subject}:`, ...describeWordCountTotals(counts)];
   if (counts.errorCount > 0) {
     lines.push(`texcount reported ${counts.errorCount} error${counts.errorCount === 1 ? "" : "s"}.`);
   }

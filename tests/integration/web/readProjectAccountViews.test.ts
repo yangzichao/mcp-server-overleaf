@@ -29,13 +29,14 @@ describe("read_project's account views", () => {
     return (tool?.inputSchema.properties?.view as { enum?: unknown } | undefined)?.enum;
   }
 
-  it("lists members and word_count only where the session cookie can serve them", async () => {
+  it("lists members only where the session cookie can serve it, and word_count everywhere", async () => {
     expect(await listedViews(harness.gitRemote.environment())).toEqual([
       "overview",
       "files",
       "outline",
       "status",
       "changes",
+      "word_count",
     ]);
     expect(await listedViews(harness.reviewEnvironment())).toEqual([
       "overview",

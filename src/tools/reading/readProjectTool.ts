@@ -8,6 +8,7 @@ import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult } from "../toolContext.js";
 import { describeDocumentOutline } from "./projectViews/documentOutlineView.js";
+import { describeLocalWordCount } from "./projectViews/localWordCountView.js";
 import { describePendingChanges } from "./projectViews/pendingChangesView.js";
 import { describeProjectFiles } from "./projectViews/projectFilesView.js";
 import { describeProjectOverview } from "./projectViews/projectOverviewView.js";
@@ -21,7 +22,11 @@ import { describeProjectMembers } from "./webProjectViews/projectMembersView.js"
 import { describeOverleafWordCount } from "./webProjectViews/projectWordCountView.js";
 
 const CLONE_VIEWS = ["overview", "files", "outline", "status", "changes"] as const;
-/** Read from Overleaf's web application, so listed only when the session cookie can serve them. */
+/**
+ * members reads Overleaf's web application, so it is listed only when the session cookie can
+ * serve it. word_count is always listed: Overleaf's own count with the cookie, texcount in the
+ * clone without it.
+ */
 const ACCOUNT_VIEWS = ["members", "word_count"] as const;
 
 type ProjectViewName = (typeof CLONE_VIEWS)[number] | (typeof ACCOUNT_VIEWS)[number];
@@ -65,7 +70,9 @@ export function registerReadProjectTool(
   offered: OfferedToolGroups,
 ): void {
   const accountViewsOffered = offered.sessionCookieToolsOffered;
-  const viewNames: ProjectViewNames = accountViewsOffered ? [...CLONE_VIEWS, ...ACCOUNT_VIEWS] : CLONE_VIEWS;
+  const viewNames: ProjectViewNames = accountViewsOffered
+    ? [...CLONE_VIEWS, ...ACCOUNT_VIEWS]
+    : [...CLONE_VIEWS, "word_count"];
 
   const inClone =
     (read: (repository: OverleafGitRepository, input: ReadProjectInput) => Promise<string>) =>
@@ -99,7 +106,9 @@ export function registerReadProjectTool(
     },
     word_count: {
       uses: ["path"],
-      run: async (input) => textResult(await describeOverleafWordCount(context, input.project, input.path)),
+      run: accountViewsOffered
+        ? async (input) => textResult(await describeOverleafWordCount(context, input.project, input.path))
+        : inClone((repository, input) => describeLocalWordCount(repository, input.path)),
     },
   };
   // Only the listed views, so an argument error never names a view this server does not offer.
