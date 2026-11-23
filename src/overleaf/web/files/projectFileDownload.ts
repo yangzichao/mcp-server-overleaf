@@ -9,7 +9,7 @@ import type { OverleafWebClient } from "../overleafWebClient.js";
  */
 
 /** Overleaf's default upload limit; a caller can pass a higher cap. */
-export const DEFAULT_MAXIMUM_FILE_DOWNLOAD_BYTES = 50 * 1024 * 1024;
+const DEFAULT_MAXIMUM_FILE_DOWNLOAD_BYTES = 50 * 1024 * 1024;
 
 export async function downloadProjectFile(
   client: OverleafWebClient,

@@ -9,7 +9,7 @@ import { RequestNotSentError } from "./overleafWebErrors.js";
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
 const PATH_SEGMENT_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
-export function isOverleafId(value: string): boolean {
+function isOverleafId(value: string): boolean {
   return OBJECT_ID_PATTERN.test(value);
 }
 

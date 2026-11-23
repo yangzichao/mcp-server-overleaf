@@ -19,7 +19,7 @@ export interface ProjectSourceReader {
   readTextFile(path: string): Promise<string>;
 }
 
-export interface ResolvedIncludeDirective {
+interface ResolvedIncludeDirective {
   readonly directive: IncludeDirective;
   /** The project file it pulls in, or undefined when none exists. */
   readonly includedPath: string | undefined;

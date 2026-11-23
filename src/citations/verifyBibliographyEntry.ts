@@ -20,7 +20,7 @@ import { normalizeTitleWords, SAME_WORK_THRESHOLD, titleSimilarity } from "./tit
  * DOI, and a 2023 book chapter by someone else, which Crossref returns first.
  */
 
-export type IdentifierKind = "doi" | "arxiv";
+type IdentifierKind = "doi" | "arxiv";
 
 export type CitationVerdict =
   | { readonly kind: "confirmed"; readonly via: IdentifierKind | "search"; readonly identifier: string }

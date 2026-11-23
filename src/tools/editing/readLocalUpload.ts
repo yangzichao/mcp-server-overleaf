@@ -9,7 +9,7 @@ import { isAbsolute, resolve, sep } from "node:path";
  */
 
 /** Overleaf refuses uploads above 50 MB. */
-export const MAXIMUM_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAXIMUM_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export async function readLocalUpload(sourcePath: string): Promise<Buffer> {
   if (!isAbsolute(sourcePath)) {

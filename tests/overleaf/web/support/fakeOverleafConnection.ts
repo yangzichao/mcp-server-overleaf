@@ -10,7 +10,7 @@ import { FakeOverleafRealtime } from "../../../integration/fakeOverleafRealtime.
  * which is how a test checks that a web route's change reached the real-time side.
  */
 
-export interface JoinedProject {
+interface JoinedProject {
   readonly project: OverleafRealtimeSession["project"];
   readonly details: OverleafRealtimeSession["details"];
   readonly permissionsLevel: string;

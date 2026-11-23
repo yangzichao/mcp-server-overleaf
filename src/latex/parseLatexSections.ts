@@ -10,7 +10,7 @@ export const LATEX_SECTION_LEVELS = [
   "subparagraph",
 ] as const;
 
-export type LatexSectionLevel = (typeof LATEX_SECTION_LEVELS)[number];
+type LatexSectionLevel = (typeof LATEX_SECTION_LEVELS)[number];
 
 export interface LatexSection {
   readonly level: LatexSectionLevel;

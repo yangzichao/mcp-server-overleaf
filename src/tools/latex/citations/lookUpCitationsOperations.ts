@@ -66,7 +66,7 @@ export const lookUpCitationsInput = z.object({
 export type LookUpCitationsInput = z.infer<typeof lookUpCitationsInput>;
 
 /** The project as the lookups read it: its files, and how to pick the root document. */
-export interface CitationProject {
+interface CitationProject {
   readonly reader: ProjectSourceReader;
   chooseRoot(requested: string | undefined): Promise<ChosenRootDocument>;
 }

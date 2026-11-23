@@ -13,7 +13,7 @@ export interface McpToolDescription {
 }
 
 /** A prompt as `prompts/list` advertises it. */
-export interface McpPromptDescription {
+interface McpPromptDescription {
   readonly name: string;
   readonly title?: string;
   readonly description?: string;

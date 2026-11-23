@@ -11,7 +11,7 @@ import { checkEntityName } from "./entityNameRules.js";
  * open editors at once, so co-authors see it immediately.
  */
 
-export type ProjectEntityType = "doc" | "file" | "folder";
+type ProjectEntityType = "doc" | "file" | "folder";
 
 export interface ProjectEntityReference {
   readonly type: ProjectEntityType;

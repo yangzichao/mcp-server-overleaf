@@ -12,7 +12,7 @@ import { type LatexSection, parseLatexSections } from "../parseLatexSections.js"
  * and edit_file (action replace_section) take.
  */
 
-export interface OutlineHeading {
+interface OutlineHeading {
   readonly path: string;
   readonly section: LatexSection;
 }

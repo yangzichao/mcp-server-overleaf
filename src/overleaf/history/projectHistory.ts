@@ -23,7 +23,7 @@ export interface ProjectHistorySources {
   readonly latestOverleafRevision: () => Promise<string>;
 }
 
-export interface ChangedFile {
+interface ChangedFile {
   /** Git's status letter: A added, M modified, D deleted, R renamed, C copied. */
   readonly status: string;
   readonly path: string;
@@ -51,7 +51,7 @@ export const COMMIT_HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 const RECORD_SEPARATOR = "\u001e";
 const FIELD_SEPARATOR = "\u001f";
 
-export class UnknownRevisionError extends Error {}
+class UnknownRevisionError extends Error {}
 
 function parseChangedFiles(lines: readonly string[]): ChangedFile[] {
   const files: ChangedFile[] = [];

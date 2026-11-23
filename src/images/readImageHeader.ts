@@ -1,7 +1,7 @@
 /** The raster formats Claude reads, and the media type each is sent as. */
 export type ModelImageMimeType = "image/png" | "image/jpeg" | "image/gif" | "image/webp";
 
-export interface ImageHeader {
+interface ImageHeader {
   readonly mimeType: ModelImageMimeType;
   readonly width: number;
   readonly height: number;

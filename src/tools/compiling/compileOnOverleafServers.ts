@@ -24,10 +24,7 @@ export interface OverleafCompileRequest {
  * Where an Overleaf compile's outputs are kept: this server's build cache, beside the
  * directory latexmk uses for the same project, and outside any clone so nothing is pushed.
  */
-export function overleafOutputDirectory(
-  configuration: ServerConfiguration,
-  overleafProjectId: string,
-): string {
+function overleafOutputDirectory(configuration: ServerConfiguration, overleafProjectId: string): string {
   return join(configuration.workspaceDirectory, ".build", overleafProjectId, "overleaf");
 }
 

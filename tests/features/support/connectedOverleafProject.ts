@@ -32,7 +32,7 @@ export interface ProjectWorldOptions {
   readonly prepareRemote?: (remote: FakeOverleafRemote) => Promise<void>;
 }
 
-export const defaultPublishedFiles: readonly PublishedFile[] = [
+const defaultPublishedFiles: readonly PublishedFile[] = [
   { path: "main.tex", content: publishedPaper, commitMessage: "Initial draft" },
   { path: "notes.tex", content: publishedNotes, commitMessage: "Add the shared notes" },
 ];

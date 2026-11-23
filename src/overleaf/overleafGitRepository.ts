@@ -43,7 +43,7 @@ export interface OverleafGitRepositoryOptions {
   readonly checkoutMode?: CheckoutMode;
 }
 
-export class DetachedHeadError extends Error {}
+class DetachedHeadError extends Error {}
 
 export class BinaryFileError extends Error {}
 

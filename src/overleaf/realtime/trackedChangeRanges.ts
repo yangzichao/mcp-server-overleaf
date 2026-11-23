@@ -10,7 +10,7 @@
  * read from ranges alone carries its anchor and thread but no text.
  */
 
-export type TrackedChangeKind = "insertion" | "deletion";
+type TrackedChangeKind = "insertion" | "deletion";
 
 export interface TrackedChange {
   readonly changeId: string;

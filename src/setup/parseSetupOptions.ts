@@ -1,6 +1,6 @@
 import { SetupError } from "./setupError.js";
 
-export interface RequestedProject {
+interface RequestedProject {
   readonly reference: string;
   readonly projectName?: string;
 }
@@ -13,7 +13,7 @@ export interface SetupOptions {
   readonly acceptDefaults: boolean;
 }
 
-export const SETUP_USAGE = `mcp-server-overleaf setup - connect this computer's AI clients to Overleaf
+const SETUP_USAGE = `mcp-server-overleaf setup - connect this computer's AI clients to Overleaf
 
   mcp-server-overleaf setup                    ask for the project and token, then register
   mcp-server-overleaf setup --project <url>    take the project from the command line
