@@ -25,32 +25,43 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /** A tag ends at the next `<` or `>`, so one left open does not run into the next. */
 const META_TAG = /<meta\s[^<>]*>/gi;
 
+/** An attribute's name, then a value in double quotes, in single quotes, bare, or none. */
+const ATTRIBUTE = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>=`]+)))?/y;
+
 /**
- * The tag is found first and its name checked after: one pattern for both backtracks
- * quadratically on a tag that repeats `name="…"` and never closes.
+ * The tag's attributes, read one after another, so a quoted value is never taken for an
+ * attribute: Pug leaves `'` unescaped, so a value can hold `name='ol-…'`.
+ * A bare attribute, as a true boolean's `content`, is there with an undefined value.
  */
-function findMetaTag(html: string, name: string): string | undefined {
-  const namedAs = new RegExp(`name=["']${escapeForPattern(name)}["']`, "i");
-  for (const [tag] of html.matchAll(META_TAG)) {
-    if (namedAs.test(tag.slice("<meta ".length))) return tag;
+function readAttributes(tag: string): Map<string, string | undefined> {
+  const attributes = new Map<string, string | undefined>();
+  const attribute = new RegExp(ATTRIBUTE);
+  attribute.lastIndex = "<meta".length;
+  for (let match = attribute.exec(tag); match !== null; match = attribute.exec(tag)) {
+    const name = (match[1] ?? "").toLowerCase();
+    if (!attributes.has(name)) attributes.set(name, match[2] ?? match[3] ?? match[4]);
   }
-  return undefined;
+  return attributes;
 }
 
-/** Undefined when the page has no such tag. */
+/**
+ * Undefined when the page has no such tag. Each tag is found first and its attributes read
+ * after: one pattern for both backtracks quadratically on a tag that repeats `name="…"` and
+ * never closes.
+ */
 export function readMetaTag(html: string, name: string): MetaTag | undefined {
-  const tag = findMetaTag(html, name);
-  if (!tag) return undefined;
-  const quoted = /\scontent=(?:"([^"]*)"|'([^']*)')/i.exec(tag);
-  if (quoted) return { content: decodeHtmlEntities(quoted[1] ?? quoted[2] ?? "") };
-  return { content: /\scontent(?=[\s/>])/i.test(tag) ? "" : undefined };
+  const wanted = name.toLowerCase();
+  for (const [tag] of html.matchAll(META_TAG)) {
+    const attributes = readAttributes(tag);
+    if (attributes.get("name")?.toLowerCase() !== wanted) continue;
+    const content = attributes.get("content");
+    if (content !== undefined) return { content: decodeHtmlEntities(content) };
+    return { content: attributes.has("content") ? "" : undefined };
+  }
+  return undefined;
 }
 
 export function readJsonMetaTag(html: string, name: string): unknown {

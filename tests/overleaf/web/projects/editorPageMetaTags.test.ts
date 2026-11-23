@@ -22,6 +22,14 @@ describe("reading the editor page's meta tags", () => {
     expect(readMetaTag(page, "ol-languag")).toBeUndefined();
   });
 
+  it("never takes a name inside another tag's value for that tag's name", () => {
+    const page =
+      `<meta name="ol-a" content="x name='ol-hasTrackChangesFeature' y">` +
+      `<meta name="ol-hasTrackChangesFeature" data-type="boolean">`;
+    expect(readBooleanMetaTag(page, "ol-hasTrackChangesFeature")).toBe(false);
+    expect(readMetaTag(page, "ol-a")).toEqual({ content: "x name='ol-hasTrackChangesFeature' y" });
+  });
+
   it("leaves a character reference past U+10FFFF as written", () => {
     const page = '<meta name="ol-x" content="&#x110000; &#99999999; &#65;">';
     expect(readMetaTag(page, "ol-x")).toEqual({ content: "&#x110000; &#99999999; A" });
