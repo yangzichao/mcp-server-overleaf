@@ -1,5 +1,5 @@
+import { findAllXmlElements, findXmlElement } from "../../metadataServices/findXmlElement.js";
 import { decodeXmlText } from "../../metadataServices/parseArxivFeed.js";
-import { findAllXmlElements, findXmlElement } from "./findXmlElement.js";
 
 /**
  * The first entry of an arXiv API answer, with what a reference needs. The API answers in

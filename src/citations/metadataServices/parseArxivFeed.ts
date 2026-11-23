@@ -1,3 +1,5 @@
+import { findXmlElement } from "./findXmlElement.js";
+
 /**
  * The title of the first entry in an arXiv API answer. The API answers in Atom, errors
  * included: a malformed id comes back as an entry titled "Error".
@@ -32,24 +34,12 @@ export type ArxivFeedEntry =
   | { readonly kind: "error"; readonly summary: string }
   | { readonly kind: "none" };
 
-/**
- * What lies between the first <name ...> and the </name> after it. An attribute value cannot hold
- * "<" in XML, so the opening tag ends before the next tag starts.
- */
-function readFirstElementContent(xml: string, elementName: string): string | undefined {
-  const openingTag = new RegExp(`<${elementName}\\b[^<>]*>`).exec(xml);
-  if (!openingTag) return undefined;
-  const contentStart = openingTag.index + openingTag[0].length;
-  const contentEnd = xml.indexOf(`</${elementName}>`, contentStart);
-  return contentEnd === -1 ? undefined : xml.slice(contentStart, contentEnd);
-}
-
 export function parseFirstArxivEntry(atomFeed: string): ArxivFeedEntry {
-  const entry = readFirstElementContent(atomFeed, "entry");
+  const entry = findXmlElement(atomFeed, "entry")?.content;
   if (entry === undefined) return { kind: "none" };
-  const title = decodeXmlText(readFirstElementContent(entry, "title") ?? "");
+  const title = decodeXmlText(findXmlElement(entry, "title")?.content ?? "");
   if (title === "Error") {
-    return { kind: "error", summary: decodeXmlText(readFirstElementContent(entry, "summary") ?? "") };
+    return { kind: "error", summary: decodeXmlText(findXmlElement(entry, "summary")?.content ?? "") };
   }
   return title === "" ? { kind: "none" } : { kind: "article", title };
 }
