@@ -35,7 +35,7 @@ it.each([
   [
     "edit_file",
     { action: "replace_text", path: "main.tex", content: "x", findText: "Hello.", replaceWith: "Hi." },
-    "content does not apply to replace_text; replace_section and write use it.",
+    "content does not apply to replace_text; replace_section, write and append use it.",
   ],
   [
     "edit_file",

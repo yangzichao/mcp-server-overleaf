@@ -8,18 +8,19 @@ import { projectArgument } from "../projectArgument.js";
 import { EDITS_LOCAL_CLONE } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult } from "../toolContext.js";
 import { expectedRevisionArgument } from "./editFileArguments.js";
+import { appendToFileEdit } from "./edits/appendToFileEdit.js";
 import { replaceSectionEdit } from "./edits/replaceSectionEdit.js";
 import { replaceTextEdit } from "./edits/replaceTextEdit.js";
 import { writeWholeFileEdit } from "./edits/writeWholeFileEdit.js";
 
-const EDIT_ACTIONS = ["replace_text", "replace_section", "write"] as const;
+const EDIT_ACTIONS = ["replace_text", "replace_section", "write", "append"] as const;
 
 const editFileInput = z.object({
   project: projectArgument,
   action: z
     .enum(EDIT_ACTIONS)
     .describe(
-      "How to edit: replace_text (an exact snippet), replace_section (a whole section, by title) or write (the whole file).",
+      "How to edit: replace_text (an exact snippet), replace_section (a whole section, by title), write (the whole file) or append (add to the end of the file).",
     ),
   path: z
     .string()
@@ -53,7 +54,7 @@ const editFileInput = z.object({
     .string()
     .optional()
     .describe(
-      "replace_section and write, required. For replace_section, the section's full replacement, starting with its own sectioning command, e.g. \\section{Introduction} followed by the new body. For write, the complete new contents of the file, not a fragment to append.",
+      "replace_section, write and append, required. For replace_section, the section's full replacement, starting with its own sectioning command, e.g. \\section{Introduction} followed by the new body. For write, the complete new contents of the file. For append, the text to add after the file's last line.",
     ),
 });
 
@@ -115,6 +116,19 @@ export function registerEditFileTool(server: McpServer, context: ToolContext): v
         );
       },
     },
+    append: {
+      uses: ["content"],
+      run: (input) => {
+        const content = requireArgument(input.content, "content", "append");
+        return editSynchronizedClone(input.project, (repository) =>
+          appendToFileEdit(repository, {
+            path: input.path,
+            expectedRevision: input.expectedRevision,
+            content,
+          }),
+        );
+      },
+    },
   };
 
   server.registerTool(
@@ -126,11 +140,12 @@ export function registerEditFileTool(server: McpServer, context: ToolContext): v
         "replace_text replaces an exact snippet, findText, with replaceWith: findText must match exactly, whitespace and newlines included, and occur once unless replaceAll is set, and replaceWith is inserted literally, so $$, $& and $1 stay as written. Prefer it for a targeted change, since nothing outside the snippet is touched. " +
         "replace_section replaces one whole section of a .tex file, found by sectionTitle as read_file finds it, from its heading to the next heading of the same or a shallower level, never swallowing trailing matter such as \\end{document} or the bibliography; content replaces that range line for line, so it must start with the sectioning command itself or the heading is lost, and should end with a newline to keep the blank line before the next heading. " +
         "write creates the file, with any missing parent directories, or overwrites it entirely with content, exactly as given, as UTF-8, with no trailing newline added; use it for a new file, since for an existing one the other actions cannot drop text you did not mean to rewrite. " +
+        "append adds content at the end of an existing file and leaves every line above it untouched: content starts on a new line and is written exactly as given, so end it with a newline to keep one at the end of the file. A missing file is refused, since write is the action that creates one. " +
         "expectedRevision makes any action a guarded edit, refused if the file changed since that read or, for write, no longer exists. " +
         "path must be relative and stay inside the project; absolute paths, .. escapes and the .git directory are refused. " +
         "Pulls from Overleaf first, then edits only the local clone: review the result with read_project (view changes) and publish it with push_changes. " +
         "If the snippet or the section is not found, or the snippet occurs several times without replaceAll, nothing changes and the reply gives the count or lists the section titles. " +
-        "Returns what was replaced or written.",
+        "Returns what was replaced, written or appended.",
       inputSchema: editFileInput,
       annotations: EDITS_LOCAL_CLONE,
     },
