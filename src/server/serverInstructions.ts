@@ -21,10 +21,13 @@ const GIT_WORKFLOW = [
     "example to run chktex, latexindent, texcount or latexdiff, or to change many files at once; " +
     "push_changes publishes those edits too. Leave Git to this server: do not commit, pull, push or " +
     "reset in the clone yourself.",
-  "check_references finds undefined, duplicate and unused labels and citations, and included files " +
-    "that do not exist, without compiling. look_up_citations sends entry titles, DOIs, arXiv ids, " +
-    "first authors and years to doi.org, Crossref and arXiv to check each entry names a real work.",
 ];
+
+const LATEX_CHECKS =
+  "check_references finds undefined, duplicate and unused labels and citations, and included files " +
+  "that do not exist, without compiling. look_up_citations checks that each bibliography entry names " +
+  "a real work, sending entry titles, DOIs, arXiv ids, first authors and years to doi.org, Crossref " +
+  "and arXiv, or finds BibTeX for a DOI, an arXiv id or a title; it never edits the bibliography.";
 
 const WEB_TOOLS =
   "The session-cookie tools act on Overleaf directly, with no push step: manage_tracked_changes, " +
@@ -39,14 +42,16 @@ const UNTRUSTED_CONTENT =
 const EDITOR_ONLY =
   "No Git credential is configured, so this server reaches Overleaf only through its editor and " +
   "web application, with the session cookie. Name a project by its Overleaf address, or call " +
-  "list_projects to find it. read_project, read_file, search_project and check_references read the " +
-  "live editor. edit_file and manage_files change the paper and its files in Overleaf at once, with " +
-  "no push step and no undo here, so confirm with the user before calling them; to propose a change " +
-  "for a co-author to review instead, use manage_tracked_changes (action suggest).";
+  "list_projects to find it. read_project, read_file, search_project, check_references and " +
+  "look_up_citations read the live editor. edit_file and manage_files change the paper and its " +
+  "files in Overleaf at once, with no push step and no undo here, so confirm with the user before " +
+  "calling them; to propose a change for a co-author to review instead, use manage_tracked_changes " +
+  "(action suggest).";
 
 export function describeServerInstructions(offered: OfferedToolGroups): string {
   const paragraphs = [
     ...(offered.gitBridgeToolsOffered ? GIT_WORKFLOW : [EDITOR_ONLY]),
+    LATEX_CHECKS,
     ...(offered.sessionCookieToolsOffered ? [WEB_TOOLS] : []),
     UNTRUSTED_CONTENT,
   ];
