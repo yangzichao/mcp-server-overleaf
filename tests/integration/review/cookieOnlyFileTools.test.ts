@@ -47,7 +47,7 @@ describe("file tools over the editor, with only a session cookie", () => {
 
   it("refuses a view that needs the Git clone", async () => {
     const client = await startCookieOnlyClient();
-    const response = await client.callRaw("read_project", { view: "outline" });
+    const response = await client.callRaw("read_project", { view: "status" });
     expect(response.result?.isError === true || response.error !== undefined).toBe(true);
   });
 

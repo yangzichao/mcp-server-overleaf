@@ -8,7 +8,7 @@ import {
 describe("reading the project details the editor connection receives", () => {
   it("reads the owner, members, settings and a per-user track-changes map", () => {
     const details = readProjectDetails({
-      owner: { _id: "u0" },
+      owner: { _id: "u0", first_name: "Olga", last_name: "Example", email: "olga@example.com" },
       members: [{ _id: "u1" }, { _id: "u2" }, { first_name: "no id" }],
       compiler: "xelatex",
       imageName: "texlive-full:2025.1",
@@ -18,6 +18,8 @@ describe("reading the project details the editor connection receives", () => {
     });
     expect(details).toEqual({
       ownerId: "u0",
+      ownerName: "Olga Example",
+      ownerEmail: "olga@example.com",
       memberIds: ["u1", "u2"],
       trackChangesAvailable: true,
       trackChanges: {
@@ -43,6 +45,14 @@ describe("reading the project details the editor connection receives", () => {
     const off = { onForEveryone: false, onForUserIds: [], namedUserIds: [], onForGuests: false };
     expect(readProjectDetails({ trackChangesState: false }).trackChanges).toEqual(off);
     expect(readProjectDetails(undefined).trackChanges).toEqual(off);
+  });
+
+  it("leaves the owner's name out when Overleaf sent only the id, as to a read-only link user", () => {
+    const details = readProjectDetails({ owner: { _id: "u0" } });
+    expect(details.ownerId).toBe("u0");
+    expect(details.ownerName).toBeUndefined();
+    expect(details.ownerEmail).toBeUndefined();
+    expect(readProjectDetails({ owner: { _id: "u0", first_name: "Olga" } }).ownerName).toBe("Olga");
   });
 
   it("says track changes is unavailable when the owner's plan lacks it", () => {

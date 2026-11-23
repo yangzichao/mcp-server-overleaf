@@ -53,6 +53,8 @@ export class FakeProjectSettingsRoutes implements FakeWebRoutes {
     messages: "",
   };
   readonly wordCountQueries: URLSearchParams[] = [];
+  /** Set by a test to answer the track-changes switch as accepted while changing nothing. */
+  ignoreTrackChangesSwitch = false;
 
   constructor(
     private readonly realtime: FakeOverleafRealtime,
@@ -144,6 +146,7 @@ export class FakeProjectSettingsRoutes implements FakeWebRoutes {
 
   private switchTrackChanges(request: FakeWebRequest): FakeAnswer {
     if (!this.access.canWrite(this.realtime.projectId)) return FORBIDDEN;
+    if (this.ignoreTrackChangesSwitch) return NO_CONTENT;
     const body = readJsonBody(request);
     const state = this.realtime.trackChangesState;
     if (body.on_for && typeof body.on_for === "object") {

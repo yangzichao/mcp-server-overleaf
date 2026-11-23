@@ -9,14 +9,38 @@ import { explainCompileStatus, type OverleafCompileResult } from "../../overleaf
 const MAXIMUM_REPORTED_WARNINGS = 15;
 const LOG_TAIL_LINES = 30;
 
+export interface SavedCompileOutput {
+  /** The output's name on Overleaf, such as "output.bbl". */
+  readonly name: string;
+  readonly path: string;
+  readonly size: string;
+}
+
 export interface OverleafCompileReport {
   readonly result: OverleafCompileResult;
   readonly log: string | undefined;
   /** output.blg, which BibTeX or biber leave when they ran. */
   readonly bibliographyLog?: string | undefined;
-  readonly savedPdf: { readonly path: string; readonly size: string } | undefined;
-  /** Where output.log was saved, when the compile produced one. */
-  readonly savedLogPath?: string | undefined;
+  /** Every output saved on this computer, in the order they are reported. */
+  readonly saved: readonly SavedCompileOutput[];
+}
+
+/** What each kept output is, for a reader who has not met Overleaf's output names. */
+function describeSavedOutput(output: SavedCompileOutput): string {
+  switch (output.name) {
+    case "output.pdf":
+      return `Saved the PDF (${output.size}) to ${output.path}.`;
+    case "output.log":
+      return `Saved the log to ${output.path}.`;
+    case "output.bbl":
+      return `Saved the bibliography BibTeX or Biber wrote (output.bbl) to ${output.path}.`;
+    case "output.blg":
+      return `Saved the BibTeX or Biber log (output.blg) to ${output.path}.`;
+    case "output.synctex.gz":
+      return `Saved the SyncTeX map from PDF positions to source lines (output.synctex.gz) to ${output.path}.`;
+    default:
+      return `Saved ${output.name} to ${output.path}.`;
+  }
 }
 
 function describeVerdict(result: OverleafCompileResult, errorCount: number): string {
@@ -55,10 +79,7 @@ export function describeOverleafCompile(report: OverleafCompileReport): string {
   if (failed && report.log && diagnostics.errorLines.length === 0) {
     lines.push("", "end of log:", report.log.split("\n").slice(-LOG_TAIL_LINES).join("\n"));
   }
-  const saved: string[] = [];
-  if (report.savedPdf) saved.push(`Saved the PDF (${report.savedPdf.size}) to ${report.savedPdf.path}.`);
-  if (report.savedLogPath) saved.push(`Saved the log to ${report.savedLogPath}.`);
-  if (saved.length > 0) lines.push("", ...saved);
+  if (report.saved.length > 0) lines.push("", ...report.saved.map(describeSavedOutput));
   if (report.result.outputFiles.length > 0) {
     lines.push("", `Output files: ${report.result.outputFiles.map((file) => file.path).join(", ")}`);
   }

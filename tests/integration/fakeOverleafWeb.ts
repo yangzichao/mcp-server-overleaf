@@ -50,6 +50,8 @@ export class FakeOverleafWeb {
   readonly requests: RecordedWebRequest[] = [];
   /** Set by a test to answer every request the way Overleaf answers a signed-out session. */
   sessionExpired = false;
+  /** Set by a test to accept message edits and deletions while changing nothing. */
+  ignoreMessageChanges = false;
   private nextMessageId = 0;
   private acceptedCsrfToken = CSRF_TOKEN;
 
@@ -190,6 +192,7 @@ export class FakeOverleafWeb {
     const match = /^\/thread\/([0-9a-f]{24})\/(messages|own-messages)\/([^/]+?)(\/edit)?$/.exec(rest);
     if (!match?.[1] || !match[2] || !match[3]) return undefined;
     const [, threadId, collection, messageId, edit] = match;
+    if (this.ignoreMessageChanges) return NO_CONTENT;
     if (method === "POST" && edit && collection === "messages")
       return this.editMessage(threadId, messageId, body);
     if (method === "DELETE" && !edit)

@@ -35,6 +35,8 @@ export async function compileLatexProject(options: {
     "-interaction=nonstopmode",
     "-file-line-error",
     "-halt-on-error",
+    // The map from PDF positions to source lines, beside the PDF, for SyncTeX lookups.
+    "-synctex=1",
     `-outdir=${buildDirectory}`,
     // "./" prefixed, always. latexmk parses any argument starting with a dash as an
     // option, so a file called "-weird.tex" is otherwise rejected as an unknown option
