@@ -7,7 +7,6 @@ import { editorPaper } from "../support/connectedOverleafEditor.js";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(
   fileURLToPath(new URL("replacingTextInTheEditor.feature", import.meta.url)),
 );

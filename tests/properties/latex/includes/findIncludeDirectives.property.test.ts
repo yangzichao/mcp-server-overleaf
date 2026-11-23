@@ -43,7 +43,6 @@ function render(include: WrittenInclude): string {
     : `\\${include.command}{${include.importDirectory}}{${include.fileName}}`;
 }
 
-/** Text between directives that holds no backslash or brace, so it cannot look like a command. */
 const filler = fc.stringMatching(/^[A-Za-z0-9 ,.;\n]{0,10}$/);
 
 describe("findIncludeDirectives properties", () => {

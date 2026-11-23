@@ -6,12 +6,6 @@ import { Worker } from "node:worker_threads";
 
 import { findRegularExpressions, listTypeScriptFiles } from "./findRegularExpressions.mjs";
 
-// Every regular expression in src runs on text the server does not control: a co-author's
-// LaTeX, a bibliography, an answer from arXiv or Crossref. One that backtracks
-// super-linearly lets a crafted file stall a tool, as the four CodeQL found in 0.5.0 did.
-// recheck decides it from the pattern alone, and its pure JavaScript backend needs no native
-// binary or Java.
-
 const checkDirectory = dirname(fileURLToPath(import.meta.url));
 const root = resolve(checkDirectory, "../../..");
 const reviewedPath = join(checkDirectory, "reviewedRegularExpressions.json");
@@ -20,13 +14,11 @@ function expressionKey(expression) {
   return `${expression.file}\n/${expression.source}/${expression.flags}`;
 }
 
-/** Patterns reviewed and kept on purpose, each with the reason its input cannot grow large. */
 function readReviewedExpressions() {
   const reviewed = JSON.parse(readFileSync(reviewedPath, "utf8"));
   return new Map(reviewed.map((entry) => [expressionKey(entry), entry.reason]));
 }
 
-/** Checks the expressions on a pool of workers, handing each idle worker the next one, in input order. */
 function checkOnWorkers(expressions) {
   if (expressions.length === 0) return Promise.resolve([]);
   const verdicts = new Array(expressions.length);

@@ -30,7 +30,6 @@ const PARTICLES = ["de", "la", "los", "van", "der", "von", "y", "di", "du", "ten
 const capitalised = fc.constantFrom(...CAPITALISED);
 const particle = fc.constantFrom(...PARTICLES);
 
-/** Particles first and last, and capitalised words may come between them, as in `de los Angeles Garcia y`. */
 const vonPart = fc.oneof(
   fc.constant([]),
   fc
@@ -50,12 +49,10 @@ export const personName: fc.Arbitrary<PersonName> = fc
   })
   .map((name) => (name.von.length === 0 ? { ...name, last: name.last.slice(-1) } : name));
 
-/** `First von Last`, which needs no comma. */
 export function writtenInOrder(name: PersonName): string {
   return [...name.first, ...name.von, ...name.last].join(" ");
 }
 
-/** `von Last, First`, for a name with a First. */
 export function writtenLastFirst(name: PersonName): string {
   return `${[...name.von, ...name.last].join(" ")}, ${name.first.join(" ")}`;
 }

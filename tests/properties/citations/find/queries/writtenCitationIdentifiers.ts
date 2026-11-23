@@ -1,10 +1,5 @@
 import fc from "fast-check";
 
-/**
- * DOIs and arXiv ids as people paste them into a citation search: bare, after a prefix, inside
- * a link, around it whatever whitespace a copy brings along.
- */
-
 const surroundingSpace = fc.constantFrom("", " ", "  ", "\n", "\t ", " \n");
 
 function surrounded(written: fc.Arbitrary<string>): fc.Arbitrary<string> {
@@ -24,10 +19,11 @@ const DOI_SUFFIX_PIECES = [
   "É",
 ];
 
-/** arXiv's own DOIs, under 10.48550, are read as arXiv ids, so they are left to the arXiv properties. */
+const ARXIV_DOI_REGISTRANT = "48550";
+
 export const doi: fc.Arbitrary<string> = fc
   .tuple(
-    fc.stringMatching(/^[0-9]{4,9}$/).filter((registrant) => registrant !== "48550"),
+    fc.stringMatching(/^[0-9]{4,9}$/).filter((registrant) => registrant !== ARXIV_DOI_REGISTRANT),
     fc.array(fc.constantFrom(...DOI_SUFFIX_PIECES), { minLength: 1, maxLength: 4 }),
   )
   .map(([registrant, suffix]) => `10.${registrant}/${suffix.join("")}`);
@@ -71,7 +67,6 @@ export const arxivIdentifier: fc.Arbitrary<ArxivIdentifier> = fc
     versioned: chosenVersion !== undefined,
   }));
 
-/** The text with each letter in either case, as an id typed by hand or lower-cased by a tool may be. */
 function inAnyCase(text: string): fc.Arbitrary<string> {
   const characters = [...text];
   return fc
@@ -97,8 +92,8 @@ const ARXIV_FORMS = [
 
 /** arXiv's DOIs name a paper, not one of its versions. */
 const ARXIV_DOI_FORMS = [
-  (written: string) => `10.48550/arXiv.${written}`,
-  (written: string) => `https://doi.org/10.48550/ARXIV.${written}`,
+  (written: string) => `10.${ARXIV_DOI_REGISTRANT}/arXiv.${written}`,
+  (written: string) => `https://doi.org/10.${ARXIV_DOI_REGISTRANT}/ARXIV.${written}`,
 ];
 
 export function writtenArxivId(identifier: ArxivIdentifier): fc.Arbitrary<string> {

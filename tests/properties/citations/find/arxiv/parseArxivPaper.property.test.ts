@@ -2,10 +2,13 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { parseArxivPaper } from "../../../../../src/citations/find/arxiv/parseArxivPaper.js";
-import { millisecondsToRun, pumpedText } from "../../../support/pumpedText.js";
+import {
+  LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME,
+  millisecondsToRun,
+  pumpedText,
+} from "../../../support/pumpedText.js";
 import { arxivFeed } from "./generatedArxivFeed.js";
 
-/** The pattern the versioned id was once read with. It is right but takes quadratic time, so it serves here as the reference. */
 const VERSIONED_ID_REFERENCE = /arxiv\.org\/abs\/(\S+)$/i;
 
 function titledEntry(inside: string): string {
@@ -63,7 +66,7 @@ describe("parseArxivPaper properties", () => {
     const feed = fc
       .tuple(
         fc.constantFrom("", "<entry>", "<entry><title>T</title>", "<entry><title>T</title><id>"),
-        pumpedText(pieces, { minimumLength: 50_000, maximumLength: 200_000 }),
+        pumpedText(pieces, LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME),
         fc.constantFrom("", "</entry>", " x</id></entry>"),
       )
       .map((parts) => parts.join(""));

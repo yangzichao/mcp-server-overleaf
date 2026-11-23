@@ -12,7 +12,6 @@ export async function realPathOfNearestExistingAncestor(path: string): Promise<s
       return await realpath(candidate);
     } catch {
       const parent = dirname(candidate);
-      // The filesystem root always exists, so this terminates.
       if (parent === candidate) return candidate;
       candidate = parent;
     }

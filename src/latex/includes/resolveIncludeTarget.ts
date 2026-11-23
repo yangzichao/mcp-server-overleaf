@@ -27,7 +27,6 @@ function candidateFileNames(directive: IncludeDirective): string[] {
   return directive.alwaysAddsTexExtension ? [`${fileName}.tex`] : [`${fileName}.tex`, fileName];
 }
 
-/** A directory outside the project, as in `\import{../}{intro}`, holds no project file to try. */
 function importedDirectories(directive: IncludeDirective, includer: IncludingFile): string[] {
   const writtenDirectory = directive.importDirectory ?? "";
   const starts = directive.importIsRelative ? [includer.baseDirectory, directoryOf(includer.path)] : [""];

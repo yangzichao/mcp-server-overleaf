@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { findChangedLineRanges } from "../../../../../src/overleaf/realtime/textChanges/changedLineRanges.js";
 import { documentLines } from "./editedDocuments.js";
 
-/** The length of the longest common subsequence of lines, by the textbook table. */
 function longestCommonSubsequence(oldLines: readonly string[], newLines: readonly string[]): number {
   const row = new Array<number>(newLines.length + 1).fill(0);
   for (const oldLine of oldLines) {

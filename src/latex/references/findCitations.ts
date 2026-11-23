@@ -2,11 +2,8 @@ import { locationOf, type ScannedSource } from "../source/scannedSource.js";
 import { type KeyOccurrence, splitKeys } from "./keyOccurrence.js";
 
 /**
- * Citation commands from LaTeX, natbib, biblatex and apacite. Matching any command with
- * "cite" in its name, or starting with "Cite", covers \citep, \parencite, \textcite,
- * \footcite, \nocite, natbib's \Citet and the rest without a list to keep current; the few
- * such commands that take no keys are excluded. biblatex's \DeclareAutoCiteCommand and its
- * kin define commands and cite nothing.
+ * Citation commands from LaTeX, natbib, biblatex and apacite. biblatex's \DeclareAutoCiteCommand
+ * and its kin define commands and cite nothing.
  */
 
 const CITATION_PATTERN = /\\(?=[A-Za-z]*cite|Cite)([A-Za-z]+)\*?((?:\s*\[[^[\]]*\]){0,2})\s*\{([^{}]*)\}/g;

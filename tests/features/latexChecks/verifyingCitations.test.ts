@@ -102,7 +102,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
       metadata = await FakeMetadataServices.start();
       project = await ConnectedOverleafProject.openWith({
         publishedFiles: paperWithCitations,
-        environment: () => metadata.environment(),
+        environmentOverrides: () => metadata.environment(),
       });
     });
     And("the catalogues know some of those works", () => {

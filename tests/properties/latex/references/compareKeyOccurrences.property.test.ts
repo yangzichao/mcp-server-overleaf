@@ -8,7 +8,6 @@ import {
 } from "../../../../src/latex/references/compareKeyOccurrences.js";
 import type { KeyOccurrence } from "../../../../src/latex/references/keyOccurrence.js";
 
-/** A small key space, with case variants, so collisions and near-misses are common. */
 const key = fc.constantFrom("fig:a", "Fig:A", "fig:b", "eq:1", "smith2020", "Smith2020", "北京", "𝔸");
 const occurrence: fc.Arbitrary<KeyOccurrence> = fc.record({
   key,

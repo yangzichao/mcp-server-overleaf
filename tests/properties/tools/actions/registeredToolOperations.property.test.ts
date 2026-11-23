@@ -3,12 +3,6 @@ import type * as z from "zod/v4";
 
 import { type RegisteredTool, registeredTools, resultText } from "./fakeToolRegistration.js";
 
-/**
- * Every action and view of every tool, with each argument its "needs" message names added in
- * turn, as the server would after the schema accepts the call. A required argument must never
- * be one the dispatcher refuses as not applying, and every "needs" message names the action.
- */
-
 const SELECTOR_FIELDS = ["action", "view", "where"];
 const NEEDS_MESSAGE = /^(\w+) needs (.+)\.$/;
 const PLACEHOLDERS: readonly unknown[] = ["x", 1, true, ["x"]];
@@ -24,7 +18,6 @@ function choices(schema: FieldSchema): readonly unknown[] {
   return inner?.options ?? [];
 }
 
-/** A value the field's schema accepts, or undefined when none of the plain ones fits. */
 function placeholderFor(schema: FieldSchema): unknown {
   return [...choices(schema), ...PLACEHOLDERS].find((candidate) => schema.safeParse(candidate).success);
 }
@@ -44,7 +37,6 @@ function selectedOperations(tools: readonly RegisteredTool[]): SelectedOperation
   });
 }
 
-/** The call with the selector and a placeholder for each field the schema cannot do without. */
 function smallestAcceptedInput({ tool, selector, value }: SelectedOperation): Record<string, unknown> {
   const input: Record<string, unknown> = { [selector]: value };
   for (const [field, schema] of Object.entries(tool.inputSchema.shape)) {

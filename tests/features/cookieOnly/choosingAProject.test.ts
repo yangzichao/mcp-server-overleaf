@@ -5,7 +5,6 @@ import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("choosingAProject.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 

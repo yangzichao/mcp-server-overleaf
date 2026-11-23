@@ -1,10 +1,6 @@
 import { ConnectedOverleafEditor } from "./connectedOverleafEditor.js";
 import type { ServerCredentials } from "./serverCredentials.js";
 
-/**
- * Holds the world of the scenario that is running, so step definitions shared between feature
- * files can reach it. Opened by the scenario's first step and closed after its last.
- */
 export class OverleafEditorScenario {
   private openWorld: ConnectedOverleafEditor | undefined;
 

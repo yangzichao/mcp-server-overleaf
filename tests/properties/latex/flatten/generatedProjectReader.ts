@@ -2,7 +2,6 @@ import type { ProjectSourceReader } from "../../../../src/latex/includes/walkInc
 import { UNREADABLE_MESSAGE } from "./expectedFlattening.js";
 import { type GeneratedProject, renderFile } from "./generatedLatexProject.js";
 
-/** The project as the flattener reads it, recording every path it asks for. */
 export function generatedProjectReader(
   project: GeneratedProject,
 ): ProjectSourceReader & { readonly reads: string[] } {

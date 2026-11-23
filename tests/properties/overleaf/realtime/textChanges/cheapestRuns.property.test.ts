@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { cheapestRuns, type Run } from "../../../../../src/overleaf/realtime/textChanges/cheapestRuns.js";
 
-/** Every way to cut a row of `count` items into runs of neighbours, as each run's first and last index. */
 function everySplit(count: number): Run<number>[][] {
   if (count === 0) return [[]];
   const splits: Run<number>[][] = [];

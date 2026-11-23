@@ -7,7 +7,7 @@ import {
   guessMainTexFile,
   LATEX_FILE_CATEGORIES,
 } from "../../../src/latex/latexProjectFiles.js";
-import { latexText } from "../support/latexArbitraries.js";
+import { latexTextWithLineBreaksAnywhere } from "../support/latexArbitraries.js";
 
 const extension = fc.constantFrom(
   "tex",
@@ -82,9 +82,14 @@ describe("guessMainTexFile properties", () => {
 describe("containsDocumentEnvironment properties", () => {
   it("is true once \\begin{document} is added anywhere, with any spacing", () => {
     fc.assert(
-      fc.property(latexText, latexText, fc.constantFrom("", " ", "\n", "  \t"), (before, after, spacing) => {
-        expect(containsDocumentEnvironment(`${before}\\begin${spacing}{document}${after}`)).toBe(true);
-      }),
+      fc.property(
+        latexTextWithLineBreaksAnywhere,
+        latexTextWithLineBreaksAnywhere,
+        fc.constantFrom("", " ", "\n", "  \t"),
+        (before, after, spacing) => {
+          expect(containsDocumentEnvironment(`${before}\\begin${spacing}{document}${after}`)).toBe(true);
+        },
+      ),
     );
   });
 });

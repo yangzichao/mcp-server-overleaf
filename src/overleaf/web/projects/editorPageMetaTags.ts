@@ -10,7 +10,6 @@ export interface MetaTag {
 
 const HTML_ENTITIES: Record<string, string> = { quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" };
 
-/** A reference past U+10FFFF names no character, so it stays as written rather than throw. */
 function codePointText(code: number, entity: string): string {
   return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
 }
@@ -25,41 +24,36 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
-/** A tag ends at the next `<` or `>`, so one left open does not run into the next. */
 const META_TAG = /<meta\s[^<>]*>/gi;
 
-/** An attribute's name, then a value in double quotes, in single quotes, bare, or none. */
-const ATTRIBUTE = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>=`]+)))?/y;
+const ATTRIBUTE =
+  /\s+(?<name>[^\s"'<>/=]+)(?:\s*=\s*(?:"(?<doubleQuoted>[^"]*)"|'(?<singleQuoted>[^']*)'|(?<unquoted>[^\s"'<>=`]+)))?/y;
 
 /**
  * The tag's attributes, read one after another, so a quoted value is never taken for an
  * attribute: Pug leaves `'` unescaped, so a value can hold `name='ol-…'`.
- * A bare attribute, as a true boolean's `content`, is there with an undefined value.
  */
-function readAttributes(tag: string): Map<string, string | undefined> {
-  const attributes = new Map<string, string | undefined>();
+function readAttributes(tag: string): Map<string, string> {
+  const attributes = new Map<string, string>();
   const attribute = new RegExp(ATTRIBUTE);
   attribute.lastIndex = "<meta".length;
   for (let match = attribute.exec(tag); match !== null; match = attribute.exec(tag)) {
-    const name = (match[1] ?? "").toLowerCase();
-    if (!attributes.has(name)) attributes.set(name, match[2] ?? match[3] ?? match[4]);
+    const { name = "", doubleQuoted, singleQuoted, unquoted } = match.groups ?? {};
+    const lowerCaseName = name.toLowerCase();
+    if (!attributes.has(lowerCaseName)) {
+      attributes.set(lowerCaseName, doubleQuoted ?? singleQuoted ?? unquoted ?? "");
+    }
   }
   return attributes;
 }
 
-/**
- * Undefined when the page has no such tag. Each tag is found first and its attributes read
- * after: one pattern for both backtracks quadratically on a tag that repeats `name="…"` and
- * never closes.
- */
 export function readMetaTag(html: string, name: string): MetaTag | undefined {
   const wanted = name.toLowerCase();
   for (const [tag] of html.matchAll(META_TAG)) {
     const attributes = readAttributes(tag);
     if (attributes.get("name")?.toLowerCase() !== wanted) continue;
     const content = attributes.get("content");
-    if (content !== undefined) return { content: decodeHtmlEntities(content) };
-    return { content: attributes.has("content") ? "" : undefined };
+    return { content: content === undefined ? undefined : decodeHtmlEntities(content) };
   }
   return undefined;
 }

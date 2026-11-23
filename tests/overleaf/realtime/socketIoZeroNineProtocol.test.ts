@@ -117,7 +117,6 @@ describe("the handshake body", () => {
 });
 
 describe("socket.io 0.9 frames with a malformed length", () => {
-  // A negative length used to move the cursor back before the delimiter, and decoding never ended.
   it("stops at a negative, fractional or empty length instead of looping", () => {
     expect(decodeSocketIoFrame("\ufffd-5\ufffd")).toEqual([]);
     expect(decodeSocketIoFrame("\ufffd3\ufffd2::\ufffd0.5\ufffd2::")).toEqual([{ type: "heartbeat" }]);

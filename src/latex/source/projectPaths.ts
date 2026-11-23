@@ -8,7 +8,6 @@ export function directoryOf(projectPath: string): string {
   return lastSlash === -1 ? "" : projectPath.slice(0, lastSlash);
 }
 
-/** The segments of a path written in the source, joined onto a directory; null when they leave the project. */
 function joinedSegments(directory: string, writtenPath: string): string[] | null {
   if (writtenPath.startsWith("/") || /^[A-Za-z]:/.test(writtenPath)) return null;
   const segments: string[] = [];
@@ -27,14 +26,12 @@ function joinedSegments(directory: string, writtenPath: string): string[] | null
 /**
  * Joins a directory and a path written in the source, collapsing `.` and `..`. Null when
  * the result is not inside the project: an absolute path, or one that climbs above the root.
- * The root itself is no file, so it is null too.
  */
 export function joinProjectPath(directory: string, writtenPath: string): string | null {
   const segments = joinedSegments(directory, writtenPath);
   return segments === null || segments.length === 0 ? null : segments.join("/");
 }
 
-/** Like joinProjectPath, for a directory: the project root itself is "". */
 export function joinProjectDirectory(directory: string, writtenPath: string): string | null {
   return joinedSegments(directory, writtenPath)?.join("/") ?? null;
 }

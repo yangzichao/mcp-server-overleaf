@@ -1,4 +1,3 @@
-/** A stretch of the old text, and the stretch of the new text that replaces it. */
 export interface TextSpan {
   readonly oldFrom: number;
   readonly oldTo: number;
@@ -19,10 +18,6 @@ function isLowSurrogate(codeUnit: number): boolean {
   return codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
 }
 
-/**
- * How many code units the two sides of `span` share at their start, and then at their end past
- * what the start took, never splitting a surrogate pair.
- */
 export function commonEnds(oldText: string, newText: string, span: TextSpan): CommonEnds {
   const limit = Math.min(span.oldTo - span.oldFrom, span.newTo - span.newFrom);
   let prefix = 0;
@@ -44,7 +39,6 @@ export function commonEnds(oldText: string, newText: string, span: TextSpan): Co
   return { prefix, suffix };
 }
 
-/** The code units a change of `span` deletes and inserts, once its common ends are left out. */
 export function changedLength(oldText: string, newText: string, span: TextSpan): number {
   const { prefix, suffix } = commonEnds(oldText, newText, span);
   return span.oldTo - span.oldFrom + (span.newTo - span.newFrom) - 2 * (prefix + suffix);

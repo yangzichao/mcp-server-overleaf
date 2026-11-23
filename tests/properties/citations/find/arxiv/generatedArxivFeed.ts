@@ -2,12 +2,6 @@ import fc from "fast-check";
 
 import type { ArxivPaperRecord } from "../../../../../src/citations/find/arxiv/parseArxivPaper.js";
 
-/**
- * arXiv API answers for one paper, in the layout of the answer for 1706.03762 copied into
- * tests/citations/find/arxivPaper.test.ts, with the text escaped as XML in the ways a feed may
- * escape it and laid out with the whitespace a feed may add.
- */
-
 export interface GeneratedArxivFeed {
   readonly paper: ArxivPaperRecord;
   readonly feed: string;
@@ -21,8 +15,7 @@ const XML_ESCAPES: Record<string, string> = {
   "'": "&apos;",
 };
 
-/** Escapes text as XML, writing some characters as numeric references, which a feed may also do. */
-function escapedXmlText(text: string): fc.Arbitrary<string> {
+export function escapedXmlText(text: string): fc.Arbitrary<string> {
   const characters = [...text];
   return fc
     .array(fc.boolean(), { minLength: characters.length, maxLength: characters.length })
@@ -37,7 +30,7 @@ function escapedXmlText(text: string): fc.Arbitrary<string> {
     );
 }
 
-function collapseWhitespace(text: string): string {
+export function collapseWhitespace(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
@@ -79,7 +72,6 @@ const category = fc.constantFrom("cs.CL", "cs.LG", "hep-th", "math.GT", "q-bio.N
 const optionalText = (pieces: readonly string[]) => fc.option(phrase(pieces), { nil: undefined });
 const indentation = fc.constantFrom("", "\n", "\n    ", " ");
 
-/** Each element and its text, in the order an arXiv answer lists them. */
 const feedParts = fc.record({
   versionedId,
   title,

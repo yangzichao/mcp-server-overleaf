@@ -2,24 +2,20 @@ import fc from "fast-check";
 
 import type { PropertyValuePools } from "./jsonSchemaArbitrary.js";
 
-/** What the seeded project holds, so generated arguments can name things that exist. */
 export interface KnownProjectValues {
   readonly projectId: string;
   readonly filePaths: readonly string[];
   readonly sectionTitles: readonly string[];
   readonly commitHashes: readonly string[];
-  /** read_file's revisions of the seeded files, for expectedRevision and previousRevision. */
   readonly fileRevisions: readonly string[];
   readonly threadIds: readonly string[];
   readonly messageIds: readonly string[];
   readonly changeIds: readonly string[];
   readonly citationKeys: readonly string[];
   readonly registeredDoi: string;
-  /** Files and folders under the sandbox for sourcePath and saveTo, never anywhere else. */
-  readonly localPaths: readonly string[];
+  readonly sandboxPaths: readonly string[];
 }
 
-/** `common` most of the time, `rare` now and then. */
 function mostly<T>(common: readonly T[], rare: readonly T[]): fc.Arbitrary<T> {
   return fc.oneof(
     { arbitrary: fc.constantFrom(...common), weight: 5 },
@@ -87,8 +83,8 @@ export function fuzzedArgumentPools(known: KnownProjectValues): PropertyValuePoo
     threadId: fc.constantFrom(...known.threadIds),
     messageId: fc.constantFrom(...known.messageIds),
     changeIds: mostly(known.changeIds, ["", "missing"]),
-    sourcePath: mostly(known.localPaths, ["relative.png", ""]),
-    saveTo: mostly(known.localPaths, ["relative.zip", ""]),
+    sourcePath: mostly(known.sandboxPaths, ["relative.png", ""]),
+    saveTo: mostly(known.sandboxPaths, ["relative.zip", ""]),
     contentBase64: fc.constantFrom("aGVsbG8=", "", "!!!", "AAAA", "iVBORw0KGgo="),
     name: mostly(["Copy of paper", "Renamed paper"], ["a/b", " ", "x".repeat(150), "x".repeat(151)]),
     tag: mostly(["fuzz", "Tag With Spaces"], ["x".repeat(50), " "]),

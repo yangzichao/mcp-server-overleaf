@@ -4,13 +4,6 @@ import type { OfferedToolGroups } from "../../../../src/tools/offeredToolGroups.
 import { registerOverleafTools } from "../../../../src/tools/registerOverleafTools.js";
 import type { ToolTextResult } from "../../../../src/tools/toolContext.js";
 
-/**
- * Every tool as registerOverleafTools registers it, with a context that refuses to be used: a
- * call that reaches its handler's own work stops there with FAKE_CONTEXT_USED, before any
- * project, Git or Overleaf is touched. runToolSafely reads the configuration's secrets, so
- * those few fields are there.
- */
-
 const FAKE_CONTEXT_USED = "FAKE_CONTEXT_USED";
 
 export interface RegisteredTool {

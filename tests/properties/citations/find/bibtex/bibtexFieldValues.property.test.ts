@@ -2,12 +2,13 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { markupToLatex, normalizePages } from "../../../../../src/citations/find/bibtex/bibtexFieldValues.js";
-import { millisecondsToRun, pumpedText } from "../../../support/pumpedText.js";
+import {
+  LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME,
+  millisecondsToRun,
+  pumpedText,
+} from "../../../support/pumpedText.js";
 
-/** The pattern page ranges were once normalized with. It is right but takes quadratic time, so it serves here as the reference. */
 const PAGE_DASH_REFERENCE = /\s*(?:-{1,3}|[‐-―−])\s*/g;
-
-const LONG_ENOUGH_FOR_QUADRATIC = { minimumLength: 50_000, maximumLength: 200_000 };
 
 const DASHES_AND_SPACES = ["-", "--", "---", "–", "—", "−", "‐", " ", "\t", " ", "\n"];
 
@@ -25,7 +26,7 @@ describe("normalizePages properties", () => {
 
   it("reads long runs of spaces and dashes at once", () => {
     fc.assert(
-      fc.property(pumpedText([...DASHES_AND_SPACES, "1"], LONG_ENOUGH_FOR_QUADRATIC), (pages) => {
+      fc.property(pumpedText([...DASHES_AND_SPACES, "1"], LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME), (pages) => {
         expect(millisecondsToRun(() => normalizePages(pages))).toBeLessThan(1000);
       }),
       { numRuns: 40, endOnFailure: true },
@@ -37,7 +38,7 @@ describe("markupToLatex properties", () => {
   it("reads long runs of tags that never close at once", () => {
     const pieces = ["<", "b", "i", ">", "</", "S", " ", "\u0000"];
     fc.assert(
-      fc.property(pumpedText(pieces, LONG_ENOUGH_FOR_QUADRATIC), (text) => {
+      fc.property(pumpedText(pieces, LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME), (text) => {
         expect(millisecondsToRun(() => markupToLatex(text))).toBeLessThan(1000);
       }),
       { numRuns: 40, endOnFailure: true },

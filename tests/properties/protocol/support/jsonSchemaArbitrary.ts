@@ -1,6 +1,7 @@
 import fc from "fast-check";
 
-/** The parts of JSON Schema that the server's Zod schemas produce in `tools/list`. */
+import { showsASignOfACrash } from "./replyProblems.js";
+
 export interface JsonSchema {
   readonly type?: string;
   readonly enum?: readonly (string | number | boolean)[];
@@ -20,17 +21,10 @@ export interface JsonSchema {
   readonly anyOf?: readonly JsonSchema[];
 }
 
-/**
- * Values worth trying for a property, by the property's name: paths that exist, revisions the
- * project has, text the files contain. A value from the pool is still kept only when the
- * schema allows it, so a pool can hold near misses without breaking the schema.
- */
 export type PropertyValuePools = Readonly<Record<string, fc.Arbitrary<unknown>>>;
 
-/** Arrays stay short: a call with many keys or queries tests nothing a call with four does not. */
 const LONGEST_GENERATED_ARRAY = 4;
 
-/** Text that trips string handling: LaTeX specials, line breaks, astral and control characters. */
 const AWKWARD_TEXT = fc.oneof(
   fc.constantFrom(
     "",
@@ -81,15 +75,15 @@ function allowedBy(schema: JsonSchema): (value: unknown) => boolean {
 }
 
 function stringFrom(schema: JsonSchema, pool: fc.Arbitrary<unknown> | undefined): fc.Arbitrary<unknown> {
-  const anyText =
+  const generatedText =
     schema.pattern === undefined ? AWKWARD_TEXT : fc.stringMatching(new RegExp(schema.pattern, "u"));
+  const anyText = generatedText.filter((text) => !showsASignOfACrash(text));
   const candidates = pool
     ? fc.oneof({ arbitrary: pool, weight: 4 }, { arbitrary: anyText, weight: 1 })
     : anyText;
   return candidates.filter(allowedBy(schema));
 }
 
-/** Any value `schema` accepts, drawn from `pool` most of the time when there is one. */
 function arbitraryFromSchema(
   schema: JsonSchema,
   pool: fc.Arbitrary<unknown> | undefined,
@@ -117,7 +111,6 @@ function arbitraryFromSchema(
   }
 }
 
-/** A value for every property of a tool's input, each from its schema and its pool. */
 export function argumentValuesFromSchema(
   inputSchema: JsonSchema,
   pools: PropertyValuePools,

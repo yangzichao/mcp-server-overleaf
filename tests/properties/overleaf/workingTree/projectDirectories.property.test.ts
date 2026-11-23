@@ -31,7 +31,6 @@ function directoriesOf(files: readonly string[]): string[] {
   return [...directories].sort();
 }
 
-/** A path as a caller may write it, with "./" before it or "/" after it. */
 function spelled(path: fc.Arbitrary<string>): fc.Arbitrary<string> {
   return fc
     .tuple(fc.constantFrom("", "./"), path, fc.constantFrom("", "/"))
@@ -42,7 +41,6 @@ const anyPath = fc
   .array(fc.constantFrom(...DIRECTORY_NAMES, ...FILE_NAMES), { minLength: 1, maxLength: 4 })
   .map((segments) => segments.join("/"));
 
-/** The Git path a written path names. */
 function gitPathOf(written: string): string {
   return posix.normalize(written.trim()).replace(/\/$/, "");
 }
@@ -85,8 +83,6 @@ const treeWithDirectory = projectFiles.chain((files) =>
 );
 
 describe("ProjectDirectories properties", () => {
-  // Found by this property: `plot.png/a` beside a file plot.png once threw ENOTDIR with the clone's
-  // absolute path, because only ENOENT was read as missing, and stat refuses a path under a file.
   it("names a file as a file, a directory as a directory, and any other path as missing", async () => {
     await fc.assert(
       fc.asyncProperty(treeWithPath, async ({ files, path }) => {

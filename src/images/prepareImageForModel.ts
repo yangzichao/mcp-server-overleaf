@@ -47,7 +47,6 @@ function textStart(bytes: Uint8Array): string {
 
 const RENDER_FIRST = "Render it to PNG first, then read the PNG";
 
-/** Where the text goes on after the first `closing` from `from`, or -1 when nothing closes it. */
 function endOf(text: string, closing: string, from: number): number {
   const closingAt = text.indexOf(closing, from);
   return closingAt === -1 ? -1 : closingAt + closing.length;
@@ -64,10 +63,6 @@ function endOfDoctype(text: string): number {
   return close ? close.index + close[0].length : -1;
 }
 
-/**
- * True when the text opens an SVG file: `<svg` after what XML allows before the root element,
- * in any order: the XML declaration and other processing instructions, comments, and a doctype.
- */
 function startsAsSvg(start: string): boolean {
   let rest = start;
   for (;;) {

@@ -14,7 +14,6 @@ import {
 import { anyJsonField, awkwardText, notAnOverleafId, overleafId } from "./generatedOverleafAnswers.js";
 import { changesSent, recordingWebClient, type SentRequest } from "./recordingWebClient.js";
 
-/** Names that differ only in case or spacing, so a lookup by name has to match exactly. */
 const TAG_NAMES = ["Thesis", "thesis", "Thesis ", "2026", "Été"];
 
 const describedTag = fc.record(
@@ -33,7 +32,6 @@ const describedTag = fc.record(
   { requiredKeys: [] },
 );
 
-/** What `GET /tag` may answer: mostly a list of tags among other values. */
 const tagListAnswer = fc.oneof(
   {
     weight: 4,
@@ -95,7 +93,6 @@ const tagName = fc.oneof(
   fc.string({ minLength: 48, maxLength: 52 }),
 );
 
-/** Overleaf answers `POST /tag` with the tag it made, here with the id given. */
 function answerCreatedTag(tagId: string) {
   return (request: SentRequest): unknown => {
     const body = (request.body ?? {}) as Record<string, unknown>;
@@ -164,8 +161,6 @@ describe("projectTags properties", () => {
     );
   });
 
-  // Found by this property: tagProjectByName with the project id `0aaaa0000000aaaaa00a00000` once
-  // created the tag and then refused the id, because the id was checked only when adding the project.
   it("refuses an id given to it that is not an Overleaf id before it changes anything", async () => {
     type Client = Parameters<typeof fetchTags>[0];
     const helpers = {

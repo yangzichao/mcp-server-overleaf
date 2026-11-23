@@ -31,7 +31,6 @@ export function registerPushChangesTool(server: McpServer, context: ToolContext)
         "Returns the new commit hash and the diff that was published, or reports that there was nothing to push.",
       inputSchema: z.object({
         project: projectArgument,
-        // Git refuses an empty message only after everything is staged, so it is refused here first.
         commitMessage: z
           .string()
           .trim()

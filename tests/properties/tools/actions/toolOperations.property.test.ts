@@ -31,7 +31,6 @@ const operationTable = fc
       .map((parts) => ({ names, ...parts })),
   );
 
-/** "a", "a and b", "a, b and c". */
 function listed(items: readonly string[]): string {
   return items.length <= 2 ? items.join(" and ") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
@@ -58,19 +57,20 @@ describe("runSelectedOperation properties", () => {
         const refused = Object.entries(input).find(
           ([name, value]) => value !== undefined && !shared.includes(name) && !selectedUses.includes(name),
         )?.[0];
-        // It refuses before it returns a promise; every tool calls it inside runToolSafely's then.
-        const outcome = Promise.resolve().then(() =>
+        const outcomeAsRunToolSafelySeesIt = Promise.resolve().then(() =>
           runSelectedOperation<string, GeneratedInput>(selected, operations, input, shared),
         );
         if (refused === undefined) {
-          await expect(outcome).resolves.toEqual(textResult(selected));
+          await expect(outcomeAsRunToolSafelySeesIt).resolves.toEqual(textResult(selected));
           expect(ran).toEqual([selected]);
           return;
         }
         const users = names.filter((name) => operations[name]?.uses.includes(refused));
         const usedBy =
           users.length === 0 ? "" : `; ${listed(users)} ${users.length === 1 ? "uses" : "use"} it`;
-        await expect(outcome).rejects.toThrow(`${refused} does not apply to ${selected}${usedBy}.`);
+        await expect(outcomeAsRunToolSafelySeesIt).rejects.toThrow(
+          `${refused} does not apply to ${selected}${usedBy}.`,
+        );
         expect(ran).toEqual([]);
       }),
     );

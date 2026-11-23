@@ -3,12 +3,14 @@ import { parentPort } from "node:worker_threads";
 process.env.RECHECK_BACKEND = "pure";
 const { check } = await import("recheck");
 
-// Only step counts bound a check, never time, so a slow or busy machine reaches the same verdict.
-// The fixed seed makes the fuzzing step repeatable.
-const CHECK_PARAMETERS = { randomSeed: 0, timeout: null, incubationTimeout: null };
+const PARAMETERS_FOR_THE_SAME_VERDICT_ON_EVERY_MACHINE = {
+  randomSeed: 0,
+  timeout: null,
+  incubationTimeout: null,
+};
 
 async function checkExpression({ index, source, flags }) {
-  const result = await check(source, flags, CHECK_PARAMETERS);
+  const result = await check(source, flags, PARAMETERS_FOR_THE_SAME_VERDICT_ON_EVERY_MACHINE);
   return {
     index,
     verdict: {

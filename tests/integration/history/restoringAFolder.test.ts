@@ -4,12 +4,6 @@ import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
 import { responseText } from "../support/mcpProtocol.js";
 
-/**
- * restore and read_file with a revision take one file. Given a folder, git restore would rewrite
- * every file in it and delete the ones added since, under a reply that named one path, and git
- * show would return the folder's listing as if it were a file's text.
- */
-
 const FIRST_INTRO = "Intro, first version.\n";
 
 describe("a folder named where a file at a revision is expected", () => {

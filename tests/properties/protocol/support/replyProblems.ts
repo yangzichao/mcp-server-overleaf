@@ -1,13 +1,7 @@
 import type { JsonRpcResponse, McpContentBlock } from "../../../integration/support/mcpProtocol.js";
 
-/** JSON-RPC's code for arguments a method refuses, the one error a schema-valid call may still get. */
 const INVALID_PARAMS = -32602;
 
-/**
- * Text that only reaches a reply when code failed rather than refused: a JavaScript error's
- * name or stock message, a stack frame, Node's own file system error, or a value interpolated
- * without being checked. The seeded project and the generated arguments contain none of these.
- */
 const SIGNS_OF_A_CRASH: readonly RegExp[] = [
   /\b(?:TypeError|ReferenceError|RangeError|EvalError|URIError|AggregateError)\b/,
   /\bE(?:NOENT|ISDIR|NOTDIR|ACCES|PERM|EXIST|NOTEMPTY|BUSY|MFILE|NAMETOOLONG|LOOP):/,
@@ -21,6 +15,10 @@ const SIGNS_OF_A_CRASH: readonly RegExp[] = [
   /[/(:="'`[{]\s?undefined\b/,
   /\bundefined(?=[/.:)\]}"'`])/,
 ];
+
+export function showsASignOfACrash(text: string): boolean {
+  return SIGNS_OF_A_CRASH.some((sign) => sign.test(text));
+}
 
 function blockProblems(block: McpContentBlock): string[] {
   if (block.type === "image") {
@@ -38,7 +36,6 @@ function blockProblems(block: McpContentBlock): string[] {
   return problems;
 }
 
-/** Why a reply to a call made with schema-valid arguments is not a proper answer, if it is not. */
 export function replyProblems(response: JsonRpcResponse): string[] {
   if (response.error) {
     return response.error.code === INVALID_PARAMS
@@ -49,7 +46,6 @@ export function replyProblems(response: JsonRpcResponse): string[] {
   return content.length === 0 ? ["The reply has no content."] : content.flatMap(blockProblems);
 }
 
-/** The argument a refusal names as not applying, or as missing, so the next try can fix it. */
 export function argumentToRepair(
   replyText: string,
 ): { kind: "drop"; name: string } | { kind: "add"; name: string } | undefined {

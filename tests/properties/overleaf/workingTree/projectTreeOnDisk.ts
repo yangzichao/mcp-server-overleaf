@@ -6,12 +6,6 @@ import type { GitCommandResult } from "../../../../src/overleaf/gitCommandRunner
 import { resolvePathInsideRepository } from "../../../../src/overleaf/repositoryPaths.js";
 import type { ProjectDirectoryAccess } from "../../../../src/overleaf/workingTree/projectDirectories.js";
 
-/**
- * A clone's working tree in a temporary directory, with an access that answers `git ls-files`
- * from what is on disk, as for a clone where every file is tracked and checked out.
- */
-
-/** Writes each file with its own path as its text, so a moved file shows where it came from. */
 async function writeProjectTree(root: string, files: readonly string[]): Promise<void> {
   for (const file of files) {
     await mkdir(dirname(join(root, file)), { recursive: true });
@@ -19,7 +13,6 @@ async function writeProjectTree(root: string, files: readonly string[]): Promise
   }
 }
 
-/** Every file under `root` by its Git path, with its text. */
 export async function readProjectTree(root: string): Promise<Map<string, string>> {
   const files = new Map<string, string>();
   for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
@@ -52,7 +45,6 @@ export function projectDirectoryAccess(root: string): ProjectDirectoryAccess {
   };
 }
 
-/** Runs `use` on a new temporary directory holding `files`, then removes the directory. */
 export async function withProjectTree<Result>(
   files: readonly string[],
   use: (root: string) => Promise<Result>,

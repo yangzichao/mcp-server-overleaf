@@ -13,7 +13,6 @@ import {
   THREAD_ID_NOBODY_STARTED,
 } from "./commentThreadSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("answeringComments.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 const adasThreadId = adasThreadIdIn("main.tex");

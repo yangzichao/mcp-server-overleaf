@@ -15,7 +15,6 @@ const DOI_PREFIX_PATTERN = /^(?:doi:\s*|(?:https?:\/\/)?(?:dx\.)?doi\.org\/)/i;
 const ARXIV_DOI_PATTERN = /^10\.48550\/arxiv\.(.+)$/i;
 
 const NEW_ARXIV_ID = /^\d{4}\.\d{4,5}(?:v\d+)?$/i;
-/** An archive, as `hep-th`, a subject class after some, as in `math.GT`, then the number. */
 const OLD_ARXIV_ID = /^([a-z-]+)(\.[a-z]{2})?(\/\d{7}(?:v\d+)?)$/i;
 const ARXIV_PREFIX_PATTERN = /^arxiv\s*:?\s*/i;
 const ARXIV_LINK_PATTERN =

@@ -38,7 +38,6 @@ function expectedCandidate(work: CrossrefWork): SearchCandidate {
   };
 }
 
-/** Items Crossref might send that are not usable works: no DOI, or no title to compare. */
 const unusableItem = fc.oneof(
   fc.integer(),
   fc.string(),
@@ -75,8 +74,6 @@ describe("parseCrossrefSearchCandidates properties", () => {
     );
   });
 
-  // Found by this property: items [null, <a well-formed work>] once threw on null.DOI, so one null
-  // item made the whole search "unavailable" instead of being skipped.
   it("skips a null item too", () => {
     fc.assert(
       fc.property(fc.array(wellFormedWork, { minLength: 1, maxLength: 3 }), (works) => {

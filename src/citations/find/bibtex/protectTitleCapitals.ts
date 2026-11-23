@@ -6,7 +6,6 @@
  * compound like `Self-Attention` is left for the style to lower-case.
  */
 
-/** From a word's first letter or digit to its last, leaving the punctuation around it. */
 const WORD_CORE = /[\p{L}\p{N}](?:[\s\S]*[\p{L}\p{N}])?/u;
 
 function hasInnerCapital(word: string): boolean {

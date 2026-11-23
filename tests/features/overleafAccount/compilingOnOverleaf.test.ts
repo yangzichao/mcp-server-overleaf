@@ -9,7 +9,6 @@ import { FAKE_PDF_BYTES } from "../../integration/fakeOverleafAccount.js";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("compilingOnOverleaf.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 
@@ -29,7 +28,6 @@ async function compileOnOverleaf(toolArguments: Record<string, unknown> = {}): P
   await scenario.world.callTool("compile_project", { where: "overleaf", ...toolArguments });
 }
 
-/** Where the server keeps what Overleaf built: its own build cache, outside every clone. */
 function buildDirectoryPathOf(outputName: string): string {
   const { world } = scenario;
   return join(world.workspaceDirectory, ".build", world.projectId, "overleaf", outputName);

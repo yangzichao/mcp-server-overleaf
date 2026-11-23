@@ -8,12 +8,10 @@ import {
 } from "../../../../src/overleaf/realtime/trackedChangeRanges.js";
 import { latexLine } from "../../support/latexArbitraries.js";
 
-/** A field as Overleaf documents it, or any other JSON value in its place. */
 function eitherExpectedOr<T>(expected: fc.Arbitrary<T>): fc.Arbitrary<unknown> {
   return fc.oneof({ weight: 3, arbitrary: expected }, { weight: 1, arbitrary: fc.jsonValue() });
 }
 
-/** Any number JSON can carry: integers, fractions, and magnitudes far outside the Date range. */
 const anyJsonNumber = fc.double({ noNaN: true, noDefaultInfinity: true });
 const DATE_RANGE_MILLISECONDS = 8.64e15;
 const datableNumber = fc.integer({ min: -DATE_RANGE_MILLISECONDS, max: DATE_RANGE_MILLISECONDS });
@@ -113,8 +111,6 @@ describe("readDocumentRanges properties", () => {
     );
   });
 
-  // Found by this property: a timestamp of 8.640000000000001e15, past the range of a Date, once
-  // reached toISOString() and threw RangeError, where every other odd field is read as missing.
   it("never throws on any JSON payload, including a timestamp outside the Date range", () => {
     fc.assert(
       fc.property(rangesPayload(fc.oneof(anyJsonNumber, timestampText)), (payload) => {

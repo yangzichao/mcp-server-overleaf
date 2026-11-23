@@ -5,18 +5,17 @@ import { redactSecrets } from "../../../src/config/secretRedaction.js";
 
 const MARKER = "***REDACTED***";
 
-/**
- * No `*` and no upper case, so a secret cannot overlap the marker; one that did would be put
- * back by the very marker that replaces it.
- */
+const CHARACTERS_OUTSIDE_THE_MARKER = ["a", "b", "c", "x", "y", "1", "/", "=", "北", "😀"].filter(
+  (character) => !MARKER.includes(character),
+);
+
 const secret = fc.string({
-  unit: fc.constantFrom("a", "b", "c", "x", "y", "1", "/", "=", "北", "😀"),
+  unit: fc.constantFrom(...CHARACTERS_OUTSIDE_THE_MARKER),
   minLength: 1,
   maxLength: 8,
 });
 const secrets = fc.array(secret, { maxLength: 4 });
 
-/** Text that is often built around the secrets, so occurrences, adjacency and overlap are common. */
 const textAround = (candidates: readonly string[]) =>
   fc
     .array(fc.oneof(fc.constantFrom(...candidates, "a", "b", " ", "https://"), fc.string({ maxLength: 3 })), {
@@ -37,7 +36,6 @@ function visibleText(redacted: string): string {
   return redacted.split(MARKER).join("");
 }
 
-/** The original text with every character that lies inside any occurrence of a secret removed. */
 function textOutsideEverySecret(text: string, candidates: readonly string[]): string {
   const covered = new Array<boolean>(text.length).fill(false);
   for (const candidate of longEnough(candidates)) {
@@ -88,8 +86,6 @@ describe("redactSecrets properties", () => {
     );
   });
 
-  // Found by this property: secrets ["abcd", "bcdefgh"] in "abcdefgh" once gave
-  // "***REDACTED***efgh", because redacting the first broke up the second.
   it("hides every character that belongs to an occurrence of any secret", () => {
     fc.assert(
       fc.property(secretsAndText, ([candidates, text]) => {

@@ -26,7 +26,6 @@ function bracesBalance(value: string, skippingEscaped: boolean): boolean {
   return depth === 0;
 }
 
-/** A backslash at the end with none before it would escape the brace written after the value. */
 function endsInLoneBackslash(value: string): boolean {
   return /(?<!\\)(?:\\\\)*\\$/.test(value);
 }
@@ -36,14 +35,11 @@ function specialsEscaped(value: string): boolean {
   return [...value.matchAll(/(\\*)[&%#]/g)].every((match) => (match[1] ?? "").length % 2 === 1);
 }
 
-/** The commands markupToLatex writes, each of which needs its argument in braces right after it. */
 const MARKUP_COMMAND_WITHOUT_ARGUMENT = /\\text(?:it|bf|sc|subscript|superscript)(?!\{)/;
 
 const key = fc.stringMatching(/^[a-z][a-z0-9]{0,15}$/);
 
 describe("BibTeX entry properties", () => {
-  // Found by this property: a series of `\` once made an entry neither reader could read,
-  // because for them the backslash escaped the brace that closes the value.
   it("writes an entry both .bib readers read back, with every field as it was made", () => {
     fc.assert(
       fc.property(entryType, rawCitationFields, key, (type, raw, chosenKey) => {
@@ -61,9 +57,6 @@ describe("BibTeX entry properties", () => {
     );
   });
 
-  // Found by this property: an organization of `\{` once kept its brace, because only braces
-  // without a backslash were balanced, and BibTeX counts the others too. And an edition of
-  // `\\#` once kept its `#` unescaped, because any backslash before it was taken to escape it.
   it("makes values whose braces balance both ways, with no lone backslash at the end and &, % and # escaped", () => {
     fc.assert(
       fc.property(entryType, rawCitationFields, (type, raw) => {
@@ -79,8 +72,6 @@ describe("BibTeX entry properties", () => {
     );
   });
 
-  // Found by this property: a series of `<sub>2</sub>}` once became `\textsubscript2`, because
-  // one brace that did not balance made every brace go, the argument's too.
   it("keeps the argument braces of every command it makes from markup", () => {
     fc.assert(
       fc.property(entryType, rawCitationFields, (type, raw) => {
@@ -91,7 +82,6 @@ describe("BibTeX entry properties", () => {
     );
   });
 
-  // Found by this property: an entry with no fields once had an empty line between its braces.
   it("writes the fields it has in the fixed order, one to a line, with no comma after the last", () => {
     fc.assert(
       fc.property(entryType, rawCitationFields, key, (type, raw, chosenKey) => {

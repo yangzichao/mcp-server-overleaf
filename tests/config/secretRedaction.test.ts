@@ -46,7 +46,6 @@ describe("redactSecrets", () => {
     expect(redactSecrets("", [token])).toBe("");
   });
 
-  // Redacting one secret first used to break up an occurrence of another, leaving "efgh".
   it("hides the whole of secrets that overlap or contain one another", () => {
     expect(redactSecrets("abcdefgh", ["abcd", "bcdefgh"])).toBe("***REDACTED***");
     expect(redactSecrets("x abcdefgh y", ["cdef", "abcdefgh"])).toBe("x ***REDACTED*** y");

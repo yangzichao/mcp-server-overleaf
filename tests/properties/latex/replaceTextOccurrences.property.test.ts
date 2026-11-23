@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { replaceTextOccurrences } from "../../../src/latex/replaceTextOccurrences.js";
-import { latexFragment, latexText } from "../support/latexArbitraries.js";
+import { latexFragment, latexTextWithLineBreaksAnywhere } from "../support/latexArbitraries.js";
 
 function nonOverlappingOffsets(text: string, findText: string): number[] {
   const offsets: number[] = [];
@@ -28,10 +28,12 @@ function replaceAtOffsets(text: string, offsets: readonly number[], length: numb
   return result + text.slice(cursor);
 }
 
-const replacementText = fc.oneof(latexText, fc.constantFrom("$&", "$1", "$$", "$`", "$'", "$$x$$", ""));
+const replacementText = fc.oneof(
+  latexTextWithLineBreaksAnywhere,
+  fc.constantFrom("$&", "$1", "$$", "$`", "$'", "$$x$$", ""),
+);
 
-/** Original text and a non-empty find string, which is usually taken from the text so it is found. */
-const textWithFindText = latexText.chain((originalContent) =>
+const textWithFindText = latexTextWithLineBreaksAnywhere.chain((originalContent) =>
   fc.record({
     originalContent: fc.constant(originalContent),
     findText: fc.oneof(

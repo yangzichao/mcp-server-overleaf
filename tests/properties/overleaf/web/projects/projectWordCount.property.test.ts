@@ -12,16 +12,15 @@ import { recordingWebClient } from "./recordingWebClient.js";
 
 const PROJECT_ID = "64b000000000000000000002";
 
-/** Each field of `ServerWordCountData` and the name this module gives it. */
 const COUNT_FIELDS = [
-  ["textWords", "textWords"],
-  ["headWords", "headingWords"],
-  ["outside", "wordsOutsideText"],
-  ["headers", "headingCount"],
-  ["elements", "floatCount"],
-  ["mathInline", "inlineMathCount"],
-  ["mathDisplay", "displayMathCount"],
-  ["errors", "errorCount"],
+  { inTexcountAnswer: "textWords", inProjectWordCount: "textWords" },
+  { inTexcountAnswer: "headWords", inProjectWordCount: "headingWords" },
+  { inTexcountAnswer: "outside", inProjectWordCount: "wordsOutsideText" },
+  { inTexcountAnswer: "headers", inProjectWordCount: "headingCount" },
+  { inTexcountAnswer: "elements", inProjectWordCount: "floatCount" },
+  { inTexcountAnswer: "mathInline", inProjectWordCount: "inlineMathCount" },
+  { inTexcountAnswer: "mathDisplay", inProjectWordCount: "displayMathCount" },
+  { inTexcountAnswer: "errors", inProjectWordCount: "errorCount" },
 ] as const;
 
 const countValue = fc.oneof(
@@ -33,7 +32,7 @@ const countValue = fc.oneof(
 
 const texcount = fc.record(
   {
-    ...Object.fromEntries(COUNT_FIELDS.map(([field]) => [field, countValue])),
+    ...Object.fromEntries(COUNT_FIELDS.map(({ inTexcountAnswer }) => [inTexcountAnswer, countValue])),
     messages: fc.oneof(awkwardText, anyJsonField),
   },
   { requiredKeys: [] },
@@ -52,7 +51,12 @@ function expectedWordCount(answer: unknown): ProjectWordCount {
     typeof answer === "object" && answer !== null ? (answer as Record<string, unknown>).texcount : {};
   const counts = typeof inner === "object" && inner !== null ? (inner as Record<string, unknown>) : {};
   const read = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
-  const totals = Object.fromEntries(COUNT_FIELDS.map(([field, name]) => [name, read(counts[field])]));
+  const totals = Object.fromEntries(
+    COUNT_FIELDS.map(({ inTexcountAnswer, inProjectWordCount }) => [
+      inProjectWordCount,
+      read(counts[inTexcountAnswer]),
+    ]),
+  );
   return {
     ...totals,
     messages: typeof counts.messages === "string" ? counts.messages.trim() : "",
@@ -68,7 +72,6 @@ const filePath = fc
   )
   .map((pieces) => pieces.join(""));
 
-/** The path as Overleaf names files, without the "./" or "/" a caller may start it with. */
 function overleafFilePath(path: string): string {
   if (path.startsWith("./")) return path.slice("./".length);
   if (path.startsWith("/")) return path.slice("/".length);

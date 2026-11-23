@@ -8,7 +8,7 @@ import type { KeyOccurrence } from "./keyOccurrence.js";
 export function parseBibliographyEntries(path: string, bibliographySource: string): KeyOccurrence[] {
   return scanBibliographyEntries(path, bibliographySource).map((entry) => ({
     key: entry.key,
-    command: entry.entryType,
+    command: entry.entryTypeInLowerCase,
     location: entry.location,
   }));
 }

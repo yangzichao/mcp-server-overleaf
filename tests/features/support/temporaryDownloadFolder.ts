@@ -2,7 +2,6 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-/** A folder on this computer that compiled PDFs and project archives are saved into. */
 export class TemporaryDownloadFolder {
   private constructor(readonly path: string) {}
 

@@ -2,7 +2,7 @@
  * Crossref's `author` and `editor` lists as a BibTeX name list. People come as `family` and
  * `given` (with an optional `suffix`) and become `Family, Given`, the form BibTeX cannot
  * misread; organisations come as `name` and are braced whole, so `World Health Organization`
- * is not read as a person called Organization. BibTeX 0.99d confirms each reading below.
+ * is not read as a person called Organization.
  */
 
 interface CrossrefPerson {

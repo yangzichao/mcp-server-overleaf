@@ -40,7 +40,6 @@ function readString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-/** undefined for a number outside the range a Date holds, on which toISOString() throws. */
 function toIsoDate(milliseconds: number): string | undefined {
   const date = new Date(milliseconds);
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();

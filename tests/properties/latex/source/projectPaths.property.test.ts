@@ -17,7 +17,6 @@ const writtenPath = fc.oneof(
   fc.constantFrom("/etc/passwd", "C:/x.tex", "c:x.tex", "//server/share"),
 );
 
-/** What the result should be, by way of POSIX normalisation: null once it is absolute or above the root. */
 function expectedJoin(directory: string, written: string): string | null {
   if (written.startsWith("/") || /^[A-Za-z]:/.test(written)) return null;
   const normalized = posix.normalize(`${directory}/${written}`.replace(/^\/+/, "")).replace(/\/$/, "");

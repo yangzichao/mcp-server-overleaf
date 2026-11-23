@@ -49,15 +49,15 @@ describe.runIf(temporaryDiskIgnoresCase())("a path that differs in case on a dis
     expect(
       await findNameSpelledOtherwiseOnDisk(repositoryDirectory, "Sections/METHOD/new.tex", nothingTracked),
     ).toEqual({
-      requestedPath: "Sections",
-      storedPath: "sections",
+      requestedPathUpToTheMisspelledName: "Sections",
+      storedPathUpToTheMisspelledName: "sections",
       wholePathAsStored: "sections/METHOD/new.tex",
     });
     expect(
       await findNameSpelledOtherwiseOnDisk(repositoryDirectory, "sections/Method/setup.tex", nothingTracked),
     ).toEqual({
-      requestedPath: "sections/Method",
-      storedPath: "sections/method",
+      requestedPathUpToTheMisspelledName: "sections/Method",
+      storedPathUpToTheMisspelledName: "sections/method",
       wholePathAsStored: "sections/method/setup.tex",
     });
   });
@@ -65,8 +65,8 @@ describe.runIf(temporaryDiskIgnoresCase())("a path that differs in case on a dis
   it("finds a symlink's own name, not its target's", async () => {
     await symlink("main.tex", join(repositoryDirectory, "link.tex"));
     expect(await findNameSpelledOtherwiseOnDisk(repositoryDirectory, "LINK.tex", nothingTracked)).toEqual({
-      requestedPath: "LINK.tex",
-      storedPath: "link.tex",
+      requestedPathUpToTheMisspelledName: "LINK.tex",
+      storedPathUpToTheMisspelledName: "link.tex",
       wholePathAsStored: "link.tex",
     });
   });
@@ -87,8 +87,8 @@ describe.runIf(temporaryDiskIgnoresCase())("a path that differs in case on a dis
         trackedAsSections,
       ),
     ).toEqual({
-      requestedPath: "Sections/Method",
-      storedPath: "Sections/method",
+      requestedPathUpToTheMisspelledName: "Sections/Method",
+      storedPathUpToTheMisspelledName: "Sections/method",
       wholePathAsStored: "Sections/method/setup.tex",
     });
   });

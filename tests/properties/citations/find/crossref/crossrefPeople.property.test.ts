@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { crossrefNameList } from "../../../../../src/citations/find/crossref/crossrefPeople.js";
 
-/** Whitespace-separated words outside braces, as BibTeX reads a name list. */
 function wordsOutsideBraces(text: string): string[] {
   const words: string[] = [];
   let current = "";
@@ -21,7 +20,6 @@ function wordsOutsideBraces(text: string): string[] {
   return current === "" ? words : [...words, current];
 }
 
-/** The names BibTeX reads: a list split at each word "and", in any case, outside braces. */
 function bibtexNames(list: string): string[] {
   const names: string[][] = [[]];
   for (const word of wordsOutsideBraces(list)) {
@@ -61,12 +59,10 @@ const person = fc.record(
   { requiredKeys: [] },
 );
 
-/** The whole family name a person should keep, or an organisation's whole name. */
 function expectedVonAndLast(written: { family?: string; given?: string; name?: string }): string | undefined {
   return written.family || written.name || written.given || undefined;
 }
 
-/** Braces protect words from BibTeX and print as nothing, so a reading is compared without them. */
 function withoutBraces(text: string): string {
   return text.replace(/[{}]/g, "");
 }
@@ -85,10 +81,6 @@ describe("crossrefNameList properties", () => {
     );
   });
 
-  // Found by this property: a person with only a family name, as `{ family: "Garcia Perez" }`,
-  // was written bare, which BibTeX reads as First "Garcia" and Last "Perez", and a part holding
-  // the word "and", as in `{ family: "Smith and Wesson", given: "X" }`, split into two people.
-  // BibTeX 0.99d was run on both to confirm the reading.
   it("writes each person so BibTeX reads one person, with the whole family name as the last name", () => {
     fc.assert(
       fc.property(fc.array(person, { maxLength: 3 }), (people) => {

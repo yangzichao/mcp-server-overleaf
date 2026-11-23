@@ -12,10 +12,6 @@ const FIELD_SEPARATOR = "\u001f";
 const words = (pieces: readonly string[]) =>
   fc.array(fc.constantFrom(...pieces), { maxLength: 5 }).map((chosen) => chosen.join(""));
 
-/**
- * Commits as `git show --format=%H…%s` describes them. The separator stays out of every field
- * but the subject, which comes last and is read whole; the commit log reads it the same way.
- */
 const commits = fc.uniqueArray(
   fc.record({
     hash: fc.stringMatching(/^[0-9a-f]{40}$/),

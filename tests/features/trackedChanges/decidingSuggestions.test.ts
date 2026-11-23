@@ -7,7 +7,6 @@ import { editorPaper } from "../support/connectedOverleafEditor.js";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("decidingSuggestions.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 
@@ -67,17 +66,17 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
     });
 
     When("I accept only the suggested insertion", async () => {
-      const changeIds = [scenario.world.changeIdOf("insertion")];
+      const changeIds = [scenario.world.changeIdInMainDocument("insertion")];
       await decide("accept", { path: "main.tex", changeIds });
     });
 
     When("I reject only the suggested insertion", async () => {
-      const changeIds = [scenario.world.changeIdOf("insertion")];
+      const changeIds = [scenario.world.changeIdInMainDocument("insertion")];
       await decide("reject", { path: "main.tex", changeIds });
     });
 
     When("I reject the suggested insertion together with the id {string}", async (_context, unknownId) => {
-      const changeIds = [scenario.world.changeIdOf("insertion"), unknownId];
+      const changeIds = [scenario.world.changeIdInMainDocument("insertion"), unknownId];
       await decide("reject", { path: "main.tex", changeIds });
     });
 

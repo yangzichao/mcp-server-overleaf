@@ -21,9 +21,6 @@ describe("citationKeyStem properties", () => {
     );
   });
 
-  // Found by this property: `de Maria de Maria, Maria` once gave `mariademaria` where BibTeX reads
-  // `Maria`, because before a comma the Last part began at the first capitalised word rather than
-  // after the last particle.
   it("reads the first author's family name as BibTeX's Last part, in either order", () => {
     fc.assert(
       fc.property(personName, coAuthors, (name, others) => {

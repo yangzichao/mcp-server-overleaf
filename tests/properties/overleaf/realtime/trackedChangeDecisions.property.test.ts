@@ -29,9 +29,7 @@ const reviewedDocument = fc
   );
 
 interface ReviewedDocument {
-  /** The text as the editor shows it: suggested insertions in, suggested deletions out. */
   readonly currentText: string;
-  /** The text once every suggestion is rejected. */
   readonly rejectedText: string;
   readonly changes: TrackedChange[];
 }

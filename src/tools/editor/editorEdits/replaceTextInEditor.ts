@@ -1,6 +1,6 @@
 import { requireEditorSafeText } from "../../../overleaf/realtime/editorSafeText.js";
 import { buildReplacementOperations } from "../../../overleaf/realtime/replacementOperations.js";
-import { requireOneSnippetMatch } from "../../editing/edits/requireOneSnippetMatch.js";
+import { requireSnippetReplaced } from "../../editing/edits/requireSnippetReplaced.js";
 import { requireDocument, withReviewSession } from "../../review/openReviewSession.js";
 import { type ToolContext, type ToolTextResult, textResult } from "../../toolContext.js";
 import { EDITOR_CHANGE_IS_LIVE } from "../editorFileArguments.js";
@@ -29,8 +29,7 @@ export function replaceTextInEditor(
       edit.replaceWith,
       edit.replaceAll,
     );
-    // Before the access check, so a reviewer hears about a wrong snippet as an editor does.
-    requireOneSnippetMatch(document.path, replacement);
+    requireSnippetReplaced(document.path, replacement);
     requireEditorWriteAccess(session);
     await session.applyOperations(document.documentId, joined.version, replacement.operations);
     return textResult(

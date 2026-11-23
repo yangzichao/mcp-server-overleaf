@@ -2,12 +2,6 @@ import fc from "fast-check";
 
 import type { ImageHeader } from "../../../src/images/readImageHeader.js";
 
-/**
- * Image files built byte by byte from each format's specification, as far as their headers go:
- * PNG's IHDR chunk, JPEG marker segments up to the start of frame, GIF's logical screen, and
- * WebP's three flavours. What follows the header is filler, which a header reader never reads.
- */
-
 export interface GeneratedImage {
   readonly header: ImageHeader;
   readonly bytes: Uint8Array;
@@ -56,11 +50,23 @@ const png: fc.Arbitrary<GeneratedImage> = fc
     ]),
   }));
 
-/** A segment that comes before the frame: APPn, a comment, tables, or a restart interval. */
+const JPEG_MARKERS_OF_SEGMENTS_BEFORE_A_FRAME = {
+  APP0: 0xe0,
+  APP1: 0xe1,
+  APP13: 0xed,
+  APP15: 0xef,
+  COM: 0xfe,
+  DQT: 0xdb,
+  DHT: 0xc4,
+  DRI: 0xdd,
+  DAC: 0xcc,
+};
+const JPEG_TEM_MARKER = [0xff, 0x01];
+
 const jpegSegmentBeforeFrame = fc.oneof(
   fc
     .record({
-      marker: fc.constantFrom(0xe0, 0xe1, 0xed, 0xef, 0xfe, 0xdb, 0xc4, 0xdd, 0xcc),
+      marker: fc.constantFrom(...Object.values(JPEG_MARKERS_OF_SEGMENTS_BEFORE_A_FRAME)),
       payload: fc.uint8Array({ maxLength: 30 }),
       fillBytes: fc.nat({ max: 2 }),
     })
@@ -71,7 +77,7 @@ const jpegSegmentBeforeFrame = fc.oneof(
       ...uint16BigEndian(payload.length + 2),
       ...payload,
     ]),
-  fc.constant([0xff, 0x01]),
+  fc.constant(JPEG_TEM_MARKER),
 );
 
 const jpeg: fc.Arbitrary<GeneratedImage> = fc
@@ -193,7 +199,6 @@ export const generatedImage: fc.Arbitrary<GeneratedImage> = fc.oneof(
   webpLossless,
 );
 
-/** The first bytes of each supported format, to put random bytes behind. */
 export const IMAGE_SIGNATURES: readonly (readonly number[])[] = [
   [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
   [0xff, 0xd8, 0xff],

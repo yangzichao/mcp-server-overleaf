@@ -6,7 +6,6 @@ import { type CommitSummary, parseCommitLog } from "../../../../src/overleaf/his
 const RECORD_SEPARATOR = "\u001e";
 const FIELD_SEPARATOR = "\u001f";
 
-/** Free text Git can print in a field: anything but the separators and a newline. */
 const fieldText = fc
   .string({ unit: "grapheme" })
   .map((text) =>
@@ -37,7 +36,6 @@ const commit = fc.record({
 });
 type WrittenCommit = typeof commit extends fc.Arbitrary<infer Written> ? Written : never;
 
-/** What `git log --pretty=format:<separators> --name-status` prints for these commits. */
 function renderLog(commits: readonly WrittenCommit[]): string {
   return commits
     .map((written) => {

@@ -27,7 +27,6 @@ export function messagesIn(thread: FakeThread): string[] {
   return thread.messages.map((message) => message.content);
 }
 
-/** Steps both comment features use: Ada's threads as she left them, and what Overleaf then holds. */
 export function defineCommentThreadSteps(steps: StepDefinitions, scenario: OverleafEditorScenario): void {
   const { Given, And, Then } = steps;
 

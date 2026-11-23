@@ -8,7 +8,6 @@ import { parseServerCredentials } from "./serverCredentials.js";
 
 export type StepDefinitions = Parameters<Parameters<FeatureDescriibeCallbackParams["defineSteps"]>[0]>[0];
 
-/** Sentences several feature files use, bound once so each file means the same thing by them. */
 export function defineSharedEditorSteps(steps: StepDefinitions, scenario: OverleafEditorScenario): void {
   const { Given, And, Then } = steps;
 

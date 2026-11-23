@@ -12,7 +12,6 @@ import { generatedImage, IMAGE_SIGNATURES } from "./generatedImageFiles.js";
 
 const imagePath = fc.constantFrom("figures/plot.png", "a.jpg", "photo.JPEG", "x.webp", "noextension");
 
-/** A GIF of the given size, padded with zeros to `byteLength`. */
 function gifOf(width: number, height: number, byteLength = 16): Uint8Array {
   const bytes = new Uint8Array(byteLength);
   bytes.set([...Buffer.from("GIF89a"), width & 0xff, width >> 8, height & 0xff, height >> 8]);
@@ -29,8 +28,7 @@ function outcomeOf(bytes: Uint8Array, path: string): "accepted" | "refused" {
   }
 }
 
-/** The prolog XML allows before the root element: a declaration, then comments, processing instructions and a doctype. */
-const misc = fc.constantFrom(
+const commentProcessingInstructionOrWhiteSpace = fc.constantFrom(
   "\n",
   "  ",
   "<!-- Created with Inkscape (http://www.inkscape.org/) -->",
@@ -42,14 +40,14 @@ const xmlProlog = fc
   .record({
     byteOrderMark: fc.constantFrom("", "﻿"),
     declaration: fc.constantFrom("", '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'),
-    beforeDoctype: fc.array(misc, { maxLength: 2 }),
+    beforeDoctype: fc.array(commentProcessingInstructionOrWhiteSpace, { maxLength: 2 }),
     doctype: fc.constantFrom(
       "",
       "<!DOCTYPE svg>",
       '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
       '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "svg11.dtd" [\n\t<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">\n]>',
     ),
-    afterDoctype: fc.array(misc, { maxLength: 2 }),
+    afterDoctype: fc.array(commentProcessingInstructionOrWhiteSpace, { maxLength: 2 }),
   })
   .map(
     ({ byteOrderMark, declaration, beforeDoctype, doctype, afterDoctype }) =>
@@ -103,8 +101,6 @@ describe("prepareImageForModel properties", () => {
     );
   });
 
-  // Found by this property: "<!DOCTYPE svg>\n<!-- Created with Inkscape … -->" before "<svg>" was
-  // once not told as SVG, because comments were skipped only before the doctype.
   it("tells an SVG drawing by its first bytes, after any prolog XML allows", () => {
     const root = fc.constantFrom(
       "<svg>",

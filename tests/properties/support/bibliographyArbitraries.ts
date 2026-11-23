@@ -2,9 +2,7 @@ import fc from "fast-check";
 
 export interface WrittenBibliographyField {
   readonly name: string;
-  /** Each part as written, already delimited, joined with `#` when there are several. */
   readonly writtenParts: readonly string[];
-  /** What a reader of the field should get back: the parts' insides joined and trimmed. */
   readonly expectedValue: string;
 }
 
@@ -71,7 +69,6 @@ const bibliographyEntry: fc.Arbitrary<WrittenBibliographyEntry> = fc.record({
   }),
 });
 
-/** Text between entries that holds no `@`, or a directive BibTeX reads but that defines no key. */
 const bibliographyFiller = fc.oneof(
   fc.stringMatching(/^[^@]{0,20}$/),
   fc.constantFrom(
@@ -90,18 +87,17 @@ function renderBibliographyEntry(entry: WrittenBibliographyEntry): string {
 
 export interface RenderedBibliography {
   readonly text: string;
-  /** The 1-indexed line each entry's `@` is on. */
   readonly entryLines: readonly number[];
 }
 
-/** Each entry starts on a line of its own, so filler can never comment it out. */
 export function renderBibliography(
   pieces: ReadonlyArray<readonly [string, WrittenBibliographyEntry]>,
 ): RenderedBibliography {
   let text = "";
   const entryLines: number[] = [];
   for (const [filler, entry] of pieces) {
-    text += `${filler}\n`;
+    const fillerThatCannotCommentOutTheEntry = `${filler}\n`;
+    text += fillerThatCannotCommentOutTheEntry;
     entryLines.push(text.split("\n").length);
     text += `${renderBibliographyEntry(entry)}\n`;
   }

@@ -22,7 +22,6 @@ interface GeneratedLine {
   readonly commitIndex: number;
   readonly lineInCommit: number;
   readonly text: string;
-  /** False when the line continues the group of the line before it, from the same commit. */
   readonly startsGroup: boolean;
 }
 
@@ -36,7 +35,6 @@ const SHA1 = /^[0-9a-f]{40}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const hash = fc.oneof(fc.stringMatching(SHA1), fc.stringMatching(SHA256), fc.constant("0".repeat(40)));
 
-/** Text that looks like a header row, so a parser that does not track where it is reads it wrongly. */
 const HEADER_LOOKALIKE = `${"a".repeat(40)} 1 2 3`;
 const words = (pieces: readonly string[]) =>
   fc.array(fc.constantFrom(...pieces), { maxLength: 6 }).map((chosen) => chosen.join(""));
@@ -103,7 +101,6 @@ function detailRows(generated: GeneratedCommit): string[] {
   ];
 }
 
-/** Lines that continue a group must come from the same commit as the line before them. */
 function groupStarts(blame: GeneratedBlame): boolean[] {
   return blame.lines.map(
     (line, index) =>

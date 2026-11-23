@@ -1,8 +1,3 @@
-/**
- * Lines startLine to endLine, each after its number. endLine is clamped to the file; a startLine
- * past the last line is refused, as blame refuses it, so an empty reply never stands for a range
- * the file does not have.
- */
 export function numberLines(
   path: string,
   content: string,

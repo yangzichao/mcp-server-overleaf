@@ -1,12 +1,7 @@
 import fc from "fast-check";
 
-/**
- * Text made of one short piece repeated to a given length between a short prefix and suffix.
- * It is the shape of the attack strings recheck reports, and the shape that makes a
- * backtracking regular expression slow, so a property over it finds slow patterns that random
- * text misses. A few thousand characters show a cubic pattern; a quadratic one needs tens of
- * thousands to stand out from a slow machine.
- */
+export const LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME = { minimumLength: 50_000, maximumLength: 200_000 };
+
 export function pumpedText(
   pieces: readonly string[],
   { minimumLength = 300, maximumLength = 3000 } = {},
@@ -26,7 +21,6 @@ export function pumpedText(
     );
 }
 
-/** How long `run` takes, in milliseconds. */
 export function millisecondsToRun(run: () => unknown): number {
   const started = performance.now();
   run();

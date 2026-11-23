@@ -6,7 +6,6 @@ interface IndexEntry {
   readonly gitPath: string;
 }
 
-/** One record of `git ls-files --stage -z`: mode, object name and stage, a tab, then the path. */
 function parseIndexEntry(record: string): IndexEntry {
   const tab = record.indexOf("\t");
   const [mode = "", objectName = ""] = record.slice(0, tab).split(" ");
@@ -14,10 +13,9 @@ function parseIndexEntry(record: string): IndexEntry {
 }
 
 /**
- * Moves Git's index entries at and under `fromGitPath` to `toGitPath`, each keeping its mode and
- * content, as `git mv` does. A clone on a disk that ignores case has core.ignorecase set, so after
- * a rename that changes only case on disk Git still finds every file under its old name, and
- * push_changes would publish nothing. The old entries go before the new ones are added.
+ * A clone on a disk that ignores case has core.ignorecase set, so after a rename that changes
+ * only case on disk Git still finds every file under its old name, and push_changes would
+ * publish nothing.
  */
 export async function moveIndexEntries(
   git: (args: readonly string[]) => Promise<GitCommandResult>,

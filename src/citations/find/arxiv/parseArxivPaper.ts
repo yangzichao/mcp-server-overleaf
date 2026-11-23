@@ -40,7 +40,6 @@ function categoryTerm(entry: string): string | undefined {
   return term === undefined ? undefined : decodeXmlText(term);
 }
 
-/** The abstract page's address ends in the versioned id, after `arxiv.org/abs/`. */
 function versionedIdFrom(abstractPage: string): string {
   const lastWord = abstractPage.split(/\s/).at(-1) ?? "";
   const marker = /arxiv\.org\/abs\//i.exec(lastWord);

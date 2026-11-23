@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { withoutTrailing } from "../../../src/text/withoutTrailing.js";
 
-/** The regular expression each call to withoutTrailing replaced, by the character it trims. */
 function trailingRunPattern(character: "/" | "\n"): RegExp {
   return character === "/" ? /\/+$/ : /\n+$/;
 }

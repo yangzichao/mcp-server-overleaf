@@ -28,10 +28,6 @@ function withAccent(word: string, vowelIndex: number | undefined, accentChoice: 
   return characters.join("");
 }
 
-/**
- * The same word as a .bib file or a registry might write it: wrapped in braces or a markup
- * command, in upper case, or with an accent on a lower-case vowel.
- */
 export function decoratedWord(word: string): fc.Arbitrary<string> {
   const vowelIndexes = [...word].flatMap((character, index) => (ACCENTED_FORMS[character] ? [index] : []));
   return fc

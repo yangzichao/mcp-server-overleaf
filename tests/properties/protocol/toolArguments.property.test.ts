@@ -13,57 +13,37 @@ import {
   TOOL_ARGUMENT_RECIPES,
 } from "./support/toolArgumentRecipes.js";
 
-/**
- * Every tool, called with arguments drawn from the schema it advertises, answers with a result
- * or a plain refusal: never a JavaScript error, an empty reply or a dead server. A tool marked
- * read-only changes nothing, and a write that fails leaves the project as it was.
- *
- * Reads run first, on the project as seeded; the writes after them change it as they go, the
- * suggestion and the comment first, before edits move the text they sit on. A third of the
- * runs send a random subset of a tool's arguments, and the rest send the set one action takes.
- * A refusal that names an argument as not applying, or as missing, is followed by another try
- * without it, or with it, so the calls also reach the work each action does.
- */
+const READS_OF_THE_PROJECT_AS_SEEDED = [
+  "list_projects",
+  "read_project",
+  "read_file",
+  "search_project",
+  "read_history",
+  "check_references",
+  "look_up_citations",
+  "compile_project",
+  "read_review",
+];
+const WRITES_TO_THE_SEEDED_SUGGESTION_AND_COMMENT = ["manage_tracked_changes", "manage_comments"];
+const WRITES_THAT_CAN_MOVE_THE_TEXT_UNDER_THEM = [
+  "edit_file",
+  "manage_files",
+  "push_changes",
+  "manage_project",
+];
+const TOOLS_THAT_NEED_GIT = new Set(["read_history", "push_changes"]);
+
+const EVERY_TOOL_IN_ORDER = [
+  ...READS_OF_THE_PROJECT_AS_SEEDED,
+  ...WRITES_TO_THE_SEEDED_SUGGESTION_AND_COMMENT,
+  ...WRITES_THAT_CAN_MOVE_THE_TEXT_UNDER_THEM,
+];
 
 const TOOLS_IN_ORDER: Readonly<Record<FuzzedConfiguration, readonly string[]>> = {
-  "git-and-cookie": [
-    "list_projects",
-    "read_project",
-    "read_file",
-    "search_project",
-    "read_history",
-    "check_references",
-    "look_up_citations",
-    "compile_project",
-    "read_review",
-    "manage_tracked_changes",
-    "manage_comments",
-    "edit_file",
-    "manage_files",
-    "push_changes",
-    "manage_project",
-  ],
-  "cookie-only": [
-    "list_projects",
-    "read_project",
-    "read_file",
-    "search_project",
-    "check_references",
-    "look_up_citations",
-    "compile_project",
-    "read_review",
-    "manage_tracked_changes",
-    "manage_comments",
-    "edit_file",
-    "manage_files",
-    "manage_project",
-  ],
+  "git-and-cookie": EVERY_TOOL_IN_ORDER,
+  "cookie-only": EVERY_TOOL_IN_ORDER.filter((toolName) => !TOOLS_THAT_NEED_GIT.has(toolName)),
 };
 
-/**
- * A fifth of the global number of runs, since every run here is a round trip to the server and
- * two snapshots of the project. The cap keeps an exploring run, at 2000, to a few minutes.
- */
 const RUNS_PER_TOOL = Math.min(50, Math.max(5, Math.round((fc.readConfigureGlobal().numRuns ?? 100) / 5)));
 const TRIES_PER_RUN = 5;
 
@@ -120,9 +100,9 @@ for (const configuration of Object.keys(TOOLS_IN_ORDER) as FuzzedConfiguration[]
         const argumentChoice: fc.Arbitrary<ArgumentChoice> = fc.record({
           recipeIndex:
             recipeCount === 0
-              ? fc.constant(-1)
+              ? fc.constant(undefined)
               : fc.oneof(
-                  { arbitrary: fc.constant(-1), weight: 1 },
+                  { arbitrary: fc.constant(undefined), weight: 1 },
                   { arbitrary: fc.integer({ min: 0, max: recipeCount - 1 }), weight: 2 },
                 ),
           optionalNames: fc.subarray(optional),

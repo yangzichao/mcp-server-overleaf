@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { detectRasterImage } from "../../../src/images/readImageHeader.js";
 import { generatedImage, IMAGE_SIGNATURES } from "./generatedImageFiles.js";
 
-/** Random bytes, or random bytes behind the signature of a supported format. */
 const anyBytes = fc.oneof(
   fc.uint8Array({ maxLength: 64 }),
   fc

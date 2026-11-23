@@ -247,7 +247,6 @@ export class OverleafGitRepository {
     return stdout.split("\0").some((entry) => entry !== "");
   }
 
-  /** True when Git tracks this exact spelling, as a file or as a folder holding files. */
   private async isTrackedUnderThatSpelling(gitPathPrefix: string): Promise<boolean> {
     const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPathPrefix}`]);
     return stdout
@@ -274,13 +273,8 @@ export class OverleafGitRepository {
     await this.materializeAllFiles();
   }
 
-  /**
-   * The single place a client-supplied path becomes an absolute one in the working tree. The
-   * spelling check runs after the containment guards, because on a disk that ignores case
-   * Main.tex would otherwise act on main.tex.
-   */
   private async resolveClientPath(relativePath: string): Promise<string> {
-    const absolutePath = await this.resolveContainedPath(relativePath);
+    const absolutePath = await this.resolveContainedPathInAnySpelling(relativePath);
     await refuseNameSpelledOtherwiseOnDisk(
       this.options.repositoryDirectory,
       this.gitPathOf(absolutePath),
@@ -289,23 +283,16 @@ export class OverleafGitRepository {
     return absolutePath;
   }
 
-  /**
-   * Both halves of the containment guard: path arithmetic first, then the symlink check, which
-   * needs the disk. History stops here, because its paths name files in commits, spelled as Git
-   * has them, whatever the disk now holds.
-   */
-  private async resolveContainedPath(relativePath: string): Promise<string> {
+  private async resolveContainedPathInAnySpelling(relativePath: string): Promise<string> {
     const absolutePath = resolvePathInsideRepository(this.options.repositoryDirectory, relativePath);
     await assertRealPathInsideRepository(this.options.repositoryDirectory, absolutePath);
     return absolutePath;
   }
 
-  /** An absolute path inside the clone in the form Git prints and takes: relative, with forward slashes. */
   private gitPathOf(absolutePath: string): string {
     return relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
   }
 
-  /** A validated client path in Git's form. */
   private async toGitPath(relativePath: string): Promise<string> {
     return this.gitPathOf(await this.resolveClientPath(relativePath));
   }
@@ -355,7 +342,6 @@ export class OverleafGitRepository {
     });
   }
 
-  /** Why a path the client named is not on disk, said as the project sees it, not as Node's ENOENT. */
   private async missingFileError(relativePath: string, absolutePath: string): Promise<Error> {
     return (await this.describeIndexEntry(absolutePath)) === "tracked"
       ? new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`)
@@ -408,7 +394,8 @@ export class OverleafGitRepository {
   history(): ProjectHistory {
     return new ProjectHistory({
       git: (args, options) => this.git(args, options),
-      toGitPath: async (relativePath) => this.gitPathOf(await this.resolveContainedPath(relativePath)),
+      toGitPath: async (relativePath) =>
+        this.gitPathOf(await this.resolveContainedPathInAnySpelling(relativePath)),
       latestOverleafRevision: async () => `origin/${await this.getBranchName()}`,
     });
   }

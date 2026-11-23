@@ -4,12 +4,6 @@ import { describe, expect, it } from "vitest";
 import { checkEntityName } from "../../../../../src/overleaf/web/files/entityNameRules.js";
 import { RequestNotSentError } from "../../../../../src/overleaf/web/overleafWebErrors.js";
 
-/**
- * The rules the module's doc comment states, written as patterns rather than as its loop over
- * code units: no `/`, `\` or `*`, no control character, nothing outside the Basic Multilingual
- * Plane and no lone half of a pair; not `.` or `..` and no white space at either end; not
- * "prototype" or a name `Object.prototype` owns; and shorter than 150 code units.
- */
 const BAD_CHARACTER = /[/\\*\p{Cc}\p{Cs}\u{10000}-\u{10FFFF}]/u;
 const BAD_FILE = /^\.\.?$|^\s|\s$/;
 const BLOCKED_NAMES = ["prototype", ...Object.getOwnPropertyNames(Object.prototype)];

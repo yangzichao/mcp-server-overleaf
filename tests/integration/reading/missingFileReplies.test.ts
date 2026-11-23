@@ -4,11 +4,6 @@ import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
 import { responseText } from "../support/mcpProtocol.js";
 
-/**
- * A file that is not in the clone is named as the project sees it. Node's own message, an
- * ENOENT with the clone's absolute path, tells a model nothing it can act on.
- */
-
 const PAPER = "\\documentclass{article}\n\\begin{document}\nHello.\n\\end{document}\n";
 
 describe("a tool asked for a file the clone does not have", () => {

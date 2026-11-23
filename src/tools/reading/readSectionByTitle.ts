@@ -6,11 +6,6 @@ import {
 } from "../../latex/parseLatexSections.js";
 import { truncateForModel } from "../toolContext.js";
 
-/**
- * The section a read or an edit names. A miss is refused, so an edit that wrote nothing never
- * looks like a success, and the refusal lists the titles there are, so a near miss can be
- * corrected without another call.
- */
 export function requireSectionByTitle(path: string, content: string, sectionTitle: string): LatexSection {
   const sections = parseLatexSections(content);
   const section = findSectionByTitle(sections, sectionTitle);

@@ -97,7 +97,6 @@ function readSubcount(match: RegExpExecArray): TexcountSectionCount {
   };
 }
 
-/** Not a regular expression: `^!!!\s*(.*?)\s*!!!\s*$` takes cubic time on a line of many spaces. */
 function readProblem(line: string): string | undefined {
   const trimmed = line.trimEnd();
   const isProblem = trimmed.length >= 6 && trimmed.startsWith("!!!") && trimmed.endsWith("!!!");

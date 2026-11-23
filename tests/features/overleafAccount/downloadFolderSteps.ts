@@ -7,7 +7,6 @@ import type { StepDefinitions } from "../support/sharedEditorSteps.js";
 
 const MY_NOTES = "my notes, misnamed";
 
-/** Steps about the local folder a PDF or a project archive is saved into. */
 export function defineDownloadFolderSteps(steps: StepDefinitions, scenario: OverleafEditorScenario): void {
   const { Given, And } = steps;
 

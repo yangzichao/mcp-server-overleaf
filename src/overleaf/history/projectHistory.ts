@@ -140,7 +140,6 @@ export class ProjectHistory {
     return result.stdout;
   }
 
-  /** Whether a path was a file, a folder or nothing at a revision. */
   async describePathAt(revision: string, relativePath: string): Promise<PathKindAtCommit> {
     const hash = await this.resolveCommit(revision);
     return describePathAtCommit(this.sources.git, hash, await this.sources.toGitPath(relativePath));

@@ -41,7 +41,6 @@ const describedInvite = fc.record(
   { requiredKeys: [] },
 );
 
-/** Mostly `{ [key]: [...] }` with entries of any shape, sometimes something else entirely. */
 function answerListing(key: string, entry: fc.Arbitrary<unknown>): fc.Arbitrary<unknown> {
   const entries = fc.array(fc.oneof({ weight: 3, arbitrary: entry }, anyJsonField), { maxLength: 4 });
   return fc.oneof(
@@ -70,7 +69,6 @@ function listedEntries(answer: unknown, key: string): Record<string, unknown>[] 
   );
 }
 
-/** A member is named by first and last name, then by email, then by id, as the module documents. */
 function expectedMembers(answer: unknown): ProjectMember[] {
   return listedEntries(answer, "members").flatMap((member) => {
     const userId = nonEmptyText(member._id);

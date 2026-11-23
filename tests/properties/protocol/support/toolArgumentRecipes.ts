@@ -1,18 +1,8 @@
 import { SEEDED_MAIN_FILE } from "./fuzzedProject.js";
 
-/**
- * The argument sets each action of a tool takes, as its description states them. A random
- * subset of a tool's arguments mostly earns a refusal of the combination, so half the runs
- * call with one of these instead, filled from the generated values, to reach the work itself.
- * Some also fix the path to the main file, where the text, the comment thread and the
- * suggestion they act on are, since a generated path seldom names it.
- */
 export interface ArgumentRecipe {
-  /** Arguments with a fixed value, such as the action or view. */
   readonly fixed: Readonly<Record<string, unknown>>;
-  /** Arguments always sent, with generated values. */
   readonly uses: readonly string[];
-  /** Arguments a run may send or leave out. */
   readonly mayUse?: readonly string[];
 }
 
@@ -116,10 +106,8 @@ export const TOOL_ARGUMENT_RECIPES: Readonly<Record<string, readonly ArgumentRec
   ],
 };
 
-/** How one run picks its arguments: a random subset of them, or a recipe and what it may add. */
 export interface ArgumentChoice {
-  /** -1 for a random subset. */
-  readonly recipeIndex: number;
+  readonly recipeIndex: number | undefined;
   readonly optionalNames: readonly string[];
   readonly mayUseMask: readonly boolean[];
 }
@@ -128,14 +116,14 @@ function pick(values: Readonly<Record<string, unknown>>, names: readonly string[
   return Object.fromEntries(names.filter((name) => name in values).map((name) => [name, values[name]]));
 }
 
-/** The arguments of one call, from the generated values and the run's choice. */
 export function callArgumentsFor(
   toolName: string,
   required: readonly string[],
   values: Readonly<Record<string, unknown>>,
   choice: ArgumentChoice,
 ): Record<string, unknown> {
-  const recipe = TOOL_ARGUMENT_RECIPES[toolName]?.[choice.recipeIndex];
+  const recipe =
+    choice.recipeIndex === undefined ? undefined : TOOL_ARGUMENT_RECIPES[toolName]?.[choice.recipeIndex];
   if (!recipe) return pick(values, [...required, ...choice.optionalNames]);
   const optional = [...(recipe.mayUse ?? []), ...(recipe.uses.includes("project") ? [] : ["project"])];
   const chosen = optional.filter((_, index) => choice.mayUseMask[index % choice.mayUseMask.length]);

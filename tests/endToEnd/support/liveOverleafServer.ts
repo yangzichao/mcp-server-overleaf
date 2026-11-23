@@ -9,11 +9,6 @@ export const LIVE_PROJECT_NAME = "e2e";
 
 export type LiveCredentials = "gitBridgeAndEditor" | "editorOnly";
 
-/**
- * The compiled server over stdio, pointed at the real Overleaf project, with a workspace and
- * configuration directory of its own so neither the developer's clones nor their saved
- * projects.json take part in the run.
- */
 export class LiveOverleafServer {
   private constructor(
     readonly client: McpStdioClient,
@@ -47,7 +42,6 @@ export class LiveOverleafServer {
   }
 }
 
-/** Unique per run, so two runs, or a run after a crashed one, never touch the same text. */
 export function liveRunIdentifier(): string {
   return `${new Date().toISOString().replace(/[:.]/g, "-")}-${Math.random().toString(16).slice(2, 8)}`;
 }

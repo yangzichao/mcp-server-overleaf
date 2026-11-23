@@ -2,7 +2,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { protectTitleCapitals } from "../../../../../src/citations/find/bibtex/protectTitleCapitals.js";
-import { millisecondsToRun, pumpedText } from "../../../support/pumpedText.js";
+import {
+  LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME,
+  millisecondsToRun,
+  pumpedText,
+} from "../../../support/pumpedText.js";
 
 const titleWord = fc.constantFrom(
   "BERT",
@@ -34,7 +38,6 @@ function withoutBraces(text: string): string {
   return text.replace(/[{}]/g, "");
 }
 
-/** Letters and digits with a capital after the first letter of some part, as `GPT-4` or `t-SNE`. */
 const coreWithInnerCapital = fc
   .tuple(
     fc.array(fc.constantFrom("of", "Self", "4", "x"), { maxLength: 2 }),
@@ -76,10 +79,7 @@ describe("protectTitleCapitals properties", () => {
   });
 
   it("reads words with long runs of punctuation inside at once", () => {
-    const word = pumpedText(["\u0000", ".", "0", "a", "A", "-", "B"], {
-      minimumLength: 50_000,
-      maximumLength: 200_000,
-    });
+    const word = pumpedText(["\u0000", ".", "0", "a", "A", "-", "B"], LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME);
     fc.assert(
       fc.property(word, (written) => {
         expect(millisecondsToRun(() => protectTitleCapitals(`a ${written}`))).toBeLessThan(1000);

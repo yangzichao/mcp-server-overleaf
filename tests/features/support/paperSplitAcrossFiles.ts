@@ -1,6 +1,5 @@
 import type { PublishedFile } from "./connectedOverleafProject.js";
 
-/** A root document that pulls its method in from another file, and names one file that is missing. */
 const splitPaperMain = [
   "\\documentclass{article}",
   "\\begin{document}",

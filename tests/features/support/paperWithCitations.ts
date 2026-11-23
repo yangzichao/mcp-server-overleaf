@@ -1,7 +1,6 @@
 import type { FakeMetadataServices } from "../../integration/fakeMetadataServices.js";
 import type { PublishedFile } from "./connectedOverleafProject.js";
 
-/** Six cited entries, one cited key with no entry, and one entry nobody cites. */
 export const paperWithCitations: readonly PublishedFile[] = [
   {
     path: "main.tex",
@@ -29,7 +28,6 @@ export const paperWithCitations: readonly PublishedFile[] = [
   },
 ];
 
-/** What doi.org, Crossref and arXiv know about those entries, as the fakes answer it. */
 export function registerKnownWorks(metadata: FakeMetadataServices): void {
   metadata.dois.set("10.5555/real", { title: "Attention is all you need" });
   metadata.dois.set("10.5555/other", { title: "Protein structure prediction" });

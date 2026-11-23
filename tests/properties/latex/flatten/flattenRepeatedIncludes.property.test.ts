@@ -10,31 +10,32 @@ import { FLATTEN_TIME_BUDGET_MS } from "../../../latex/support/flattenTimeBudget
 import { inMemoryProject } from "../../../latex/support/inMemoryProject.js";
 import { ROOT_PATH } from "./generatedLatexProject.js";
 
+type FlatteningOutcome =
+  | { readonly kind: "flattened"; readonly length: number }
+  | { readonly kind: "refused"; readonly error: unknown };
+
 interface TimedFlattening {
-  /** The flattened text's length, or what flattening threw. */
-  readonly outcome: unknown;
+  readonly outcome: FlatteningOutcome;
   readonly milliseconds: number;
 }
 
 async function timeFlattening(files: Record<string, string>): Promise<TimedFlattening> {
   const started = performance.now();
   const outcome = await flattenLatexDocument(inMemoryProject(files), ROOT_PATH).then(
-    (flattened) => flattened.text.length,
-    (error: unknown) => error,
+    (flattened): FlatteningOutcome => ({ kind: "flattened", length: flattened.text.length }),
+    (error: unknown): FlatteningOutcome => ({ kind: "refused", error }),
   );
   return { outcome, milliseconds: performance.now() - started };
 }
 
-/** Within the length limit, or refused for passing it, and at once. */
 function expectFlattenedOrRefusedAtOnce({ outcome, milliseconds }: TimedFlattening): void {
-  if (typeof outcome === "number") expect(outcome).toBeLessThanOrEqual(MAXIMUM_FLATTENED_LENGTH);
-  else expect(outcome).toBeInstanceOf(FlattenedDocumentTooLongError);
+  if (outcome.kind === "flattened") expect(outcome.length).toBeLessThanOrEqual(MAXIMUM_FLATTENED_LENGTH);
+  else expect(outcome.error).toBeInstanceOf(FlattenedDocumentTooLongError);
   expect(milliseconds).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
 }
 
 const INCLUDE_COMMANDS = ["input", "include", "subfile"] as const;
 
-/** Files that each include the next many times; the last one holds plain text. */
 const includeChain = fc
   .record({
     repeats: fc.array(fc.integer({ min: 1, max: 100 }), { minLength: 1, maxLength: 3 }),
@@ -50,7 +51,6 @@ const includeChain = fc
     return files;
   });
 
-/** A main file of many includes, each on its own line. */
 const includesOnSeparateLines = fc
   .record({
     directive: fc.constantFrom(
@@ -68,7 +68,6 @@ const includesOnSeparateLines = fc
     "b.tex": "x\n",
   }));
 
-/** A main file of many inlined includes on one line, with long text after them. */
 const includesOnOneLine = fc
   .record({
     directive: fc.constantFrom("\\input{b}", "\\subfile{b}", "\\import{./}{b}"),
@@ -81,11 +80,6 @@ const includesOnOneLine = fc
     "b.tex": "x\n",
   }));
 
-/**
- * A long file included many times, of which little is inlined: a subfile's preamble, or what
- * follows \endinput, makes up most of it. It is included from main, or from a middle file
- * that main includes in turn.
- */
 const littleOfItInlined = fc
   .record({
     form: fc.constantFrom("subfile", "endinput"),
@@ -111,9 +105,6 @@ const littleOfItInlined = fc
   });
 
 describe("flattenLatexDocument on files included many times over", () => {
-  // A main file with 60 copies of \input{chapter}, a chapter with 90 copies of \input{table} and
-  // a table of 100,000 characters once threw RangeError after 7 seconds, because the length was
-  // checked only once each included file was built, and main's text passed what a string holds.
   it("flattens a chain of repeated includes, or refuses it for its length, at once", async () => {
     await fc.assert(
       fc.asyncProperty(includeChain, async (files) => {
@@ -123,8 +114,6 @@ describe("flattenLatexDocument on files included many times over", () => {
     );
   });
 
-  // 40,000 lines of \input{b} once took 4 seconds, because the text written so far was searched
-  // for its last line break at every directive.
   it("flattens a file of many includes on separate lines at once", async () => {
     await fc.assert(
       fc.asyncProperty(includesOnSeparateLines, async (files) => {
@@ -134,8 +123,6 @@ describe("flattenLatexDocument on files included many times over", () => {
     );
   });
 
-  // 50,000 copies of \input{b} and then 5 million characters, all on one line, once took 4.5
-  // seconds, because each inlined directive searched for the end of its line.
   it("flattens many includes on one long line at once", async () => {
     await fc.assert(
       fc.asyncProperty(includesOnOneLine, async (files) => {
@@ -145,8 +132,6 @@ describe("flattenLatexDocument on files included many times over", () => {
     );
   });
 
-  // 2000 copies of \subfile{chapter}, for a chapter whose preamble is 450,000 characters long,
-  // once took 8.5 seconds, because the chapter was masked and scanned whole at every include.
   it("flattens a long file included many times at once when little of it is inlined", async () => {
     await fc.assert(
       fc.asyncProperty(littleOfItInlined, async (files) => {

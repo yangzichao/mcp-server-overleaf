@@ -5,13 +5,6 @@ import {
   type BibtexFieldName,
 } from "../../../../../src/citations/find/bibtex/bibtexEntry.js";
 
-/**
- * Field values as doi.org, Crossref and arXiv send them: entity-encoded and JATS markup,
- * characters LaTeX treats as commands, braces that may not balance, backslashes, any dash in a
- * page range, any spelling of a month. "@" is left out: both .bib readers here find entries by
- * pattern, so an "@misc{x," inside a value would read as an entry of its own.
- */
-
 const TEXT_PIECES = [
   "Deep",
   " ",
@@ -22,6 +15,8 @@ const TEXT_PIECES = [
   "&",
   "%",
   "#",
+  "@",
+  "@misc{x,",
   "{",
   "}",
   "\\",
@@ -63,7 +58,6 @@ const RAW_VALUES: Partial<Record<BibtexFieldName, fc.Arbitrary<string>>> = {
   eprint: fc.constantFrom("1706.03762", "hep-th/9711200v2"),
 };
 
-/** Some of the fields, each with a raw value. */
 export const rawCitationFields: fc.Arbitrary<Partial<Record<BibtexFieldName, string>>> = fc
   .subarray([...BIBTEX_FIELD_ORDER], { maxLength: 8 })
   .chain((names) =>

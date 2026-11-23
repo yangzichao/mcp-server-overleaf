@@ -12,12 +12,6 @@ import {
   renderOpaqueBlock,
 } from "./generatedLatexProject.js";
 
-/**
- * What flattening a generated project should give, worked out from the pieces the project was
- * built from rather than by scanning its text: which directives are live, where each line
- * starts, and what follows a directive on its line are all known by construction.
- */
-
 export interface ExpectedFlattening {
   readonly text: string;
   readonly inlinedFiles: readonly string[];
@@ -27,7 +21,6 @@ export interface ExpectedFlattening {
 
 export const UNREADABLE_MESSAGE = "not text";
 
-/** The directive as the include scanner reads it: names trimmed, the extension rule by command. */
 function asIncludeDirective(directive: GeneratedDirective): IncludeDirective {
   const isImport = directive.kind === "import";
   return {
@@ -51,7 +44,6 @@ function atLineStart(text: string): boolean {
   return text.slice(text.lastIndexOf("\n") + 1).trim() === "";
 }
 
-/** Blank text or a comment, and no further directive, up to the end of the line. */
 function isRestOfLineBlank(rest: readonly LinePiece[]): boolean {
   return rest.every((piece) => piece.kind === "text" && piece.text.trim() === "");
 }

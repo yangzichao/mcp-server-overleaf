@@ -6,11 +6,9 @@ import { expect } from "vitest";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("unsupportedCharacters.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 
-/** Each edit the feature names, as the tool and action that make it. */
 const EDITS: Record<string, { toolName: string; action: string }> = {
   "edit_file replace_text": { toolName: "edit_file", action: "replace_text" },
   "manage_tracked_changes suggest": { toolName: "manage_tracked_changes", action: "suggest" },
@@ -48,7 +46,6 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
     Then("the change is refused, naming {string}", (_context, character: string) => {
       const { lastReply } = scenario.world;
       expect(lastReply.isError).toBe(true);
-      // A code point such as U+1F600 holds a "+", which a pattern would read as a repetition.
       const escapedCharacter = character.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       expect(lastReply.text).toMatch(
         new RegExp(`^replaceWith contains (NUL|".+" \\(${escapedCharacter}\\))`),

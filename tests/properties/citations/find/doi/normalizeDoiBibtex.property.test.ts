@@ -19,7 +19,6 @@ function decodedLink(link: string): string {
   }
 }
 
-/** The changes the module documents for an entry already written as here: a url that only links to the DOI goes, and so does an `@inbook` with a booktitle. */
 function expectedReadBack(draft: BibtexEntryDraft): BibtexEntryDraft {
   const fields = new Map(draft.fields);
   const doi = fields.get("doi");

@@ -2,10 +2,10 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { normalizeTitleWords, titleSimilarity } from "../../../src/citations/titleSimilarity.js";
-import { latexText } from "../support/latexArbitraries.js";
+import { latexTextWithLineBreaksAnywhere } from "../support/latexArbitraries.js";
 import { decoratedTitle, titleWord } from "./titleWordArbitraries.js";
 
-const anyTitle = fc.oneof(latexText, fc.string({ unit: "grapheme" }));
+const anyTitle = fc.oneof(latexTextWithLineBreaksAnywhere, fc.string({ unit: "grapheme" }));
 const titleWords = fc.array(titleWord, { minLength: 1, maxLength: 8 });
 
 describe("titleSimilarity properties", () => {

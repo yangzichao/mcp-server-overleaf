@@ -2,28 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { parseFirstArxivEntry } from "../../../../src/citations/metadataServices/parseArxivFeed.js";
-
-const NAMED_ENTITIES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&apos;",
-};
-
-/** Escapes text as XML, writing some characters as numeric references, which a feed may also do. */
-const escapedXmlText = (text: string): fc.Arbitrary<string> =>
-  fc
-    .array(fc.boolean(), { minLength: [...text].length, maxLength: [...text].length })
-    .map((numericChoices) =>
-      [...text]
-        .map((character, index) =>
-          numericChoices[index]
-            ? `&#${character.codePointAt(0) ?? 0};`
-            : (NAMED_ENTITIES[character] ?? character),
-        )
-        .join(""),
-    );
+import { collapseWhitespace, escapedXmlText } from "../find/arxiv/generatedArxivFeed.js";
 
 const titleText = fc.oneof(
   fc.string({ unit: "grapheme", minLength: 1 }),
@@ -34,10 +13,6 @@ const titleText = fc.oneof(
     })
     .map((pieces) => pieces.join("")),
 );
-
-function collapseWhitespace(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
-}
 
 function feedWithEntryTitle(escapedTitle: string): string {
   return [
@@ -72,8 +47,6 @@ describe("parseFirstArxivEntry properties", () => {
     );
   });
 
-  // Found by this property: a title "&#65;", sent as "&amp;#65;", once came back as "A", because
-  // named references were decoded first and numeric ones after.
   it("reads back a title that itself contains the text of a numeric reference", () => {
     fc.assert(
       fc.property(fc.stringMatching(/^[A-Za-z ]{0,6}&#[0-9]{2,3};[A-Za-z ]{0,6}$/), (title) => {

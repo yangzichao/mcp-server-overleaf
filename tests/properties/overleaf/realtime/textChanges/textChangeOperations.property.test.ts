@@ -28,11 +28,10 @@ function changedCodeUnits(oldText: string, newText: string): number {
   );
 }
 
-/**
- * Ten lines no generated document holds. Any line diff that matched none of them would cost
- * more than two small edits can, so it keeps them all, and each edit's lines stay on its side.
- */
-const SEPARATOR = Array.from({ length: 10 }, (_, index) => `%% separator ${index}\n`).join("");
+const LINES_THE_LINE_DIFF_KEEPS_BETWEEN_TWO_EDITS = Array.from(
+  { length: 10 },
+  (_, index) => `%% separator ${index}\n`,
+).join("");
 
 describe("buildTextChangeOperations properties", () => {
   it("gives operations that, applied in order, turn the old text into the new one", () => {
@@ -74,28 +73,21 @@ describe("buildTextChangeOperations properties", () => {
     );
   });
 
-  // Found by this property: `\item x\r\n\item x\n` edited to `\item x\nitem x\n` once changed 16
-  // code units where the edit changed 4, because the line diff kept the last line, which the
-  // first had become, and rewrote both lines around it.
   it("changes no more code units than a small edit did", () => {
     fc.assert(
-      fc.property(textWithSmallEdit, ({ oldText, newText, editedLength }) => {
-        expect(changedCodeUnits(oldText, newText)).toBeLessThanOrEqual(editedLength);
+      fc.property(textWithSmallEdit, ({ oldText, newText, deletedAndInsertedCodeUnits }) => {
+        expect(changedCodeUnits(oldText, newText)).toBeLessThanOrEqual(deletedAndInsertedCodeUnits);
       }),
     );
   });
 
-  // Found by this property: é typed at the start of the first of two `\item x` lines changed 17
-  // code units, not 1, once another edit sat further down. The line diff kept the first line as
-  // the second and rewrote the lines on each side, and one change across the whole edit, which
-  // had made up for that, now spanned both edits.
   it("changes no more code units than two small edits far apart did", () => {
     fc.assert(
       fc.property(textWithSmallEdit, textWithSmallEdit, (first, second) => {
-        const oldText = `${first.oldText}\n${SEPARATOR}${second.oldText}`;
-        const newText = `${first.newText}\n${SEPARATOR}${second.newText}`;
+        const oldText = `${first.oldText}\n${LINES_THE_LINE_DIFF_KEEPS_BETWEEN_TWO_EDITS}${second.oldText}`;
+        const newText = `${first.newText}\n${LINES_THE_LINE_DIFF_KEEPS_BETWEEN_TWO_EDITS}${second.newText}`;
         expect(changedCodeUnits(oldText, newText)).toBeLessThanOrEqual(
-          first.editedLength + second.editedLength,
+          first.deletedAndInsertedCodeUnits + second.deletedAndInsertedCodeUnits,
         );
       }),
     );

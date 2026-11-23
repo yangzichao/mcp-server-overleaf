@@ -8,7 +8,6 @@ import {
 import { anyJsonField, awkwardText } from "./generatedOverleafAnswers.js";
 import { escapeAsPug } from "./pugMetaTags.js";
 
-/** An entry of `ol-imageNames` as the page may hold it, any field missing or of another type. */
 const imageEntry = fc.record(
   {
     imageName: fc.oneof(
@@ -30,7 +29,6 @@ const languageEntry = fc.record(
   { requiredKeys: [] },
 );
 
-/** Mostly a list of entries among other values, sometimes something other than a list. */
 function listOrNot(entry: fc.Arbitrary<unknown>): fc.Arbitrary<unknown> {
   return fc.oneof(
     {
@@ -41,7 +39,6 @@ function listOrNot(entry: fc.Arbitrary<unknown>): fc.Arbitrary<unknown> {
   );
 }
 
-/** What the page's three tags hold; undefined leaves a tag out. */
 const settingTags = fc.record({
   imageNames: fc.option(listOrNot(imageEntry), { nil: undefined }),
   languages: fc.option(listOrNot(languageEntry), { nil: undefined }),
@@ -79,7 +76,6 @@ function objectsIn(value: unknown): Record<string, unknown>[] {
   );
 }
 
-/** The editor's defaults: an image named by its id, a language by its code, an image allowed unless it says not. */
 function expectedChoices(tags: SettingTags): ProjectSettingChoices {
   return {
     texLiveImages: objectsIn(tags.imageNames).flatMap(({ imageName, imageDesc, allowed }) =>

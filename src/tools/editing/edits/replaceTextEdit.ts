@@ -2,7 +2,7 @@ import { replaceTextOccurrences } from "../../../latex/replaceTextOccurrences.js
 import type { OverleafGitRepository } from "../../../overleaf/overleafGitRepository.js";
 import { requireFileRevision } from "../../reading/fileRevisions.js";
 import { EDITS_ARE_LOCAL_UNTIL_PUSHED } from "../editFileArguments.js";
-import { requireOneSnippetMatch } from "./requireOneSnippetMatch.js";
+import { requireSnippetReplaced } from "./requireSnippetReplaced.js";
 
 export interface TextReplacement {
   readonly path: string;
@@ -12,7 +12,6 @@ export interface TextReplacement {
   readonly replaceAll: boolean;
 }
 
-/** Replaces an exact snippet; a missing or ambiguous one changes nothing and is refused. */
 export async function replaceTextEdit(
   repository: OverleafGitRepository,
   edit: TextReplacement,
@@ -25,7 +24,7 @@ export async function replaceTextEdit(
     edit.replaceWith,
     edit.replaceAll,
   );
-  requireOneSnippetMatch(edit.path, replacement);
+  requireSnippetReplaced(edit.path, replacement);
   await repository.writeTextFile(edit.path, replacement.updatedContent);
   return `Replaced ${replacement.occurrenceCount} occurrence(s) in ${edit.path}. ${EDITS_ARE_LOCAL_UNTIL_PUSHED}`;
 }

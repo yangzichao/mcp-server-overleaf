@@ -1,7 +1,6 @@
 import type { McpStdioClient } from "../../integration/mcpStdioClient.js";
 import { responseText } from "../../integration/support/mcpProtocol.js";
 
-/** What a tool answered, and whether it answered as a failure rather than a plain reply. */
 export interface ToolReply {
   readonly text: string;
   readonly isError: boolean;

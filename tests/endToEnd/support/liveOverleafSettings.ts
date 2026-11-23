@@ -3,10 +3,6 @@ import { isAbsolute } from "node:path";
 
 import { parseEnvironmentFile } from "../../../src/config/loadEnvironmentFile.js";
 
-/**
- * The live suite reads its own OVERLEAF_E2E_* names, never the server's OVERLEAF_* ones, so a
- * developer's everyday .env can never point these writes at a real paper by accident.
- */
 export interface LiveOverleafSettings {
   readonly projectId: string;
   readonly gitToken: string | undefined;

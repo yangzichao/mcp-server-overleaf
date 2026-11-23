@@ -148,7 +148,6 @@ describe("timestamps, which Overleaf has sent as both a number and a string", ()
     expect(changes.map((change) => change.madeAt)).toEqual([undefined, undefined]);
   });
 
-  // new Date(ts).toISOString() used to throw RangeError and fail the whole read.
   it("leaves a number outside the range of a Date undefined", () => {
     const { changes } = readDocumentRanges({
       changes: [{ id: "c1", op: { p: 0, i: "" }, metadata: { ts: 8.640000000000001e15 } }],

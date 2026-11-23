@@ -1,11 +1,5 @@
 import fc from "fast-check";
 
-/**
- * Small LaTeX projects built from known pieces, so a test knows where every include directive,
- * comment and verbatim block is without parsing the text it renders. File names repeat across
- * directives, so includes form cycles, include a file twice, and include the root.
- */
-
 export type GeneratedDirective =
   | {
       readonly kind: "simple";
@@ -13,7 +7,6 @@ export type GeneratedDirective =
       readonly fileName: string;
       /** A space between the command and its brace, which TeX allows. */
       readonly spaceBeforeBrace: boolean;
-      /** Spaces inside the braces, which the directive reader trims. */
       readonly paddedName: boolean;
     }
   | {
@@ -50,7 +43,6 @@ export interface GeneratedFile {
 
 export interface GeneratedProject {
   readonly textFiles: ReadonlyMap<string, GeneratedFile>;
-  /** In the project but not readable as text, as a figure named .tex would be. */
   readonly binaryFiles: readonly string[];
 }
 
@@ -58,7 +50,6 @@ export const ROOT_PATH = "main.tex";
 const OTHER_TEXT_FILES = ["a.tex", "b.tex", "c.tex", "sub/d.tex", "sub/e.tex"] as const;
 const BINARY_FILE = "binary.tex";
 
-/** Names that resolve, miss, climb out of the project, start at the root, or name the root itself. */
 const SIMPLE_FILE_NAMES = [
   "a",
   "a.tex",

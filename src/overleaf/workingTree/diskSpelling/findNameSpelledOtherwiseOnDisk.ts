@@ -4,21 +4,16 @@ import { join } from "node:path";
 
 import { isNothingAtPathError } from "../isNothingAtPathError.js";
 
-/** The first name in a client path that reaches an entry the disk stores under another spelling. */
 export interface NameSpelledOtherwiseOnDisk {
-  /** The client's path up to and including that name, in Git's form. */
-  readonly requestedPath: string;
-  /** The same names as the disk stores them. */
-  readonly storedPath: string;
-  /** The client's whole path with the stored spellings in place. */
+  readonly requestedPathUpToTheMisspelledName: string;
+  readonly storedPathUpToTheMisspelledName: string;
   readonly wholePathAsStored: string;
 }
 
 /**
  * Walks `gitPath` down from the clone's root, looking for a name that reaches an existing entry
  * although its folder does not list that spelling. Only a disk that ignores case does that, as
- * macOS does by default: there Main.tex opens main.tex, while Overleaf keeps them apart. A
- * difference in Unicode normalization alone is not counted, since the two spellings look the same.
+ * macOS does by default: there Main.tex opens main.tex, while Overleaf keeps them apart.
  *
  * `isTrackedUnderThatSpelling` lets through a spelling Git has. When a collaborator renames a
  * folder to another case while the clone has a new file in it, the disk keeps the old spelling,
@@ -39,12 +34,12 @@ export async function findNameSpelledOtherwiseOnDisk(
     if (listedName === undefined) {
       const entry = await lstatIfPresent(join(directory, name));
       if (entry === undefined) return undefined;
-      const requestedPath = names.slice(0, index + 1).join("/");
-      if (!(await isTrackedUnderThatSpelling(requestedPath))) {
+      const requestedPathUpToTheMisspelledName = names.slice(0, index + 1).join("/");
+      if (!(await isTrackedUnderThatSpelling(requestedPathUpToTheMisspelledName))) {
         const stored = [...storedNames, (await findListedNameOf(directory, listing, name, entry)) ?? name];
         return {
-          requestedPath,
-          storedPath: stored.join("/"),
+          requestedPathUpToTheMisspelledName,
+          storedPathUpToTheMisspelledName: stored.join("/"),
           wholePathAsStored: [...stored, ...names.slice(index + 1)].join("/"),
         };
       }
@@ -55,7 +50,6 @@ export async function findNameSpelledOtherwiseOnDisk(
   return undefined;
 }
 
-/** The names in a folder, or undefined when the path is missing or is a file, so nothing is below it. */
 async function listDirectory(directory: string): Promise<string[] | undefined> {
   try {
     return await readdir(directory);
@@ -76,8 +70,7 @@ async function lstatIfPresent(path: string): Promise<BigIntStats | undefined> {
 
 /**
  * The listed name of the entry `name` reached, matched by device and inode rather than by
- * folding case, since a disk's case folding is its own. Names equal to `name` in lower case are
- * tried first; one of them is almost always it.
+ * folding case, since a disk's case folding is its own.
  */
 async function findListedNameOf(
   directory: string,

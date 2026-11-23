@@ -10,7 +10,6 @@ const LABEL_PATTERN = /\\(label|zlabel)\s*(?:\[[^[\]]*\]\s*)?\{([^{}]*)\}/g;
 /**
  * `label=` in the options of a code listing or a tcolorbox, which is a cross-reference
  * label there. Elsewhere, TikZ above all, `label=` is a node caption and labels nothing.
- * A value in braces may hold brackets, as in caption={[short]long}.
  */
 const LABELLED_OPTIONS_PATTERN =
   /\\(?:begin\s*\{(?:lstlisting|minted|tcolorbox)\}|lstinputlisting|inputminted)\s*\[((?:[^[\]{}]|\{[^{}]*\})*)\]/g;

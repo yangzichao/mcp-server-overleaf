@@ -6,7 +6,6 @@ import type { FakeOverleafRemote } from "../../integration/fakeOverleafRemote.js
 
 const execFileAsync = promisify(execFile);
 
-/** A file as it stands "on Overleaf" in another paper of the same account. */
 export async function readSiblingProjectFile(
   remote: FakeOverleafRemote,
   projectId: string,

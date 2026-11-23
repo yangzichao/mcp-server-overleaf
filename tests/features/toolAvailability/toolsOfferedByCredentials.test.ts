@@ -7,7 +7,6 @@ import { expectInstructionsToNameOnlyWhatIsListed } from "../../integration/supp
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(
   fileURLToPath(new URL("toolsOfferedByCredentials.feature", import.meta.url)),
 );
@@ -16,7 +15,6 @@ const scenario = new OverleafEditorScenario();
 type ToolTable = ReadonlyArray<{ tool: string }>;
 type ChoiceTable = ReadonlyArray<{ tool: string; choice: string }>;
 
-/** The arguments that pick what a tool does; each offers only the choices the credentials can serve. */
 const CHOICE_ARGUMENTS = ["action", "view", "where"];
 
 async function offeredToolNames(): Promise<string[]> {

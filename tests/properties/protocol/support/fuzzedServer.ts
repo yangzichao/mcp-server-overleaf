@@ -25,7 +25,6 @@ import type { ProjectStateSources } from "./projectStateSnapshot.js";
 
 const execFileAsync = promisify(execFile);
 
-/** A Git token with a session cookie offers all 15 tools; a cookie alone offers the editor's 13. */
 export type FuzzedConfiguration = "git-and-cookie" | "cookie-only";
 
 export interface FuzzedServer {
@@ -38,19 +37,15 @@ export interface FuzzedServer {
 
 const ANY_FILE_REVISION = "0".repeat(64);
 
-/** The revision read_file reports for each seeded text file, for guarded edits and smart reads. */
 async function readFileRevisions(client: McpStdioClient): Promise<string[]> {
   const revisions: string[] = [];
   for (const path of Object.keys(SEEDED_TEXT_FILES)) {
-    const text = await client.call("read_file", { project: "paper", path, mode: "full" });
-    try {
-      const revision = (JSON.parse(text) as { revision?: unknown }).revision;
-      if (typeof revision === "string") revisions.push(revision);
-    } catch {
-      // A read the configuration cannot answer in mode full leaves nothing to collect.
-    }
+    const reply = await client.call("read_file", { project: "paper", path, mode: "full" });
+    const { revision } = JSON.parse(reply) as { revision?: unknown };
+    if (typeof revision !== "string") throw new Error(`read_file gave no revision for ${path}:\n${reply}`);
+    revisions.push(revision);
   }
-  return revisions.length > 0 ? revisions : [ANY_FILE_REVISION];
+  return revisions;
 }
 
 async function readCommitHashes(bareRepositoryDirectory: string): Promise<string[]> {
@@ -60,7 +55,6 @@ async function readCommitHashes(bareRepositoryDirectory: string): Promise<string
   return stdout.split("\n").filter(Boolean);
 }
 
-/** The clone's path, from the first line of read_project's overview: "Local clone: <path>". */
 async function readClonePath(client: McpStdioClient): Promise<string> {
   const overview = await client.call("read_project", { project: "paper" });
   const firstLine = overview.split("\n")[0] ?? "";
@@ -68,10 +62,6 @@ async function readClonePath(client: McpStdioClient): Promise<string> {
   return firstLine.slice("Local clone: ".length);
 }
 
-/**
- * The server over stdio with fakes for everything it reaches: the Git remote, the editor and
- * web application, doi.org, Crossref and arXiv, latexmk and texcount. Nothing leaves the machine.
- */
 export async function startFuzzedServer(configuration: FuzzedConfiguration): Promise<FuzzedServer> {
   const remote = await FakeOverleafRemote.create();
   await seedGitRemote(remote);
@@ -97,8 +87,7 @@ export async function startFuzzedServer(configuration: FuzzedConfiguration): Pro
   const client = await McpStdioClient.start({
     ...credentials,
     ...metadata.environment(),
-    // An explicit, empty settings file, so no .env in the checkout can add a real credential.
-    OVERLEAF_MCP_ENV_FILE: sandbox.emptyEnvironmentFile,
+    OVERLEAF_MCP_ENV_FILE: sandbox.environmentFileWithNoCredentials,
     XDG_CONFIG_HOME: sandboxDirectory,
     PATH: `${sandbox.programDirectory}:${process.env.PATH ?? ""}`,
   });
@@ -120,11 +109,12 @@ export async function startFuzzedServer(configuration: FuzzedConfiguration): Pro
         filePaths: [...Object.keys(SEEDED_TEXT_FILES), SEEDED_FIGURE_PATH],
         sectionTitles: SEEDED_SECTION_TITLES,
         commitHashes: await readCommitHashes(remote.bareRepositoryDirectory),
-        fileRevisions: await readFileRevisions(client),
+        fileRevisions:
+          configuration === "git-and-cookie" ? await readFileRevisions(client) : [ANY_FILE_REVISION],
         ...editorValues,
         citationKeys: SEEDED_CITATION_KEYS,
         registeredDoi: REGISTERED_DOI,
-        localPaths: sandbox.localPaths,
+        sandboxPaths: sandbox.sandboxPaths,
       },
       stateSources: { clonePath, bareRepositoryDirectory: remote.bareRepositoryDirectory, editor },
       stop,

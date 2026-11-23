@@ -4,10 +4,6 @@ import { join } from "node:path";
 
 import { McpStdioClient } from "../../integration/mcpStdioClient.js";
 
-/**
- * The server started with nothing configured, in a home directory of its own so no
- * configuration file or `.env` on the developer's machine can fill the gap.
- */
 export class UnconfiguredServer {
   private constructor(
     private readonly isolatedHome: string,

@@ -1,8 +1,3 @@
-/**
- * The editor tools can only change documents that already exist, so the live run borrows one
- * line of a real document: it appends a LaTeX comment line it owns after a line that occurs
- * once, works only inside that comment, and removes it again at the end.
- */
 export function findUniqueAnchorLine(documentText: string): string {
   const anchor = documentText
     .split("\n")
@@ -23,7 +18,6 @@ export function threadIdFromAddCommentReply(reply: string): string {
   return match[1];
 }
 
-/** Ids of the tracked changes read_review (view tracked_changes) reports on lines that mention the given text. */
 export function trackedChangeIdsMentioning(listing: string, text: string): string[] {
   return listing
     .split("\n")

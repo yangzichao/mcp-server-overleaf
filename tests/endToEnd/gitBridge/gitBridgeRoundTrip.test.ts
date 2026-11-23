@@ -10,7 +10,8 @@ import { callFailing, callSucceeding, listedFilePaths, pushedCommitHash } from "
 
 const texAvailable = await shouldRunTexTests();
 const runIdentifier = liveRunIdentifier();
-const scratchFolder = `mcp-e2e/${runIdentifier}`;
+const SCRATCH_ROOT_OF_EVERY_RUN = "mcp-e2e/";
+const scratchFolder = `${SCRATCH_ROOT_OF_EVERY_RUN}${runIdentifier}`;
 const paperPath = `${scratchFolder}/paper.tex`;
 const bibliographyPath = `${scratchFolder}/refs.bib`;
 const figurePath = `${scratchFolder}/figure.png`;
@@ -55,15 +56,15 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
     server = await LiveOverleafServer.start("gitBridgeAndEditor");
   });
 
-  // Removes every scratch file under mcp-e2e/, so a run that crashed before its own cleanup
-  // is cleaned up by the next one.
   afterAll(async () => {
     if (!server) return;
     try {
       await discardLocalChanges();
-      const scratchPaths = listedFilePaths(await listFiles()).filter((path) => path.startsWith("mcp-e2e/"));
-      for (const path of scratchPaths) await call("manage_files", { action: "delete", path });
-      if (scratchPaths.length > 0) {
+      const scratchPathsLeftByAnyRun = listedFilePaths(await listFiles()).filter((path) =>
+        path.startsWith(SCRATCH_ROOT_OF_EVERY_RUN),
+      );
+      for (const path of scratchPathsLeftByAnyRun) await call("manage_files", { action: "delete", path });
+      if (scratchPathsLeftByAnyRun.length > 0) {
         await call("push_changes", { commitMessage: `Remove end-to-end scratch files ${runIdentifier}` });
       }
     } finally {

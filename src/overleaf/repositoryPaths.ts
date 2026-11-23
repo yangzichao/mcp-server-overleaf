@@ -4,8 +4,7 @@ export class UnsafeRepositoryPathError extends Error {}
 
 /**
  * True when a path that `relative()` returned leaves its base directory: ".." or "../…",
- * or another drive on Windows. A name that only starts with two dots, such as "..notes.tex",
- * stays inside.
+ * or another drive on Windows.
  */
 export function leavesBaseDirectory(pathFromBase: string): boolean {
   return pathFromBase === ".." || pathFromBase.startsWith(`..${sep}`) || isAbsolute(pathFromBase);

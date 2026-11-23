@@ -6,7 +6,11 @@ import {
   readJsonMetaTag,
   readMetaTag,
 } from "../../../../../src/overleaf/web/projects/editorPageMetaTags.js";
-import { millisecondsToRun, pumpedText } from "../../../support/pumpedText.js";
+import {
+  LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME,
+  millisecondsToRun,
+  pumpedText,
+} from "../../../support/pumpedText.js";
 import { editorPage, type GeneratedMetaTag } from "./pugMetaTags.js";
 
 const RAW_PIECES = [
@@ -32,8 +36,6 @@ function expectReadBack(page: string, { name, value }: GeneratedMetaTag): void {
 }
 
 describe("editorPageMetaTags properties", () => {
-  // Found by this property: a tag "ol-a" whose JSON held the text `name='ol-b'` was once read as
-  // tag "ol-b", because the name was looked for anywhere in a tag, quoted values included.
   it("reads back every setting as Pug wrote it, whatever the other tags hold", () => {
     fc.assert(
       fc.property(editorPage, ({ tags, page }) => {
@@ -43,8 +45,6 @@ describe("editorPageMetaTags properties", () => {
     );
   });
 
-  // Found by this property: `<meta name="ol-a" content="&#x110000;">` once threw a RangeError,
-  // because String.fromCodePoint was given a number past U+10FFFF.
   it("never throws on a page, whatever its tags and entities", () => {
     const page = fc
       .array(fc.constantFrom(...RAW_PIECES), { maxLength: 8 })
@@ -73,7 +73,7 @@ describe("editorPageMetaTags properties", () => {
       "x",
     ];
     fc.assert(
-      fc.property(pumpedText(pieces, { minimumLength: 50_000, maximumLength: 200_000 }), (page) => {
+      fc.property(pumpedText(pieces, LONG_ENOUGH_TO_EXPOSE_QUADRATIC_TIME), (page) => {
         expect(millisecondsToRun(() => readMetaTag(page, "ol-x"))).toBeLessThan(1000);
       }),
       { numRuns: 40, endOnFailure: true },

@@ -70,8 +70,6 @@ describe("resolvePathInsideRepository properties", () => {
     );
   });
 
-  // Found by this property: "..notes.tex" was once refused as outside the project, because the
-  // check read any relative path starting with ".." as a climb out of the clone.
   it("accepts a top-level file whose name only starts with two dots", () => {
     fc.assert(
       fc.property(fc.stringMatching(/^\.\.[A-Za-z0-9_-]{1,8}(\.tex)?$/), (fileName) => {

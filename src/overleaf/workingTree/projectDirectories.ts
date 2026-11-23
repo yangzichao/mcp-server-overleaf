@@ -20,26 +20,13 @@ import { requireFileShapedPath } from "./requireFileShapedPath.js";
 
 export type ProjectPathKind = "file" | "directory" | "missing";
 
-/**
- * Where a move's destination points, judged before its spelling is checked: at the source
- * itself, such as ./main.tex for main.tex; at the source under a name that differs only in case,
- * in the same folder, which on a disk that ignores case is the same entry; or somewhere else.
- */
-export type MoveDestination = "the source itself" | "the source respelled" | "elsewhere";
+export type RespellOutcome = "the source itself" | "elsewhere" | { readonly respelledFiles: string[] };
 
-/**
- * How two existing paths relate once both passed the spelling check: two names of one entry,
- * which happens only where the disk and Git spell a folder differently, or two entries.
- */
 export type ExistingPathRelation = "two names of one entry" | "two entries";
 
 export interface ProjectDirectoryAccess {
   readonly repositoryDirectory: string;
   readonly git: (args: readonly string[]) => Promise<GitCommandResult>;
-  /**
-   * Path arithmetic, the symlink check and the spelling check; throws for a path that leaves
-   * the clone or that reaches an existing entry only because the disk ignores case.
-   */
   readonly resolveClientPath: (relativePath: string) => Promise<string>;
   /** Brings back a tracked path that sparse checkout left off disk. */
   readonly materializePathIfNeeded: (relativePath: string) => Promise<void>;
@@ -55,7 +42,6 @@ async function existsOnDisk(absolutePath: string): Promise<boolean> {
   }
 }
 
-/** True when both paths reach one entry on disk; false when either is missing. */
 async function isOneEntry(firstAbsolutePath: string, secondAbsolutePath: string): Promise<boolean> {
   try {
     const [first, second] = await Promise.all([
@@ -74,7 +60,7 @@ export class ProjectDirectories {
 
   /**
    * What a path names in the working tree. A path outside the clone throws rather than reading
-   * as missing. A path under a file, which stat refuses with ENOTDIR, names nothing and so is missing.
+   * as missing.
    */
   async describePathKind(relativePath: string): Promise<ProjectPathKind> {
     await this.access.materializePathIfNeeded(relativePath);
@@ -89,7 +75,6 @@ export class ProjectDirectories {
     }
   }
 
-  /** How two paths that both exist relate. lstat keeps a symlink apart from what it points at. */
   async compareExistingPaths(
     firstRelativePath: string,
     secondRelativePath: string,
@@ -102,11 +87,13 @@ export class ProjectDirectories {
   }
 
   /**
-   * Where `toRelativePath` points relative to the existing `fromRelativePath`. The destination is
-   * placed by path arithmetic only, since a respelled name would fail the spelling check; the
-   * source passed every guard, and a respelled destination stays in the source's folder.
+   * rename(2) changes the name the disk stores; Git's index entries follow it, since Git on such
+   * a disk cannot see the change itself.
    */
-  async describeMoveDestination(fromRelativePath: string, toRelativePath: string): Promise<MoveDestination> {
+  async respellIfOneEntryUnderTwoSpellings(
+    fromRelativePath: string,
+    toRelativePath: string,
+  ): Promise<RespellOutcome> {
     const fromAbsolutePath = await this.access.resolveClientPath(fromRelativePath);
     const toAbsolutePath = resolvePathInsideRepository(this.access.repositoryDirectory, toRelativePath);
     if (fromAbsolutePath === toAbsolutePath) return "the source itself";
@@ -114,25 +101,15 @@ export class ProjectDirectories {
     if (!(await isOneEntry(fromAbsolutePath, toAbsolutePath))) return "elsewhere";
     const sameNameOnceNormalized =
       basename(fromAbsolutePath).normalize("NFC") === basename(toAbsolutePath).normalize("NFC");
-    return sameNameOnceNormalized ? "the source itself" : "the source respelled";
-  }
+    if (sameNameOnceNormalized) return "the source itself";
 
-  /**
-   * Renames a file or folder to a name that differs only in case, for a destination
-   * describeMoveDestination called the source respelled. rename(2) changes the name the disk
-   * stores; Git's index entries follow it, since Git on such a disk cannot see the change itself.
-   * Answers with the project files at their new paths.
-   */
-  async respell(fromRelativePath: string, toRelativePath: string): Promise<string[]> {
-    const fromAbsolutePath = await this.access.resolveClientPath(fromRelativePath);
-    const toAbsolutePath = resolvePathInsideRepository(this.access.repositoryDirectory, toRelativePath);
     await this.bringBackHiddenFilesUnder(fromAbsolutePath);
     const files = await this.listFilesUnder(fromAbsolutePath);
     await rename(fromAbsolutePath, toAbsolutePath);
     const fromGitPath = this.toGitPath(fromAbsolutePath);
     const toGitPath = this.toGitPath(toAbsolutePath);
     await moveIndexEntries(this.access.git, fromGitPath, toGitPath);
-    return files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`);
+    return { respelledFiles: files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`) };
   }
 
   /** Removes the directory and everything in it; answers with the project files that were in it. */

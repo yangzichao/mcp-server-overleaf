@@ -17,14 +17,9 @@ function decodeXmlReference(
 ): string {
   if (entityName !== undefined) return XML_ENTITIES[entityName] ?? written;
   const code = decimalCode !== undefined ? Number(decimalCode) : Number.parseInt(hexadecimalCode ?? "", 16);
-  // String.fromCodePoint throws past U+10FFFF, so such a reference stays as written.
   return code <= LARGEST_CODE_POINT ? String.fromCodePoint(code) : written;
 }
 
-/**
- * Decodes every reference in one pass, so "&amp;#65;" becomes the text "&#65;" instead of
- * being decoded a second time into "A".
- */
 export function decodeXmlText(text: string): string {
   return text.replace(XML_REFERENCE, decodeXmlReference).replace(/\s+/g, " ").trim();
 }

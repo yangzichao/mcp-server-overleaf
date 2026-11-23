@@ -20,10 +20,6 @@ async function callWaitingOutRateLimits(
   return await client.callRaw(toolName, toolArguments);
 }
 
-/**
- * A live run has no fake to inspect afterwards, so a tool error has to stop the run at the
- * call that caused it instead of surfacing later as a confusing assertion.
- */
 export async function callSucceeding(
   client: McpStdioClient,
   toolName: string,
@@ -56,9 +52,8 @@ export function pushedCommitHash(pushReply: string): string {
   return match[1];
 }
 
-/** Paths read_project (view files) reports, without the "(untracked)" note. */
-export function listedFilePaths(listFilesReply: string): string[] {
-  return listFilesReply
+export function listedFilePaths(filesViewReply: string): string[] {
+  return filesViewReply
     .split("\n")
     .filter((line) => line.startsWith("  "))
     .map((line) => line.trim().replace(/ \(untracked\)$/, ""));

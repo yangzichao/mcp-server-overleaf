@@ -9,10 +9,6 @@ import type { FakeOverleafRealtime } from "../../../integration/fakeOverleafReal
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Fields of the fakes that record requests or count connections, so a read changes them too.
- * Everything else in a fake is project state a read must leave alone.
- */
 const BOOKKEEPING_FIELDS = new Set([
   "requests",
   "compiles",
@@ -23,7 +19,6 @@ const BOOKKEEPING_FIELDS = new Set([
   "nextHandshakeId",
 ]);
 
-/** A fake's state as plain data: maps, sets and objects walked, servers and functions left out. */
 function plainState(value: unknown, seen: Set<object>): unknown {
   if (typeof value === "function") return undefined;
   if (value === null || typeof value !== "object") return value;
@@ -47,12 +42,7 @@ async function git(directory: string, args: readonly string[]): Promise<string> 
   return stdout;
 }
 
-/**
- * What a user would call the clone's state: its commits and branches, what is staged, what is
- * edited and every untracked file's bytes. Which tracked files sparse checkout keeps on disk is
- * left out, because restoring one changes nothing a push would publish.
- */
-async function cloneState(clonePath: string): Promise<string> {
+async function cloneStateAPushWouldPublish(clonePath: string): Promise<string> {
   const status = await git(clonePath, ["status", "--porcelain=v1", "--untracked-files=all", "-z"]);
   const untrackedPaths = status
     .split("\0")
@@ -75,22 +65,19 @@ async function cloneState(clonePath: string): Promise<string> {
 }
 
 export interface ProjectStateSources {
-  /** Absent when the server has no Git credential and so keeps no clone. */
   readonly clonePath: string | undefined;
   readonly bareRepositoryDirectory: string;
   readonly editor: FakeOverleafRealtime;
 }
 
-/** Everything a tool could change: the clone, the Git remote, and the editor and web fakes. */
 export async function snapshotProjectState(sources: ProjectStateSources): Promise<Record<string, string>> {
   return {
-    clone: sources.clonePath ? await cloneState(sources.clonePath) : "(no clone)",
+    clone: sources.clonePath ? await cloneStateAPushWouldPublish(sources.clonePath) : "(no clone)",
     remote: await git(sources.bareRepositoryDirectory, ["for-each-ref", "--format=%(refname) %(objectname)"]),
     editor: JSON.stringify(plainState(sources.editor, new Set())),
   };
 }
 
-/** Where two texts first differ, with some text either side, so a long state stays readable. */
 function aroundFirstDifference(before: string, after: string): string {
   let index = 0;
   while (index < before.length && before[index] === after[index]) index += 1;
@@ -98,7 +85,6 @@ function aroundFirstDifference(before: string, after: string): string {
   return `before: …${before.slice(start, index + 300)}…\nafter:  …${after.slice(start, index + 300)}…`;
 }
 
-/** The parts of the state that differ, each shown where it first differs. */
 export function describeStateChanges(
   before: Readonly<Record<string, string>>,
   after: Readonly<Record<string, string>>,

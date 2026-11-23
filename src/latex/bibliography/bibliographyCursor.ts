@@ -1,4 +1,3 @@
-/** Characters BibTeX allows in no entry type, field name or macro name. */
 const NOT_IN_A_NAME = new Set(['"', "#", "%", "'", "(", ")", ",", "=", "{", "}"]);
 
 function isWhitespace(character: string): boolean {
@@ -15,8 +14,8 @@ function isNameCharacter(character: string): boolean {
 }
 
 /**
- * Reads .bib text as BibTeX 0.99d does. A read that returns null leaves the position at the first
- * character BibTeX rejects, which is where BibTeX goes on looking for the next `@`.
+ * A read that returns null leaves the position at the first character BibTeX rejects, which is
+ * where BibTeX goes on looking for the next `@`.
  */
 export class BibliographyCursor {
   constructor(
@@ -47,7 +46,6 @@ export class BibliographyCursor {
     );
   }
 
-  /** A field value: braced or quoted parts, numbers and macro names, joined by `#`. */
   readValue(): string | null {
     const parts: string[] = [];
     for (;;) {
@@ -65,15 +63,13 @@ export class BibliographyCursor {
     const character = this.peek();
     if (character === "{" || character === '"') return this.readDelimited();
     if (isDigit(character)) return this.readWhile(isDigit);
-    // A macro name stands for its @string text, which these readers leave unexpanded.
     const macroName = this.readName();
     return macroName === "" ? null : macroName;
   }
 
   /**
-   * `{...}` or `"..."`, returning what is inside. Every brace counts, since a backslash escapes
-   * nothing, and a quoted value ends at a `"` outside braces. A `}` that closes no brace ends a
-   * braced value and is an error in a quoted one.
+   * Every brace counts, since a backslash escapes nothing, and a quoted value ends at a `"` outside
+   * braces. A `}` that closes no brace ends a braced value and is an error in a quoted one.
    */
   private readDelimited(): string | null {
     const quoted = this.peek() === '"';

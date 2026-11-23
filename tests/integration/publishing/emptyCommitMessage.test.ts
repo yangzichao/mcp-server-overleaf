@@ -8,12 +8,6 @@ import { responseText } from "../support/mcpProtocol.js";
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Git refuses an empty commit message, but only after the push has staged every edit, and its
- * refusal reached the model as the whole git command line. So push_changes refuses a blank
- * message itself, before anything in the clone changes.
- */
-
 const PAPER = "\\documentclass{article}\n\\begin{document}\nHello.\n\\end{document}\n";
 
 describe("push_changes with a blank commit message", () => {

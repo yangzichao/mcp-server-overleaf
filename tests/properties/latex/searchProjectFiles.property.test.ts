@@ -50,6 +50,8 @@ function escapeRegularExpression(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 }
 
+const RUNS_AFFORDABLE_WHEN_EVERY_SEARCH_STARTS_A_WORKER = 30;
+
 describe("searchProjectFiles properties", () => {
   it("finds a plain query on exactly the lines a naive case-insensitive scan does, up to the cap", async () => {
     await fc.assert(
@@ -89,8 +91,7 @@ describe("searchProjectFiles properties", () => {
           expect(await search(true)).toEqual(await search(false));
         },
       ),
-      // Each regular-expression search starts a worker thread.
-      { numRuns: 30 },
+      { numRuns: RUNS_AFFORDABLE_WHEN_EVERY_SEARCH_STARTS_A_WORKER },
     );
   });
 });

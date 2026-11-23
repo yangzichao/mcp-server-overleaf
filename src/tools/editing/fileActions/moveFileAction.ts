@@ -5,10 +5,6 @@ function samePathReply(path: string): string {
   return `path and toPath are the same file (${path}). Nothing was moved.`;
 }
 
-/**
- * Reached only where the disk and Git spell a folder differently: a collaborator renamed it to
- * another case while the clone had a new file in it, so both spellings pass the spelling check.
- */
 function oneEntryRefusal(fromPath: string, toPath: string, kind: "file" | "directory"): string {
   const noun = kind === "file" ? "file" : "folder";
   return (
@@ -50,15 +46,13 @@ export async function moveFileAction(
   const kind = await directories.describePathKind(fromPath);
   if (kind === "missing") throw new Error(`${fromPath} is not in the project, so there is nothing to move.`);
 
-  // On a disk that ignores case, as macOS does by default, Main.tex is main.tex itself, so the
-  // rename is made in place rather than refused as a move onto a file that exists.
-  const destination = await directories.describeMoveDestination(fromPath, toPath);
-  if (destination === "the source itself") return samePathReply(fromPath);
-  if (destination === "the source respelled") {
-    const movedFiles = await directories.respell(fromPath, toPath);
+  // On a disk that ignores case, as macOS does by default, Main.tex is main.tex itself.
+  const respelling = await directories.respellIfOneEntryUnderTwoSpellings(fromPath, toPath);
+  if (respelling === "the source itself") return samePathReply(fromPath);
+  if (respelling !== "elsewhere") {
     return kind === "file"
       ? movedFileReply(fromPath, toPath)
-      : movedDirectoryReply(fromPath, toPath, movedFiles);
+      : movedDirectoryReply(fromPath, toPath, respelling.respelledFiles);
   }
 
   if ((await directories.describePathKind(toPath)) !== "missing") {

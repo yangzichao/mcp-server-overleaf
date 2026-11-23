@@ -1,19 +1,22 @@
-/** Neighbouring items of a row, from `first` to `last`, both included. */
 export interface Run<Item> {
   readonly first: Item;
   readonly last: Item;
 }
 
-interface CheapestEnding {
+interface CheapestPrefixSplit {
   readonly cost: number;
-  readonly runStart: number;
+  readonly lastRunStart: number;
 }
 
-/**
- * Splits a row of items into runs of neighbours at the least total `costOfRun`, and gives the
- * runs in order with that total. Of two splits that cost the same, the one whose last run is
- * shorter wins, so items are joined only when that costs less.
- */
+function costsLessOrAsLittleWithAShorterLastRun(
+  candidate: CheapestPrefixSplit,
+  best: CheapestPrefixSplit,
+): boolean {
+  return (
+    candidate.cost < best.cost || (candidate.cost === best.cost && candidate.lastRunStart > best.lastRunStart)
+  );
+}
+
 export function cheapestRuns<Item>(
   items: readonly Item[],
   costOfRun: (run: Run<Item>) => number,
@@ -25,22 +28,24 @@ export function cheapestRuns<Item>(
     return { first, last };
   };
 
-  // cheapest[end] is the cheapest split of items [0, end), and where its last run starts.
-  const cheapest: CheapestEnding[] = [{ cost: 0, runStart: 0 }];
+  const cheapestSplitOfEachPrefix: CheapestPrefixSplit[] = [{ cost: 0, lastRunStart: 0 }];
   for (let end = 1; end <= items.length; end += 1) {
-    let best: CheapestEnding = { cost: Number.POSITIVE_INFINITY, runStart: end - 1 };
-    for (let start = end - 1; start >= 0; start -= 1) {
-      const cost = (cheapest[start]?.cost ?? 0) + costOfRun(runOf(start, end));
-      if (cost < best.cost) best = { cost, runStart: start };
+    let best: CheapestPrefixSplit = { cost: Number.POSITIVE_INFINITY, lastRunStart: end - 1 };
+    for (let start = 0; start < end; start += 1) {
+      const candidate = {
+        cost: (cheapestSplitOfEachPrefix[start]?.cost ?? 0) + costOfRun(runOf(start, end)),
+        lastRunStart: start,
+      };
+      if (costsLessOrAsLittleWithAShorterLastRun(candidate, best)) best = candidate;
     }
-    cheapest.push(best);
+    cheapestSplitOfEachPrefix.push(best);
   }
 
   const runs: Run<Item>[] = [];
   for (let end = items.length; end > 0; ) {
-    const start = cheapest[end]?.runStart ?? 0;
+    const start = cheapestSplitOfEachPrefix[end]?.lastRunStart ?? 0;
     runs.push(runOf(start, end));
     end = start;
   }
-  return { runs: runs.reverse(), cost: cheapest[items.length]?.cost ?? 0 };
+  return { runs: runs.reverse(), cost: cheapestSplitOfEachPrefix[items.length]?.cost ?? 0 };
 }

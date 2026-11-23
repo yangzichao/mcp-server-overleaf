@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { RequestNotSentError } from "../../../../../src/overleaf/web/overleafWebErrors.js";
 import { checkProjectName } from "../../../../../src/overleaf/web/projects/projectNameRules.js";
 
-/** White space trimmed one code unit at a time, as a check on `String.prototype.trim`. */
 function trimWhiteSpace(name: string): string {
   let start = 0;
   let end = name.length;
@@ -13,7 +12,6 @@ function trimWhiteSpace(name: string): string {
   return name.slice(start, end);
 }
 
-/** `validateProjectName` after Overleaf trims: not blank, 150 code units at most, no `/` or `\`. */
 function overleafAccepts(trimmed: string): boolean {
   return trimmed !== "" && trimmed.length <= 150 && !/[/\\]/.test(trimmed);
 }

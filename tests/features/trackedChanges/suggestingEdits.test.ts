@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
-import { COLLABORATOR_USER_ID, editorPaper } from "../support/connectedOverleafEditor.js";
+import { FAKE_COLLABORATOR_ID } from "../../integration/fakeWebRoutes/fakeProjectMembers.js";
+import { editorPaper } from "../support/connectedOverleafEditor.js";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("suggestingEdits.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 
@@ -83,7 +83,7 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
     );
 
     Then("the reply lists a suggested insertion of {string} by the collaborator", (_context, text) => {
-      expect(scenario.world.lastReply.text).toContain(`insert "${text}" by ${COLLABORATOR_USER_ID}`);
+      expect(scenario.world.lastReply.text).toContain(`insert "${text}" by ${FAKE_COLLABORATOR_ID}`);
     });
 
     Then("the reply says the text appears more than once", () => {

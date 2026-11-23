@@ -49,31 +49,20 @@ interface FileBeingFlattened {
   readonly regionEnd: number;
 }
 
-/** What flattening needs of a file, worked out once however many times the file is included. */
 interface PreparedFile {
   readonly masked: string;
   readonly scanned: ScannedSource;
   readonly region: InlinedRegion;
-  /** Only those inside the region, the part of the file that is inlined. */
-  readonly directives: readonly IncludeDirective[];
+  readonly directivesInTheInlinedRegion: readonly IncludeDirective[];
   readonly pathsBuiltFromMacros: number;
 }
 
-/**
- * Whether only spaces follow the last line break once `appended` is added to the text so far,
- * given whether they did before. Searching the whole text so far for its last line break, at
- * every directive, took quadratic time on a file of many includes.
- */
 function endsAtLineStart(endedAtLineStart: boolean, appended: string): boolean {
   const lastLineBreak = appended.lastIndexOf("\n");
   if (lastLineBreak === -1) return endedAtLineStart && appended.trim() === "";
   return appended.slice(lastLineBreak + 1).trim() === "";
 }
 
-/**
- * Stops at the first character that is not a space. Searching for the line's end first took
- * quadratic time on a line of many includes.
- */
 function isRestOfLineBlank(file: FileBeingFlattened, from: number): boolean {
   for (let index = from; index < file.regionEnd; index += 1) {
     const character = file.masked.charAt(index);
@@ -111,7 +100,6 @@ class DocumentFlattener {
   readonly skippedIncludes: SkippedInclude[] = [];
   pathsBuiltFromMacros = 0;
   private readonly texts = new Map<string, Promise<string>>();
-  /** By path, kept apart for a \subfile, which inlines only the document body. */
   private readonly preparedFiles = new Map<string, PreparedFile>();
 
   constructor(private readonly reader: ProjectSourceReader) {}
@@ -132,7 +120,7 @@ class DocumentFlattener {
     includeChain: readonly string[],
     isSubfile: boolean,
   ): Promise<string> {
-    const { masked, scanned, region, directives, pathsBuiltFromMacros } = this.prepareFile(
+    const { masked, scanned, region, directivesInTheInlinedRegion, pathsBuiltFromMacros } = this.prepareFile(
       path,
       original,
       isSubfile,
@@ -151,7 +139,7 @@ class DocumentFlattener {
     let flattened = "";
     let atLineStart = true;
     let cursor = region.start;
-    for (const directive of directives) {
+    for (const directive of directivesInTheInlinedRegion) {
       if (directive.index < cursor) continue;
       const before = original.slice(cursor, directive.index);
       atLineStart = endsAtLineStart(atLineStart, before);
@@ -170,11 +158,6 @@ class DocumentFlattener {
     return flattened + original.slice(cursor, region.end) + original.slice(region.tailStart, region.tailEnd);
   }
 
-  /**
-   * Masks and scans a file only the first time it is reached. Done at every include, a long
-   * file included thousands of times was read whole each time, though little of it may be
-   * inlined, as with a subfile's preamble, and the length limit never stopped it.
-   */
   private prepareFile(path: string, original: string, isSubfile: boolean): PreparedFile {
     const key = `${isSubfile ? "subfile" : "input"} ${path}`;
     const known = this.preparedFiles.get(key);
@@ -187,7 +170,7 @@ class DocumentFlattener {
       masked,
       scanned,
       region,
-      directives: scan.directives.filter(
+      directivesInTheInlinedRegion: scan.directives.filter(
         (directive) => directive.index >= region.start && directive.index + directive.length <= region.end,
       ),
       pathsBuiltFromMacros: scan.pathsBuiltFromMacros,

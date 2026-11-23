@@ -7,10 +7,8 @@ import type { FakeOverleafRemote } from "../../../integration/fakeOverleafRemote
 import { SMALL_PNG } from "../../../integration/support/testImages.js";
 import { writeFakeExecutable } from "../../../support/fakeExecutable.js";
 
-/** The paper's main file, which also holds the comment thread and the suggestion in the editor. */
 export const SEEDED_MAIN_FILE = "main.tex";
 
-/** A short paper with every kind of thing a tool reads: sections, an include, a citation, a figure. */
 export const SEEDED_TEXT_FILES: Readonly<Record<string, string>> = {
   [SEEDED_MAIN_FILE]: [
     "\\documentclass{article}",
@@ -49,7 +47,6 @@ export const SEEDED_CITATION_KEYS = ["knuth1984"];
 export const REGISTERED_DOI = "10.1093/comjnl/27.2.97";
 const THREAD_ID = "64f0000000000000000000c1";
 
-/** The same paper on the Git remote, as a collaborator's commits. */
 export async function seedGitRemote(remote: FakeOverleafRemote): Promise<void> {
   for (const [path, text] of Object.entries(SEEDED_TEXT_FILES)) {
     await remote.collaboratorPushes(path, text, `Add ${path}`);
@@ -57,7 +54,6 @@ export async function seedGitRemote(remote: FakeOverleafRemote): Promise<void> {
   await remote.collaboratorPushes(SEEDED_FIGURE_PATH, SMALL_PNG, "Add the figure");
 }
 
-/** The same paper in the editor, with one comment thread and one suggestion from a collaborator. */
 export function seedEditor(editor: FakeOverleafRealtime): {
   threadIds: string[];
   messageIds: string[];
@@ -77,7 +73,6 @@ export function seedEditor(editor: FakeOverleafRealtime): {
   };
 }
 
-/** doi.org and Crossref know the cited work, so a lookup can confirm it. */
 export function seedMetadataServices(metadata: FakeMetadataServices): void {
   metadata.dois.set(REGISTERED_DOI, { title: "Literate Programming" });
   metadata.searchResults = [
@@ -92,7 +87,6 @@ export function seedMetadataServices(metadata: FakeMetadataServices): void {
   ];
 }
 
-/** texcount's report for one file, whatever it is asked to count. */
 const FAKE_TEXCOUNT = String.raw`
 process.stdout.write([
   "File: " + process.argv[process.argv.length - 1],
@@ -107,14 +101,10 @@ process.stdout.write([
 ].join("\n"));
 `;
 
-/**
- * The local files sourcePath and saveTo may name, all inside `sandboxDirectory`, plus stand-ins
- * for latexmk and texcount so a compile or a word count runs the same on every machine.
- */
 export async function seedSandbox(sandboxDirectory: string): Promise<{
-  localPaths: string[];
+  sandboxPaths: string[];
   programDirectory: string;
-  emptyEnvironmentFile: string;
+  environmentFileWithNoCredentials: string;
 }> {
   const programDirectory = join(sandboxDirectory, "bin");
   await writeFakeExecutable(
@@ -136,7 +126,7 @@ export async function seedSandbox(sandboxDirectory: string): Promise<{
   };
   for (const [name, content] of Object.entries(files)) await writeFile(join(sandboxDirectory, name), content);
   return {
-    localPaths: [
+    sandboxPaths: [
       ...Object.keys(files)
         .filter((name) => name !== "empty.env")
         .map((name) => join(sandboxDirectory, name)),
@@ -146,6 +136,6 @@ export async function seedSandbox(sandboxDirectory: string): Promise<{
       sandboxDirectory,
     ],
     programDirectory,
-    emptyEnvironmentFile: join(sandboxDirectory, "empty.env"),
+    environmentFileWithNoCredentials: join(sandboxDirectory, "empty.env"),
   };
 }

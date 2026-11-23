@@ -1,10 +1,5 @@
 import fc from "fast-check";
 
-/**
- * A document and an edit of it, built from a few lines that repeat, so a diff has to choose
- * which copy of a line stayed, with emoji, CRLF line ends and text that differs in one character.
- */
-
 const LINE_TEXTS = [
   "\\item x",
   "\\item y",
@@ -25,7 +20,6 @@ const line = fc
 
 export const documentLines = fc.array(line, { maxLength: 12 });
 
-/** Joins lines into a text whose last line may lack its line end, as a file's often does. */
 export function asText(lines: readonly string[], endsWithLineEnd: boolean): string {
   const text = lines.join("");
   return endsWithLineEnd ? text : text.replace(/\r?\n$/, "");
@@ -41,12 +35,10 @@ export const editedDocument = fc.record({
 export interface SmallEdit {
   readonly oldText: string;
   readonly newText: string;
-  /** How many UTF-16 code units the edit deleted and inserted. */
-  readonly editedLength: number;
+  readonly deletedAndInsertedCodeUnits: number;
 }
 
-/** A few characters deleted and inserted at `start`, counted in code points so no pair is split. */
-function smallEditAt(characters: readonly string[], start: fc.Arbitrary<number>): fc.Arbitrary<SmallEdit> {
+function smallEditAt(codePoints: readonly string[], start: fc.Arbitrary<number>): fc.Arbitrary<SmallEdit> {
   return fc
     .record({
       start,
@@ -54,39 +46,33 @@ function smallEditAt(characters: readonly string[], start: fc.Arbitrary<number>)
       inserted: fc.constantFrom("", "z", "\n", "\u{1F602}", "\r\n", "é"),
     })
     .map(({ start: at, deleteCount, inserted }) => {
-      const deleted = characters.slice(at, at + deleteCount).join("");
+      const deleted = codePoints.slice(at, at + deleteCount).join("");
       return {
-        oldText: characters.join(""),
-        newText: characters.slice(0, at).join("") + inserted + characters.slice(at + deleteCount).join(""),
-        editedLength: deleted.length + inserted.length,
+        oldText: codePoints.join(""),
+        newText: codePoints.slice(0, at).join("") + inserted + codePoints.slice(at + deleteCount).join(""),
+        deletedAndInsertedCodeUnits: deleted.length + inserted.length,
       };
     });
 }
 
-/** Lines of a list, which repeat and share their ends, as LaTeX's often do. */
 const listLines = fc.array(fc.constantFrom("\\item x\n", "\\item y\n", "\\item x y\n", "\\end{x}\n", "\n"), {
   maxLength: 8,
 });
 
-/** Where each line end is, as an index into the text's characters. */
-function lineEndIndexes(characters: readonly string[]): number[] {
-  return characters.flatMap((character, index) => (character === "\n" ? [index] : []));
+function lineEndIndexes(codePoints: readonly string[]): number[] {
+  return codePoints.flatMap((codePoint, index) => (codePoint === "\n" ? [index] : []));
 }
 
-/**
- * A text and the same text with a small edit, often around a line end, where an edit joins or
- * splits lines and so can make a line that its neighbour already is.
- */
 export const textWithSmallEdit: fc.Arbitrary<SmallEdit> = fc
   .tuple(fc.oneof(documentLines, listLines), fc.boolean())
   .map(([lines, endsWithLineEnd]) => [...asText(lines, endsWithLineEnd)])
-  .chain((characters) =>
+  .chain((codePoints) =>
     smallEditAt(
-      characters,
+      codePoints,
       fc.oneof(
-        fc.nat(characters.length),
+        fc.nat(codePoints.length),
         fc
-          .constantFrom(-1, ...lineEndIndexes(characters))
+          .constantFrom(-1, ...lineEndIndexes(codePoints))
           .chain((lineEnd) => fc.integer({ min: Math.max(0, lineEnd - 2), max: Math.max(0, lineEnd + 1) })),
       ),
     ),

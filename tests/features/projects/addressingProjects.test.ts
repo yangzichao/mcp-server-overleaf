@@ -153,7 +153,7 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
           prepareRemote: async (remote) => {
             await remote.addSiblingProject(thesisProjectId, "main.tex", "The thesis.\n");
           },
-          environment: (remote) => ({
+          environmentOverrides: (remote) => ({
             ...registeredProjectsEnvironment(remote),
             OVERLEAF_DEFAULT_PROJECT: "paper",
           }),

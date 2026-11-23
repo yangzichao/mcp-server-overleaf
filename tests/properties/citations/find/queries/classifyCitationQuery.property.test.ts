@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { classifyCitationQuery } from "../../../../../src/citations/find/classifyCitationQuery.js";
 import { arxivIdentifier, doi, writtenArxivId, writtenDoi } from "./writtenCitationIdentifiers.js";
 
-/** Words that, alone or together, name no DOI and no arXiv id. */
 const WORDS = [
   "Attention",
   "is",
@@ -33,8 +32,6 @@ describe("classifyCitationQuery properties", () => {
     );
   });
 
-  // Found by this property: `math.gt/0000000` was once taken as text, because an old id was
-  // tried only as written and all in lower case, and its subject class must be in upper case.
   it("reads an arXiv id in any letter case, in every form people paste, as arXiv writes it", () => {
     const pasted = arxivIdentifier.chain((identifier) =>
       writtenArxivId(identifier).map((query) => ({ identifier, query })),

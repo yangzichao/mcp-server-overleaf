@@ -6,11 +6,6 @@ import type {
   TexcountSectionCount,
 } from "../../../../src/workflow/wordCount/parseTexcountReport.js";
 
-/**
- * What `texcount -nocol -inc` prints, built from the counts it reports, in the layout of the
- * TeXcount 3.1.1 runs copied into tests/workflow/wordCount/parseTexcountReport.test.ts.
- */
-
 interface GeneratedSection {
   readonly heading: string;
   readonly counts: TexcountCounts;
@@ -19,7 +14,6 @@ interface GeneratedSection {
 }
 
 interface GeneratedFile {
-  /** As texcount names it relative to where it ran, without the "./" it prints. */
   readonly path: string;
   readonly counts: TexcountCounts;
   readonly sections: readonly GeneratedSection[];
@@ -31,13 +25,11 @@ interface GeneratedProblem {
   readonly spaceBefore: string;
   readonly spaceAfter: string;
   readonly spaceAtEnd: string;
-  /** Where among the other lines the problem is printed. */
   readonly position: number;
 }
 
 export interface GeneratedTexcountOutput {
   readonly files: readonly GeneratedFile[];
-  /** The "Sum of files" block texcount prints for a document of several files. */
   readonly sumOfFiles: TexcountCounts | undefined;
   readonly problems: readonly GeneratedProblem[];
   readonly lineEnd: "\n" | "\r\n";
@@ -157,7 +149,6 @@ function sumOfFilesBlock(output: GeneratedTexcountOutput, totals: TexcountCounts
   ];
 }
 
-/** The output's lines, each problem placed among the others where the generator put it. */
 function layOutLines(output: GeneratedTexcountOutput): Array<string | GeneratedProblem> {
   const lines: Array<string | GeneratedProblem> = [
     "",
@@ -181,7 +172,6 @@ export function renderTexcountOutput(output: GeneratedTexcountOutput): string {
     .join(output.lineEnd);
 }
 
-/** What parseTexcountReport should read back from the rendered output. */
 export function expectedTexcountReport(output: GeneratedTexcountOutput): TexcountReport {
   const files = output.files.map((generated) => ({
     path: generated.path,

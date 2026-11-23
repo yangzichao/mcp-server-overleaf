@@ -4,9 +4,8 @@ import { describe, expect, it } from "vitest";
 import { replaceTextOccurrences } from "../../../../src/latex/replaceTextOccurrences.js";
 import type { DocumentOperation } from "../../../../src/overleaf/realtime/overleafRealtimeSession.js";
 import { buildReplacementOperations } from "../../../../src/overleaf/realtime/replacementOperations.js";
-import { latexFragment, latexText } from "../../support/latexArbitraries.js";
+import { latexFragment, latexTextWithLineBreaksAnywhere } from "../../support/latexArbitraries.js";
 
-/** Applies operations in order, each against the text the previous one left, and checks every deletion. */
 function applyInOrder(text: string, operations: readonly DocumentOperation[]): string {
   let current = text;
   for (const operation of operations) {
@@ -20,7 +19,7 @@ function applyInOrder(text: string, operations: readonly DocumentOperation[]): s
   return current;
 }
 
-const replaceArguments = latexText.chain((text) =>
+const replaceArguments = latexTextWithLineBreaksAnywhere.chain((text) =>
   fc.record({
     text: fc.constant(text),
     findText: fc
@@ -31,7 +30,7 @@ const replaceArguments = latexText.chain((text) =>
         latexFragment,
       )
       .filter((findText) => findText !== ""),
-    replaceWith: fc.oneof(latexText, fc.constant("")),
+    replaceWith: fc.oneof(latexTextWithLineBreaksAnywhere, fc.constant("")),
     replaceAll: fc.boolean(),
   }),
 );
@@ -66,11 +65,16 @@ describe("buildReplacementOperations properties", () => {
 
   it("refuses an empty findText for any text", () => {
     fc.assert(
-      fc.property(latexText, latexText, fc.boolean(), (text, replaceWith, replaceAll) => {
-        expect(() => buildReplacementOperations(text, "", replaceWith, replaceAll)).toThrow(
-          /findText is empty/,
-        );
-      }),
+      fc.property(
+        latexTextWithLineBreaksAnywhere,
+        latexTextWithLineBreaksAnywhere,
+        fc.boolean(),
+        (text, replaceWith, replaceAll) => {
+          expect(() => buildReplacementOperations(text, "", replaceWith, replaceAll)).toThrow(
+            /findText is empty/,
+          );
+        },
+      ),
     );
   });
 });

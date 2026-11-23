@@ -1,11 +1,5 @@
 import fc from "fast-check";
 
-/**
- * Property tests run on a fixed seed, so `npm run check` gives the same result on every run
- * and a failure on CI reproduces locally. FAST_CHECK_SEED and FAST_CHECK_RUNS pick another
- * seed and number of cases; `npm run test:properties:explore` sets both to look for new
- * counterexamples. fast-check prints the seed and path of any failure it finds.
- */
 const DEFAULT_SEED = 20_261_123;
 const DEFAULT_RUNS = 100;
 

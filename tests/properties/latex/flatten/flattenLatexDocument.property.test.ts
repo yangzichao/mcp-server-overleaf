@@ -19,13 +19,11 @@ const MARKER = /% ---- (?:begin (\S+), from ([^\n]*) ----\n|end (\S+) ----)/g;
 interface InlinedSpan {
   readonly path: string;
   readonly written: string;
-  /** Where the begin marker starts and the end marker ends. */
   readonly start: number;
   readonly end: number;
 }
 
-/** Each inlined file's span, checking on the way that the markers nest and that no file is inside itself. */
-function readInlinedSpans(text: string): InlinedSpan[] {
+function expectNestedInlinedSpans(text: string): InlinedSpan[] {
   const open: Array<{ path: string; written: string; start: number }> = [];
   const spans: InlinedSpan[] = [];
   for (const marker of text.matchAll(MARKER)) {
@@ -44,7 +42,6 @@ function readInlinedSpans(text: string): InlinedSpan[] {
   return spans;
 }
 
-/** A root whose directives all sit in comments or verbatim-like environments. */
 const rootWithoutLiveDirectives: fc.Arbitrary<GeneratedFile> = generatedFile.map((file) => ({
   ...file,
   lines: file.lines.map((line) =>
@@ -52,7 +49,6 @@ const rootWithoutLiveDirectives: fc.Arbitrary<GeneratedFile> = generatedFile.map
   ),
 }));
 
-/** Directives that name a file outside the project, or that start at the file system's root. */
 const OUTSIDE_DIRECTIVES = [
   "\\input{../a}",
   "\\input{../sub/d}",
@@ -82,7 +78,7 @@ describe("flattenLatexDocument properties", () => {
     await fc.assert(
       fc.asyncProperty(generatedProject, async (project) => {
         const { text } = await flattenLatexDocument(generatedProjectReader(project), ROOT_PATH);
-        for (const span of readInlinedSpans(text)) {
+        for (const span of expectNestedInlinedSpans(text)) {
           if (!/^\\(?:sub)?include/.test(span.written)) continue;
           expect(text.slice(0, span.start).endsWith("\\clearpage{}%\n")).toBe(true);
           expect(text.slice(span.end).startsWith("\n\\clearpage{}")).toBe(true);
@@ -106,8 +102,6 @@ describe("flattenLatexDocument properties", () => {
     );
   });
 
-  // Found by this property: `\import{../}{a}` once inlined the root's a.tex, because a directory
-  // outside the project was turned into the project root before the file name was looked up.
   it("never inlines a file through a path that leaves the project", async () => {
     const directives = fc.array(fc.constantFrom(...OUTSIDE_DIRECTIVES), { minLength: 1, maxLength: 4 });
     await fc.assert(

@@ -62,8 +62,6 @@ describe("decodeSocketIoFrame termination", () => {
     expect(decoded).toEqual({ finished: true, packets: [{ type: "heartbeat" }] });
   });
 
-  // Found by this property: "�-5�" once made the decoder loop forever, because a
-  // negative length moved the cursor back before the delimiter it had just read.
   it("finishes on any payload-shaped frame, whatever its length fields say", async () => {
     await fc.assert(
       fc.asyncProperty(payloadShapedFrame, async (frame) => {

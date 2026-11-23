@@ -121,7 +121,6 @@ describe("buildTextChangeOperations", () => {
   });
 
   it("keeps an edit that joins lines beside a copy of the new line one small change", () => {
-    // The line diff alone keeps the last line, deletes "\\item x\r\n" and inserts "item x\n".
     expect(expectRoundTrip("b\n\\item x\r\n\\item x\n", "b\n\\item x\nitem x\n")).toEqual([
       { p: 9, d: "\r\n\\" },
       { p: 9, i: "\n" },

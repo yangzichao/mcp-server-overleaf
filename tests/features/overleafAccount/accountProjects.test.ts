@@ -6,7 +6,6 @@ import { expect } from "vitest";
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
 
-// An absolute path: loadFeature resolves a relative one against the transformed module.
 const feature = await loadFeature(fileURLToPath(new URL("accountProjects.feature", import.meta.url)));
 const scenario = new OverleafEditorScenario();
 
@@ -120,8 +119,8 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
     Then(
       "the account now holds a project named {string} made from the example paper",
       (_context, name: string) => {
-        // The fake marks a project made from the example template by its name.
-        expect(scenario.world.account.projects.at(-1)?.name).toBe(`${name} (example)`);
+        const nameTheFakeGivesAProjectMadeFromTheExample = `${name} (example)`;
+        expect(scenario.world.account.projects.at(-1)?.name).toBe(nameTheFakeGivesAProjectMadeFromTheExample);
       },
     );
 

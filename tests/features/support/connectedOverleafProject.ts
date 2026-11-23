@@ -17,7 +17,6 @@ export const publishedPaper = [
 /** A second published file, so scenarios about removing and renaming have something real to move. */
 export const publishedNotes = "Shared notes the co-author keeps.\n";
 
-/** One commit the co-author made before the scenario starts. */
 export interface PublishedFile {
   readonly path: string;
   readonly content: string | Buffer;
@@ -26,9 +25,7 @@ export interface PublishedFile {
 
 export interface ProjectWorldOptions {
   readonly publishedFiles: readonly PublishedFile[];
-  /** Replaces or adds to the environment the server starts with, after the remote exists. */
-  readonly environment?: (remote: FakeOverleafRemote) => NodeJS.ProcessEnv;
-  /** Runs against the remote before the server starts, for worlds with more than one paper. */
+  readonly environmentOverrides?: (remote: FakeOverleafRemote) => NodeJS.ProcessEnv;
   readonly prepareRemote?: (remote: FakeOverleafRemote) => Promise<void>;
 }
 
@@ -65,7 +62,7 @@ export class ConnectedOverleafProject {
         await remote.collaboratorPushes(file.path, file.content, file.commitMessage);
       }
       await options.prepareRemote?.(remote);
-      const environment = { ...remote.environment(), ...options.environment?.(remote) };
+      const environment = { ...remote.environment(), ...options.environmentOverrides?.(remote) };
       return new ConnectedOverleafProject(remote, await McpStdioClient.start(environment));
     } catch (error) {
       remote.cleanUp();
@@ -73,12 +70,10 @@ export class ConnectedOverleafProject {
     }
   }
 
-  /** Where the server keeps its clone of the default project. */
   get cloneDirectory(): string {
     return join(this.remote.workspaceDirectory, this.remote.projectId);
   }
 
-  /** Starts the server again over the same remote and workspace, as a client does after a settings change. */
   async restartServer(environmentOverrides: NodeJS.ProcessEnv): Promise<void> {
     await this.currentClient.stop();
     this.currentClient = await McpStdioClient.start({

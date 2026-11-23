@@ -42,7 +42,6 @@ export function parseCrossrefSearchCandidates(body: string): SearchCandidate[] {
   const items = isObject(answer) && isObject(answer.message) ? answer.message.items : undefined;
   if (!Array.isArray(items)) return [];
   return items.flatMap((item: unknown) => {
-    // A null item is skipped like any other unusable one, instead of failing the whole search.
     if (!isObject(item)) return [];
     const work: CrossrefWork = item;
     const titles = titleForms(firstString(work.title), firstString(work.subtitle));

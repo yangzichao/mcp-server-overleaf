@@ -11,26 +11,14 @@ import { type McpContentBlock, responseText } from "../../integration/support/mc
 import { environmentForCredentials, type ServerCredentials } from "./serverCredentials.js";
 import { TemporaryDownloadFolder } from "./temporaryDownloadFolder.js";
 
-/** The paper every scenario finds open in Overleaf's editor. Its third line is "Hello world.". */
 export const editorPaper = PAPER;
-
-/** A collaborator's account id, as the realtime fake records it on their suggestions. */
-export const COLLABORATOR_USER_ID = "6500000000000000000000bb";
 
 export interface ToolReply {
   readonly text: string;
   readonly isError: boolean;
-  /** Every block of the reply; `text` leaves out the images. */
   readonly content: readonly McpContentBlock[];
 }
 
-/**
- * The world one scenario runs in when the tools reach Overleaf through a session cookie: a fake
- * Overleaf editor and web application holding the paper, a fake Git bridge beside them, and an
- * MCP client speaking to the compiled server over stdio.
- *
- * Every scenario opens its own, because almost every scenario changes what Overleaf holds.
- */
 export class ConnectedOverleafEditor {
   private latestReply: ToolReply | undefined;
   private readonly addedDocumentIds = new Map<string, string>();
@@ -76,7 +64,6 @@ export class ConnectedOverleafEditor {
     return this.harness.editor.projectId;
   }
 
-  /** The server's workspace, which holds its clones and, under .build, its compile outputs. */
   get workspaceDirectory(): string {
     return this.harness.gitRemote.workspaceDirectory;
   }
@@ -127,8 +114,7 @@ export class ConnectedOverleafEditor {
     return this.harness.offsetOf(this.mainDocumentId, snippet);
   }
 
-  /** The id of the one pending suggestion of this kind in main.tex. */
-  changeIdOf(kind: "insertion" | "deletion"): string {
+  changeIdInMainDocument(kind: "insertion" | "deletion"): string {
     const change = this.trackedChangesIn("main.tex").find((candidate) =>
       kind === "insertion" ? candidate.op.i !== undefined : candidate.op.d !== undefined,
     );

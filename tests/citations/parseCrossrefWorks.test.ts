@@ -34,7 +34,6 @@ describe("parseCrossrefSearchCandidates", () => {
 });
 
 describe("parseCrossrefSearchCandidates on a malformed answer", () => {
-  // Reading null.DOI used to throw, so one null item made the whole search "unavailable".
   it("skips a null item and keeps the rest", () => {
     const work = { DOI: "10.1/a", title: ["A"] };
     expect(parseCrossrefSearchCandidates(JSON.stringify({ message: { items: [null, 5, work] } }))).toEqual([

@@ -5,7 +5,6 @@ import { parseTexcountReport } from "../../../../src/workflow/wordCount/parseTex
 import { millisecondsToRun, pumpedText } from "../../support/pumpedText.js";
 import { expectedTexcountReport, renderTexcountOutput, texcountOutput } from "./generatedTexcountOutput.js";
 
-/** The pattern problem lines were once read with. It is right but takes cubic time, so it serves here as the reference. */
 const PROBLEM_LINE_REFERENCE = /^!!!\s*(.*?)\s*!!!\s*$/;
 
 describe("parseTexcountReport properties", () => {

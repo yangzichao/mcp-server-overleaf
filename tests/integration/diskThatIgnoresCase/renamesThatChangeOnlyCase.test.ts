@@ -40,7 +40,6 @@ describe.runIf(temporaryDiskIgnoresCase())("manage_files move to a name that dif
     return responseText(response);
   }
 
-  // The move used to be refused with advice to delete Main.tex first, which deletes main.tex.
   it("renames main.tex to Main.tex, and push_changes publishes the new name", async () => {
     expect(await client.call("manage_files", { action: "move", path: "main.tex", toPath: "Main.tex" })).toBe(
       "Moved main.tex to Main.tex in the local clone. " +
@@ -98,8 +97,6 @@ describe.runIf(temporaryDiskIgnoresCase())("manage_files move to a name that dif
     ).toBe("path and toPath are the same file (caf\u00e9.tex). Nothing was moved.");
   });
 
-  // rename used to fail with EINVAL and the clone's absolute paths, after the missing parents of
-  // the destination were already created inside the folder being moved.
   it.each([
     ["Sections/method/old", "Sections", "sections/method/old"],
     ["SECTIONS/new/old", "SECTIONS", "sections/new/old"],
