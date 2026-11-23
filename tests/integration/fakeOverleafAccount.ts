@@ -11,6 +11,8 @@ export interface FakeAccountProject {
   _id: string;
   name: string;
   accessLevel: string;
+  archived?: boolean;
+  trashed?: boolean;
 }
 
 export interface RecordedCompile {
@@ -35,6 +37,10 @@ export class FakeOverleafAccount {
   compileLog = "This is pdfTeX, Version 3.141592653\n(./main.tex)\nOutput written on output.pdf (1 page).\n";
   /** What BibTeX left in output.blg; undefined when the compile ran no BibTeX. */
   bibliographyLog: string | undefined;
+  /** The bibliography BibTeX wrote, output.bbl; undefined when the compile ran no BibTeX. */
+  bibliography: string | undefined;
+  /** output.synctex.gz; undefined when the compile produced none. */
+  synctexBytes: Buffer | undefined;
   /** How many compiles to refuse as too recent before one is allowed. */
   refuseCompilesAsTooRecent = 0;
   private nextProjectNumber = 1;
@@ -51,7 +57,15 @@ export class FakeOverleafAccount {
   /** Answers the routes this class owns, or undefined to let the caller try others. */
   route(method: string, path: string, query: string, body: string): FakeAnswer | undefined {
     if (method === "GET" && path === "/user/projects") {
-      return jsonAnswer({ projects: this.projects });
+      // `userProjectsJson` leaves archived and trashed projects out and names only these fields.
+      const listed = this.projects.filter((project) => !project.archived && !project.trashed);
+      return jsonAnswer({
+        projects: listed.map((project) => ({
+          _id: project._id,
+          name: project.name,
+          accessLevel: project.accessLevel,
+        })),
+      });
     }
     if (method === "POST" && path === "/project/new") return this.createProject(body);
 
@@ -101,6 +115,17 @@ export class FakeOverleafAccount {
     if (this.bibliographyLog !== undefined) {
       outputFiles.push({ path: "output.blg", url: outputUrl("output.blg"), type: "blg", build: BUILD_ID });
     }
+    if (this.bibliography !== undefined) {
+      outputFiles.push({ path: "output.bbl", url: outputUrl("output.bbl"), type: "bbl", build: BUILD_ID });
+    }
+    if (this.synctexBytes !== undefined) {
+      outputFiles.push({
+        path: "output.synctex.gz",
+        url: outputUrl("output.synctex.gz"),
+        type: "gz",
+        build: BUILD_ID,
+      });
+    }
     if (this.producesPdf) {
       outputFiles.unshift({ path: "output.pdf", url: outputUrl("output.pdf"), type: "pdf", build: BUILD_ID });
     }
@@ -129,6 +154,12 @@ export class FakeOverleafAccount {
     if (file === "output.log") return { status: 200, contentType: "text/plain", body: this.compileLog };
     if (file === "output.blg" && this.bibliographyLog !== undefined) {
       return { status: 200, contentType: "text/plain", body: this.bibliographyLog };
+    }
+    if (file === "output.bbl" && this.bibliography !== undefined) {
+      return { status: 200, contentType: "text/plain", body: this.bibliography };
+    }
+    if (file === "output.synctex.gz" && this.synctexBytes !== undefined) {
+      return { status: 200, contentType: "application/gzip", body: this.synctexBytes };
     }
     return NOT_FOUND;
   }

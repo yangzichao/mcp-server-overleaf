@@ -7,6 +7,8 @@ import {
   encodeSocketIoEvent,
 } from "../../src/overleaf/realtime/socketIoZeroNineProtocol.js";
 import { FakeOverleafWeb } from "./fakeOverleafWeb.js";
+import { FAKE_PENDING_INVITES, fakeOwnerAndMembers } from "./fakeWebRoutes/fakeProjectMembers.js";
+import { FakeProjectTree } from "./fakeWebRoutes/fakeProjectTree.js";
 
 /**
  * An Overleaf real-time service standing in for the one behind overleaf.com.
@@ -44,7 +46,8 @@ export interface FakeComment {
 
 interface FakeDocument {
   readonly documentId: string;
-  readonly name: string;
+  /** The full path, such as "sections/intro.tex"; the tree derives folders from it. */
+  name: string;
   text: string;
   version: number;
   changes: FakeTrackedChange[];
@@ -88,15 +91,49 @@ export class FakeOverleafRealtime {
   /** Documents stored in the newer history-OT format, which `joinDoc` refuses to old clients. */
   readonly historyOtDocumentIds = new Set<string>();
   readonly userId = "6500000000000000000000aa";
+  /** Folders and uploaded files; documents stay in `documents`, addressed by their path. */
+  readonly tree: FakeProjectTree;
+  /** What `ProjectEditorHandler` reports and the settings route changes. */
+  readonly projectSettings = {
+    compiler: "pdflatex",
+    imageName: "texlive-full:2025.1",
+    spellCheckLanguage: "en",
+  };
+  /** Set by the settings route; until then the first document added is the main one. */
+  rootDocumentId: string | undefined;
+  /** The track-changes module's per-user switch, with `__guests__` for anonymous link editors. */
+  readonly trackChangesState: Record<string, boolean> = {};
+  /** The owner's plan feature; without it Overleaf sends no `trackChangesState` at all. */
+  hasTrackChangesFeature = true;
+  private nextDocumentNumber = 0;
 
   private constructor(
     httpServer: Server,
     webSocketServer: WebSocketServer,
     readonly projectId: string,
-    readonly projectName: string,
+    public projectName: string,
   ) {
     this.httpServer = httpServer;
     this.webSocketServer = webSocketServer;
+    this.tree = new FakeProjectTree({
+      documentPaths: () =>
+        [...this.documents.values()].map((document) => ({
+          documentId: document.documentId,
+          path: document.name,
+        })),
+      createDocument: (path, text) => this.addDocument(path, text),
+      setDocumentPath: (documentId, path) => {
+        this.requireDocument(documentId).name = path;
+      },
+      setDocumentText: (documentId, text) => {
+        const document = this.requireDocument(documentId);
+        document.text = text;
+        document.version += 1;
+      },
+      deleteDocument: (documentId) => {
+        this.documents.delete(documentId);
+      },
+    });
     this.web = new FakeOverleafWeb(this, SESSION_COOKIE_NAME);
   }
 
@@ -122,10 +159,19 @@ export class FakeOverleafRealtime {
     return `${SESSION_COOKIE_NAME}=s%3Aa-signed-session-id`;
   }
 
+  /** `name` is the document's path; folders it names are created as Overleaf's `mkdirp` would. */
   addDocument(name: string, text: string, documentId?: string): string {
-    const id = documentId ?? `doc${String(this.documents.size + 1).padStart(21, "0")}`;
+    this.nextDocumentNumber += 1;
+    const id = documentId ?? `d0c${String(this.nextDocumentNumber).padStart(21, "0")}`;
     this.documents.set(id, { documentId: id, name, text, version: 0, changes: [], comments: [] });
+    const lastSlash = name.lastIndexOf("/");
+    if (lastSlash !== -1) this.tree.ensureFolder(name.slice(0, lastSlash));
     return id;
+  }
+
+  /** The path a document has now, after any rename or move through the web routes. */
+  documentPath(documentId: string): string {
+    return this.requireDocument(documentId).name;
   }
 
   addComment(documentId: string, quotedText: string, position: number, threadId: string): void {
@@ -245,6 +291,11 @@ export class FakeOverleafRealtime {
   }
 
   private buildJoinProjectResponse(): unknown {
+    const { owner, members } = fakeOwnerAndMembers(this.userId, this.permissionsLevel);
+    const rootDocumentId =
+      this.rootDocumentId && this.documents.has(this.rootDocumentId)
+        ? this.rootDocumentId
+        : [...this.documents.values()][0]?.documentId;
     return {
       publicId: "public-1",
       permissionsLevel: this.permissionsLevel,
@@ -252,31 +303,22 @@ export class FakeOverleafRealtime {
       project: {
         _id: this.projectId,
         name: this.projectName,
-        rootDoc_id: [...this.documents.values()][0]?.documentId,
-        rootFolder: [
-          {
-            _id: "root-folder",
-            name: "rootFolder",
-            folders: [
-              {
-                _id: "sections-folder",
-                name: "sections",
-                folders: [],
-                fileRefs: [],
-                docs: [...this.documents.values()]
-                  .filter((document) => document.name.startsWith("sections/"))
-                  .map((document) => ({
-                    _id: document.documentId,
-                    name: document.name.slice("sections/".length),
-                  })),
-              },
-            ],
-            fileRefs: [{ _id: "file-1", name: "figure.png" }],
-            docs: [...this.documents.values()]
-              .filter((document) => !document.name.includes("/"))
-              .map((document) => ({ _id: document.documentId, name: document.name })),
-          },
-        ],
+        rootDoc_id: rootDocumentId,
+        rootFolder: [this.tree.buildRootFolder()],
+        compiler: this.projectSettings.compiler,
+        imageName: this.projectSettings.imageName,
+        spellCheckLanguage: this.projectSettings.spellCheckLanguage,
+        owner,
+        members,
+        invites: this.permissionsLevel === "owner" ? FAKE_PENDING_INVITES : [],
+        features: { trackChanges: this.hasTrackChangesFeature },
+        // `project.track_changes || false`, sent only when the plan has the feature.
+        ...(this.hasTrackChangesFeature
+          ? {
+              trackChangesState:
+                Object.keys(this.trackChangesState).length > 0 ? { ...this.trackChangesState } : false,
+            }
+          : {}),
       },
     };
   }

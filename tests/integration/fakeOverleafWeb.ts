@@ -2,7 +2,14 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { FakeOverleafAccount } from "./fakeOverleafAccount.js";
 import type { FakeOverleafRealtime } from "./fakeOverleafRealtime.js";
-import { type FakeAnswer, jsonAnswer, NO_CONTENT, NOT_FOUND } from "./fakeWebAnswers.js";
+import { type FakeAnswer, FORBIDDEN, jsonAnswer, NO_CONTENT, NOT_FOUND } from "./fakeWebAnswers.js";
+import { FakeCollaboratorRoutes } from "./fakeWebRoutes/fakeCollaboratorRoutes.js";
+import { FakeFileTreeRoutes } from "./fakeWebRoutes/fakeFileTreeRoutes.js";
+import { FakeProjectAccess } from "./fakeWebRoutes/fakeProjectAccess.js";
+import { FakeProjectLifecycleRoutes } from "./fakeWebRoutes/fakeProjectLifecycleRoutes.js";
+import { FakeProjectSettingsRoutes } from "./fakeWebRoutes/fakeProjectSettingsRoutes.js";
+import { FakeTagRoutes } from "./fakeWebRoutes/fakeTagRoutes.js";
+import type { FakeWebRequest, FakeWebRoutes } from "./fakeWebRoutes/fakeWebRequest.js";
 
 /**
  * The slice of Overleaf's web application the review tools call, served from the same origin
@@ -48,12 +55,26 @@ export class FakeOverleafWeb {
 
   /** The dashboard, compile and download routes. */
   readonly account: FakeOverleafAccount;
+  readonly access: FakeProjectAccess;
+  readonly lifecycle: FakeProjectLifecycleRoutes;
+  readonly tagRoutes: FakeTagRoutes;
+  readonly settings: FakeProjectSettingsRoutes;
+  readonly collaborators: FakeCollaboratorRoutes;
+  readonly fileTree: FakeFileTreeRoutes;
+  private readonly routeGroups: FakeWebRoutes[];
 
   constructor(
     private readonly realtime: FakeOverleafRealtime,
     private readonly sessionCookieName: string,
   ) {
     this.account = new FakeOverleafAccount(realtime);
+    this.access = new FakeProjectAccess(realtime, this.account);
+    this.lifecycle = new FakeProjectLifecycleRoutes(realtime, this.account, this.access);
+    this.tagRoutes = new FakeTagRoutes(realtime.userId);
+    this.settings = new FakeProjectSettingsRoutes(realtime, this.access, () => this.acceptedCsrfToken);
+    this.collaborators = new FakeCollaboratorRoutes(realtime, this.access);
+    this.fileTree = new FakeFileTreeRoutes(realtime, this.access);
+    this.routeGroups = [this.lifecycle, this.tagRoutes, this.settings, this.collaborators, this.fileTree];
   }
 
   get csrfToken(): string {
@@ -92,17 +113,34 @@ export class FakeOverleafWeb {
       return;
     }
 
-    let body = "";
-    request.on("data", (chunk) => {
-      body += String(chunk);
+    const chunks: Buffer[] = [];
+    request.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
     });
     request.on("end", () => {
-      const answer =
-        this.account.route(method, url.pathname, url.search.slice(1), body) ??
-        this.route(method, url.pathname, body);
-      response.writeHead(answer.status, answer.contentType ? { "content-type": answer.contentType } : {});
-      response.end(answer.body);
+      const webRequest: FakeWebRequest = {
+        method,
+        path: url.pathname,
+        query: url.searchParams,
+        body: Buffer.concat(chunks),
+        contentType: request.headers["content-type"],
+      };
+      void this.answer(webRequest, url.search.slice(1)).then((answer) => {
+        response.writeHead(answer.status, answer.contentType ? { "content-type": answer.contentType } : {});
+        response.end(answer.body);
+      });
     });
+  }
+
+  private async answer(request: FakeWebRequest, query: string): Promise<FakeAnswer> {
+    const body = request.body.toString("utf8");
+    const accountAnswer = this.account.route(request.method, request.path, query, body);
+    if (accountAnswer) return accountAnswer;
+    for (const group of this.routeGroups) {
+      const answer = await group.route(request);
+      if (answer) return answer;
+    }
+    return this.route(request.method, request.path, body);
   }
 
   private route(method: string, path: string, body: string): FakeAnswer {
@@ -115,6 +153,9 @@ export class FakeOverleafWeb {
 
     const messageMatch = /^\/thread\/([0-9a-f]{24})\/messages$/.exec(rest);
     if (method === "POST" && messageMatch?.[1]) return this.postMessage(messageMatch[1], body);
+
+    const oneMessageAnswer = this.routeOneMessage(method, rest, body);
+    if (oneMessageAnswer) return oneMessageAnswer;
 
     const threadStateMatch = /^\/doc\/([^/]+)\/thread\/([0-9a-f]{24})(?:\/(resolve|reopen))?$/.exec(rest);
     if (threadStateMatch?.[1] && threadStateMatch[2]) {
@@ -142,6 +183,42 @@ export class FakeOverleafWeb {
     const thread = this.threads.get(threadId) ?? { messages: [] };
     thread.messages.push(this.buildMessage("You", content));
     this.threads.set(threadId, thread);
+    return NO_CONTENT;
+  }
+
+  private routeOneMessage(method: string, rest: string, body: string): FakeAnswer | undefined {
+    const match = /^\/thread\/([0-9a-f]{24})\/(messages|own-messages)\/([^/]+?)(\/edit)?$/.exec(rest);
+    if (!match?.[1] || !match[2] || !match[3]) return undefined;
+    const [, threadId, collection, messageId, edit] = match;
+    if (method === "POST" && edit && collection === "messages")
+      return this.editMessage(threadId, messageId, body);
+    if (method === "DELETE" && !edit)
+      return this.deleteMessage(threadId, messageId, collection === "own-messages");
+    return NOT_FOUND;
+  }
+
+  /** The editor offers editing only on the user's own messages; the fake refuses anyone else's. */
+  private editMessage(threadId: string, messageId: string, body: string): FakeAnswer {
+    const message = this.threads.get(threadId)?.messages.find((candidate) => candidate.id === messageId);
+    if (!message) return NOT_FOUND;
+    if (message.user_id !== this.realtime.userId) return FORBIDDEN;
+    const content = (JSON.parse(body || "{}") as { content?: unknown }).content;
+    if (typeof content !== "string" || content.length === 0) return { status: 400 };
+    message.content = content;
+    return NO_CONTENT;
+  }
+
+  /** Editors delete any message; `own-messages` is the reviewers' route and only takes their own. */
+  private deleteMessage(threadId: string, messageId: string, ownMessagesOnly: boolean): FakeAnswer {
+    const thread = this.threads.get(threadId);
+    const message = thread?.messages.find((candidate) => candidate.id === messageId);
+    if (!thread || !message) return NOT_FOUND;
+    const level = this.realtime.permissionsLevel;
+    const allowed = ownMessagesOnly
+      ? level !== "readOnly" && message.user_id === this.realtime.userId
+      : level === "owner" || level === "readAndWrite";
+    if (!allowed) return FORBIDDEN;
+    thread.messages = thread.messages.filter((candidate) => candidate.id !== messageId);
     return NO_CONTENT;
   }
 

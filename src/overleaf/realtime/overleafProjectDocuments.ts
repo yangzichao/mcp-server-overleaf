@@ -1,6 +1,6 @@
 /**
  * The project tree Overleaf pushes on connection, reduced to what this server needs: a path
- * for every editable document, and the id the real-time service wants.
+ * and an id for every editable document, uploaded file and folder.
  *
  * The shape comes from `ProjectEditorHandler.buildProjectModelView` in `overleaf/overleaf`:
  * one root folder, each folder holding `folders`, `docs` and `fileRefs`. Only `docs` carry
@@ -18,15 +18,24 @@ export interface OverleafBinaryFileEntry {
   readonly fileId: string;
 }
 
+/** A folder below the root; the root folder itself has no path and is `rootFolderId`. */
+export interface OverleafFolderEntry {
+  readonly path: string;
+  readonly folderId: string;
+}
+
 export interface OverleafProjectTree {
   readonly projectId: string;
   readonly name: string;
   readonly rootDocumentId: string | undefined;
+  readonly rootFolderId: string | undefined;
   readonly documents: readonly OverleafDocumentEntry[];
   readonly binaryFiles: readonly OverleafBinaryFileEntry[];
+  readonly folders: readonly OverleafFolderEntry[];
 }
 
 interface RawFolder {
+  readonly _id?: unknown;
   readonly name?: unknown;
   readonly folders?: unknown;
   readonly docs?: unknown;
@@ -53,6 +62,7 @@ function readTreeEntry(entry: unknown, parentPath: string): { path: string; id: 
 interface CollectedEntries {
   readonly documents: OverleafDocumentEntry[];
   readonly binaryFiles: OverleafBinaryFileEntry[];
+  readonly folders: OverleafFolderEntry[];
 }
 
 function readTreeEntries(entries: unknown, parentPath: string): { path: string; id: string }[] {
@@ -70,7 +80,10 @@ function collectEntries(folder: RawFolder, parentPath: string, collected: Collec
     if (!child || typeof child !== "object") continue;
     const childFolder = child as RawFolder;
     const name = readString(childFolder.name);
-    collectEntries(childFolder, name ? joinPath(parentPath, name) : parentPath, collected);
+    const folderId = readString(childFolder._id);
+    const childPath = name ? joinPath(parentPath, name) : parentPath;
+    if (name && folderId) collected.folders.push({ path: childPath, folderId });
+    collectEntries(childFolder, childPath, collected);
   }
 }
 
@@ -90,19 +103,22 @@ export function readProjectTree(payload: unknown): OverleafProjectTree | undefin
   const projectId = readString(project._id);
   if (!projectId) return undefined;
   const rootFolders = Array.isArray(project.rootFolder) ? project.rootFolder : [];
-  const collected: CollectedEntries = { documents: [], binaryFiles: [] };
+  const collected: CollectedEntries = { documents: [], binaryFiles: [], folders: [] };
   for (const folder of rootFolders) {
     // The root folder is named `rootFolder` and contributes no path segment of its own.
     if (folder && typeof folder === "object") collectEntries(folder as RawFolder, "", collected);
   }
-  collected.documents.sort((left, right) => left.path.localeCompare(right.path));
-  collected.binaryFiles.sort((left, right) => left.path.localeCompare(right.path));
+  const rootFolder = rootFolders[0] as RawFolder | undefined;
+  const byPath = (left: { path: string }, right: { path: string }): number =>
+    left.path.localeCompare(right.path);
   return {
     projectId,
     name: readString(project.name) ?? projectId,
     rootDocumentId: readString(project.rootDoc_id),
-    documents: collected.documents,
-    binaryFiles: collected.binaryFiles,
+    rootFolderId: rootFolder && typeof rootFolder === "object" ? readString(rootFolder._id) : undefined,
+    documents: collected.documents.sort(byPath),
+    binaryFiles: collected.binaryFiles.sort(byPath),
+    folders: collected.folders.sort(byPath),
   };
 }
 
