@@ -23,6 +23,9 @@ const temporaryDirectory = mkdtempSync(join(tmpdir(), "overleaf-package-check-")
 const consumerDirectory = join(temporaryDirectory, "consumer with spaces");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const packageMetadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+// The integration suite runs one file at a time and grows with every test file: 235 seconds
+// on a macOS CI runner for 51 files, and macOS runners have taken twice as long for the same work.
+const INTEGRATION_SUITE_TIMEOUT_MS = 10 * 60_000;
 
 function npm(argumentsValue, cwd = packageRoot) {
   return execFileSync(npmCommand, argumentsValue, { cwd, encoding: "utf8", timeout: 180_000 });
@@ -87,7 +90,7 @@ try {
     {
       cwd: packageRoot,
       stdio: "inherit",
-      timeout: 240_000,
+      timeout: INTEGRATION_SUITE_TIMEOUT_MS,
       env: {
         ...process.env,
         OVERLEAF_TEST_SERVER_ENTRYPOINT: join(installedRoot, "dist/index.js"),
