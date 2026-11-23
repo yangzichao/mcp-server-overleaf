@@ -54,6 +54,7 @@ export function renderCodexPluginManifest(packageMetadata) {
     license: packageMetadata.license,
     keywords: packageMetadata.keywords,
     mcpServers: "./.mcp.json",
+    skills: "./skills/",
     interface: {
       displayName: "Overleaf",
       shortDescription: "Read and edit Overleaf papers, with tracked changes.",
