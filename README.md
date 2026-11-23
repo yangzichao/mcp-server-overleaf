@@ -124,11 +124,12 @@ distribution; every other tool works without them, and with a session cookie
 The release test matrix covers macOS and Linux. Windows Git and TeX workflows are not yet
 validated. This server is a command-line application, not an importable JavaScript library.
 
-Git integration has to be available for the project. Overleaf documents it as a premium
+The Git-bridge tools need Git integration on the project. Overleaf documents it as a premium
 feature gated on the **project owner's** subscription, so a free account invited to a
 project owned by someone with a subscription can still use it, and that subscription can be
 individual, group, or institutional. Do not tell a user their own plan disqualifies them.
-Verify it directly in step 3 instead.
+Verify it directly in step 3 instead. Without Git integration, a session cookie alone still
+gives 17 tools; see [the free-account question](#does-this-work-with-a-free-overleaf-account).
 
 ## Install into Claude Desktop with one click
 
@@ -682,10 +683,18 @@ co-author changed the same lines, the push is refused and both versions are pres
 
 ### Does this work with a free Overleaf account?
 
-Every tool requires Git integration on the project, the session-cookie ones included,
-because each finds the project through the same Git configuration. Overleaf gates that feature
-on the project owner's qualifying subscription, so an invited free account can use it when
-the project owner has access through an individual, group, or institutional plan.
+Yes. With only an Overleaf session cookie, the server offers 17 tools: `list_projects`,
+`list_files`, `read_file` and `replace_text` on the live editor, plus the thirteen
+[review and web tools](#the-tools) for tracked suggestions, comment threads, compiling on
+Overleaf and ZIP downloads. Edits made this way change the live document at once, with no
+local clone and no `push_changes` step. This mode was checked against overleaf.com on
+20 November 2026 with a cookie and no Git token.
+
+The other tools need Overleaf's Git integration: the local clone, `show_diff`,
+`push_changes` with its collaborator check, `edit_section`, `check_references`,
+`verify_citations` and local compiling. Overleaf gates Git integration on the project
+owner's subscription, so a free account invited to a project whose owner has an individual,
+group, or institutional plan can use all of them.
 
 ### Can it compile LaTeX and show tracked changes?
 
