@@ -86,7 +86,7 @@ describe("read_project word_count without a session cookie", () => {
     const mcp = await startClient();
     expect(await mcp.call("read_project", { view: "word_count" })).toBe(
       [
-        "texcount's word count for main.tex, the likely main document, in the local clone with edits not yet pushed:",
+        "texcount's word count for main.tex, the likely main document, in the local clone (unpushed edits included):",
         "Words in text: 5",
         "Words in headings: 1",
         "Words outside text (captions and the like): 0",
@@ -108,7 +108,7 @@ describe("read_project word_count without a session cookie", () => {
     });
     const afterEdit = await mcp.call("read_project", { view: "word_count", path: "sections/method.tex" });
     expect(afterEdit.split("\n").slice(0, 2)).toEqual([
-      "texcount's word count for sections/method.tex, in the local clone with edits not yet pushed:",
+      "texcount's word count for sections/method.tex, in the local clone (unpushed edits included):",
       "Words in text: 4",
     ]);
   });

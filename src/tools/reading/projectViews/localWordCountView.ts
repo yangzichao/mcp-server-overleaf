@@ -44,7 +44,7 @@ export async function describeLocalWordCount(
 
   const subject = path === undefined ? `${count.mainTexFile}, the likely main document` : count.mainTexFile;
   const lines = [
-    `texcount's word count for ${subject}, in the local clone with edits not yet pushed:`,
+    `texcount's word count for ${subject}, in the local clone (unpushed edits included):`,
     ...describeWordCountTotals(asTotals(count.totals)),
   ];
   if (count.files.length > 1) {
