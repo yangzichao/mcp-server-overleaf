@@ -1,3 +1,6 @@
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { OverleafWebClient, readCsrfTokenFromPage } from "../../../src/overleaf/web/overleafWebClient.js";
@@ -73,5 +76,44 @@ describe("the Overleaf web client", () => {
   it("finds the token in the meta tag the page layout writes", () => {
     expect(readCsrfTokenFromPage('<meta name="ol-csrfToken" content="abc-123">')).toBe("abc-123");
     expect(readCsrfTokenFromPage("<html></html>")).toBeUndefined();
+  });
+
+  it("accepts the plain OK some routes answer with, which postJson cannot read", async () => {
+    const renamePath = `/project/${overleaf.projectId}/rename`;
+    await expect(
+      client().postIgnoringAnswer(renamePath, { newProjectName: "Renamed" }),
+    ).resolves.toBeUndefined();
+    await expect(client().postJson(renamePath, { newProjectName: "Renamed again" })).rejects.toThrow(
+      "something other than JSON",
+    );
+  });
+});
+
+describe("downloading through the web client", () => {
+  let server: Server;
+  let baseUrl: string;
+
+  beforeEach(async () => {
+    // Two chunks with no Content-Length, so only counting while reading can enforce a cap.
+    server = createServer((_request, response) => {
+      response.writeHead(200, { "content-type": "application/octet-stream" });
+      response.write(Buffer.alloc(600));
+      response.end(Buffer.alloc(600));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterEach(async () => {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it("stops reading a body of undeclared length once it passes the cap", async () => {
+    const webClient = new OverleafWebClient({ baseUrl, cookieHeader: "a=b", requestTimeoutMs: 5_000 });
+    await expect(webClient.download("/output.pdf", { maximumBytes: 1_000 })).rejects.toThrow(
+      "more than the 1000 this server will download",
+    );
+    expect((await webClient.download("/output.pdf", { maximumBytes: 1_200 })).bytes).toHaveLength(1_200);
   });
 });

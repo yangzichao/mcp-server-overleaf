@@ -23,6 +23,10 @@ export interface WebRequestOptions {
   readonly timeoutMs?: number;
 }
 
+export interface DownloadOptions extends WebRequestOptions {
+  readonly maximumBytes?: number;
+}
+
 export interface DownloadedBytes {
   readonly bytes: Buffer;
   readonly contentType: string | undefined;
@@ -77,6 +81,24 @@ export class OverleafWebClient {
     return await readJsonBody(response);
   }
 
+  /** For the routes that answer `res.sendStatus(200)`, whose "OK" body is not JSON. */
+  async postIgnoringAnswer(path: string, body?: unknown, options: WebRequestOptions = {}): Promise<void> {
+    const response = await this.sendWithCsrf(
+      "POST",
+      path,
+      { "content-type": "application/json", accept: "application/json" },
+      () => JSON.stringify(body ?? {}),
+      options,
+    );
+    await response.body?.cancel();
+  }
+
+  /** An HTML page, for the settings Overleaf hands its editor only in meta tags. */
+  async getPage(path: string, options: WebRequestOptions = {}): Promise<string> {
+    const response = await this.send("GET", path, { accept: "text/html" }, undefined, options);
+    return await response.text();
+  }
+
   async delete(path: string, options: WebRequestOptions = {}): Promise<void> {
     await this.sendWithCsrf("DELETE", path, { accept: "application/json" }, undefined, options);
   }
@@ -93,16 +115,15 @@ export class OverleafWebClient {
     return await readJsonBody(response);
   }
 
-  async download(path: string, options: WebRequestOptions = {}): Promise<DownloadedBytes> {
+  async download(path: string, options: DownloadOptions = {}): Promise<DownloadedBytes> {
+    const maximumBytes = options.maximumBytes ?? MAXIMUM_DOWNLOAD_BYTES;
     const response = await this.send("GET", path, {}, undefined, options);
     const declaredLength = Number(response.headers.get("content-length") ?? "0");
-    if (declaredLength > MAXIMUM_DOWNLOAD_BYTES) {
-      throw new OverleafWebRequestError(
-        `Overleaf offered ${declaredLength} bytes for ${path}, more than this server will download.`,
-        response.status,
-      );
+    if (declaredLength > maximumBytes) {
+      await response.body?.cancel();
+      throw tooLargeToDownload(path, declaredLength, maximumBytes, response.status);
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
+    const bytes = await readBodyWithinLimit(response, path, maximumBytes);
     return { bytes, contentType: response.headers.get("content-type") ?? undefined };
   }
 
@@ -180,6 +201,32 @@ export class OverleafWebClient {
     }
     return response;
   }
+}
+
+function tooLargeToDownload(
+  path: string,
+  size: number,
+  maximumBytes: number,
+  status: number,
+): OverleafWebRequestError {
+  return new OverleafWebRequestError(
+    `Overleaf offered ${size} bytes for ${path}, more than the ${maximumBytes} this server will download.`,
+    status,
+  );
+}
+
+/** Counts while reading, because a response without Content-Length can still be huge. */
+async function readBodyWithinLimit(response: Response, path: string, maximumBytes: number): Promise<Buffer> {
+  if (!response.body) return Buffer.alloc(0);
+  const chunks: Buffer[] = [];
+  let received = 0;
+  for await (const chunk of response.body) {
+    received += chunk.byteLength;
+    // Leaving the loop by throwing cancels the stream, so the rest is never transferred.
+    if (received > maximumBytes) throw tooLargeToDownload(path, received, maximumBytes, response.status);
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }
 
 /** An empty body (204, or a 200 with nothing in it) is a success with nothing to say. */

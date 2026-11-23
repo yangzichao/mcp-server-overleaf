@@ -16,3 +16,22 @@ export const NOT_FOUND: FakeAnswer = {
 export function jsonAnswer(value: unknown): FakeAnswer {
   return { status: 200, contentType: "application/json", body: JSON.stringify(value) };
 }
+
+/** `HttpErrorHandler.forbidden` answering a request that accepts JSON. */
+export const FORBIDDEN: FakeAnswer = {
+  status: 403,
+  contentType: "application/json",
+  body: JSON.stringify({ message: "restricted" }),
+};
+
+/** `res.sendStatus(200)`, which Express sends as plain text. */
+export const PLAIN_OK: FakeAnswer = { status: 200, contentType: "text/plain", body: "OK" };
+
+/** What `ErrorController` sends for an `InvalidNameError` or a `DuplicateNameError`. */
+export function plainTextAnswer(status: number, text: string): FakeAnswer {
+  return { status, contentType: "text/plain", body: text };
+}
+
+export function statusAnswer(status: number, value: unknown): FakeAnswer {
+  return { status, contentType: "application/json", body: JSON.stringify(value) };
+}

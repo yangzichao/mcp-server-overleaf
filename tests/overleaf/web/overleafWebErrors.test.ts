@@ -29,6 +29,15 @@ describe("describing a failed web request", () => {
     expect(error.message).toContain("bad name");
   });
 
+  it("quotes a short plain-text reason, as the file-tree routes send them, but not a long one", () => {
+    expect(describeFailedResponse("POST", "/p", 400, "file already exists\n").message).toBe(
+      "Overleaf answered POST /p with status 400. file already exists",
+    );
+    expect(describeFailedResponse("POST", "/p", 500, "x".repeat(201)).message).toBe(
+      "Overleaf answered POST /p with status 500.",
+    );
+  });
+
   it("ignores an HTML error page instead of quoting it", () => {
     const error = describeFailedResponse("GET", "/p", 404, "<html><body>Not found</body></html>");
     expect(error.message).not.toContain("<html>");
