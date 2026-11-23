@@ -1,3 +1,5 @@
+import { chooseBibliographyReadingRules } from "../latex/bibliography/chooseBibliographyReadingRules.js";
+import { readBibliographyFiles } from "../latex/bibliography/readBibliographyFiles.js";
 import { type ProjectSourceReader, walkIncludedFiles } from "../latex/includes/walkIncludedFiles.js";
 import { findCitations } from "../latex/references/findCitations.js";
 import { locateBibliographyFiles } from "../latex/references/locateBibliographyFiles.js";
@@ -29,11 +31,13 @@ export async function collectCitedRecords(
   const citesEveryEntry = scans.some((scan) => scan.citesEveryEntry);
 
   const { files } = locateBibliographyFiles(visited, reader.projectFiles);
+  const records = parseBibliographyRecords(
+    await readBibliographyFiles(reader, files),
+    chooseBibliographyReadingRules(visited),
+  );
   const recordsByKey = new Map<string, BibliographyRecord>();
-  for (const path of files) {
-    for (const record of parseBibliographyRecords(path, await reader.readTextFile(path))) {
-      if (!recordsByKey.has(record.key)) recordsByKey.set(record.key, record);
-    }
+  for (const record of records) {
+    if (!recordsByKey.has(record.key)) recordsByKey.set(record.key, record);
   }
 
   const citedRecords = citedKeys.flatMap((key) => {

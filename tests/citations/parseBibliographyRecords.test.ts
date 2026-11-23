@@ -7,6 +7,7 @@ import {
   parseBibliographyRecords,
 } from "../../src/citations/parseBibliographyRecords.js";
 import { titleSimilarity } from "../../src/citations/titleSimilarity.js";
+import { BIBTEX_READING_RULES } from "../../src/latex/bibliography/bibliographyReadingRules.js";
 
 function recordWith(fields: Record<string, string>): BibliographyRecord {
   return {
@@ -17,10 +18,13 @@ function recordWith(fields: Record<string, string>): BibliographyRecord {
   };
 }
 
+function readAsBibtex(text: string): BibliographyRecord[] {
+  return parseBibliographyRecords([{ path: "refs.bib", text }], BIBTEX_READING_RULES);
+}
+
 describe("parseBibliographyRecords", () => {
   it("reads braced, quoted, bare and concatenated values, and skips what is not an entry", () => {
-    const records = parseBibliographyRecords(
-      "refs.bib",
+    const records = readAsBibtex(
       [
         "@string{jml = {Journal of ML}}",
         "@Article{vaswani2017,",
@@ -29,7 +33,7 @@ describe("parseBibliographyRecords", () => {
         "  year = 2017,",
         '  journal = jml # " Letters",',
         "}",
-        "% @misc{commented, title={Nope}}",
+        "@comment{not an entry}",
         "@misc(paren, title = {Parenthesised})",
       ].join("\n"),
     );
@@ -40,20 +44,19 @@ describe("parseBibliographyRecords", () => {
     expect(first?.fields.get("title")).toBe("Attention Is {All} You Need");
     expect(first?.fields.get("author")).toBe("Vaswani, Ashish and Shazeer, Noam");
     expect(first?.fields.get("year")).toBe("2017");
-    expect(first?.fields.get("journal")).toBe("jml Letters");
+    expect(first?.fields.get("journal")).toBe("Journal of ML Letters");
   });
 
-  it("skips a malformed entry without losing the next one", () => {
-    const records = parseBibliographyRecords(
-      "refs.bib",
-      "@article{broken, title = }\n@book{fine, title={Fine}}\n",
-    );
-    expect(records.map((record) => record.key)).toEqual(["fine"]);
+  it("keeps a malformed entry with the fields before its error, without losing the next one", () => {
+    const records = readAsBibtex("@article{broken, note = {N}, title = }\n@book{fine, title={Fine}}\n");
+    expect(records.map((record) => [record.key, Object.fromEntries(record.fields)])).toEqual([
+      ["broken", { note: "N" }],
+      ["fine", { title: "Fine" }],
+    ]);
   });
 
-  it("reads no entry inside a field value, and leaves out one whose value a backslash cannot keep open", () => {
-    const records = parseBibliographyRecords(
-      "refs.bib",
+  it("reads no entry inside a field value, and keeps a value up to the brace a backslash cannot escape", () => {
+    const records = readAsBibtex(
       [
         "@article{outer, note = {see @misc{inner, title = {Inner}}}}",
         "@article{sale, title = {50\\% \\} off}}",
@@ -62,6 +65,7 @@ describe("parseBibliographyRecords", () => {
     );
     expect(records.map((record) => [record.key, Object.fromEntries(record.fields)])).toEqual([
       ["outer", { note: "see @misc{inner, title = {Inner}}" }],
+      ["sale", { title: "50\\% \\" }],
       ["fine", { title: "Fine" }],
     ]);
   });

@@ -1,3 +1,5 @@
+import { chooseBibliographyReadingRules } from "../bibliography/chooseBibliographyReadingRules.js";
+import { readBibliographyFiles } from "../bibliography/readBibliographyFiles.js";
 import {
   type MissingProjectFile,
   type ProjectSourceReader,
@@ -40,8 +42,10 @@ async function readBibliographies(
   visited: readonly VisitedSourceFile[],
 ): Promise<BibliographyLookup> {
   const { files, missing } = locateBibliographyFiles(visited, reader.projectFiles);
-  const entries: KeyOccurrence[] = [];
-  for (const path of files) entries.push(...parseBibliographyEntries(path, await reader.readTextFile(path)));
+  const entries = parseBibliographyEntries(
+    await readBibliographyFiles(reader, files),
+    chooseBibliographyReadingRules(visited),
+  );
   return { entries, files, missing };
 }
 

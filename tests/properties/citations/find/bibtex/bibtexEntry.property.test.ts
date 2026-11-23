@@ -7,6 +7,10 @@ import {
   formatBibtexEntry,
 } from "../../../../../src/citations/find/bibtex/bibtexEntry.js";
 import { parseBibliographyRecords } from "../../../../../src/citations/parseBibliographyRecords.js";
+import {
+  BIBTEX_READING_RULES,
+  UNKNOWN_PROGRAM_READING_RULES,
+} from "../../../../../src/latex/bibliography/bibliographyReadingRules.js";
 import { parseBibliographyEntries } from "../../../../../src/latex/references/parseBibliographyEntries.js";
 import { entryType, rawCitationFields } from "./rawCitationMetadata.js";
 
@@ -44,15 +48,33 @@ describe("BibTeX entry properties", () => {
     fc.assert(
       fc.property(entryType, rawCitationFields, key, (type, raw, chosenKey) => {
         const draft = createBibtexDraft(type, raw);
-        const written = formatBibtexEntry({ ...draft, key: chosenKey });
-        const records = parseBibliographyRecords("found.bib", written);
+        const files = [{ path: "found.bib", text: formatBibtexEntry({ ...draft, key: chosenKey }) }];
+        const records = parseBibliographyRecords(files, UNKNOWN_PROGRAM_READING_RULES);
         expect(records.map((record) => [record.key, record.entryType])).toEqual([
           [chosenKey, draft.entryType],
         ]);
-        expect(records[0]?.fields).toEqual(
-          new Map([...draft.fields].map(([name, value]) => [name.toLowerCase(), value])),
+        const fieldsMade = new Map([...draft.fields].map(([name, value]) => [name.toLowerCase(), value]));
+        expect(records[0]?.fields).toEqual(fieldsMade);
+        expect(parseBibliographyEntries(files, BIBTEX_READING_RULES).map((entry) => entry.key)).toEqual([
+          chosenKey,
+        ]);
+      }),
+    );
+  });
+
+  it("writes an entry BibTeX reads with the month its style names", () => {
+    fc.assert(
+      fc.property(entryType, rawCitationFields, key, (type, raw, chosenKey) => {
+        const draft = createBibtexDraft(type, raw);
+        const files = [{ path: "found.bib", text: formatBibtexEntry({ ...draft, key: chosenKey }) }];
+        const monthMacros = BIBTEX_READING_RULES.predefinedMacros;
+        const fieldsBibtexReads = new Map(
+          [...draft.fields].map(([name, value]) => [
+            name.toLowerCase(),
+            name === "month" ? (monthMacros.get(value) ?? value) : value,
+          ]),
         );
-        expect(parseBibliographyEntries("found.bib", written).map((entry) => entry.key)).toEqual([chosenKey]);
+        expect(parseBibliographyRecords(files, BIBTEX_READING_RULES)[0]?.fields).toEqual(fieldsBibtexReads);
       }),
     );
   });
