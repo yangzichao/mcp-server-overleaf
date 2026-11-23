@@ -61,11 +61,14 @@ const person = fc.record(
   { requiredKeys: [] },
 );
 
-/** The whole family name a person should keep, or an organisation's name braced whole. */
+/** The whole family name a person should keep, or an organisation's whole name. */
 function expectedVonAndLast(written: { family?: string; given?: string; name?: string }): string | undefined {
-  if (written.family) return written.family;
-  const name = written.name || written.given;
-  return name ? `{${name}}` : undefined;
+  return written.family || written.name || written.given || undefined;
+}
+
+/** Braces protect words from BibTeX and print as nothing, so a reading is compared without them. */
+function withoutBraces(text: string): string {
+  return text.replace(/[{}]/g, "");
 }
 
 describe("crossrefNameList properties", () => {
@@ -82,17 +85,18 @@ describe("crossrefNameList properties", () => {
     );
   });
 
-  // Fails: a person with only a family name, as `{ family: "Garcia Perez" }`, is written bare,
-  // which BibTeX reads as First "Garcia" and Last "Perez". A part holding the word "and", as in
-  // `{ family: "Smith and Wesson", given: "X" }`, splits into two people. Bracing the name keeps
-  // it whole but also hides a "van" or "de" from BibTeX's von part, so which to write is left to
-  // the maintainers. BibTeX 0.99d was run on both to confirm the reading.
-  it.fails("writes each person so BibTeX reads one person, with the whole family name as the last name", () => {
+  // Found by this property: a person with only a family name, as `{ family: "Garcia Perez" }`,
+  // was written bare, which BibTeX reads as First "Garcia" and Last "Perez", and a part holding
+  // the word "and", as in `{ family: "Smith and Wesson", given: "X" }`, split into two people.
+  // BibTeX 0.99d was run on both to confirm the reading.
+  it("writes each person so BibTeX reads one person, with the whole family name as the last name", () => {
     fc.assert(
       fc.property(fc.array(person, { maxLength: 3 }), (people) => {
         const expected = people.flatMap((one) => expectedVonAndLast(one) ?? []);
         const list = crossrefNameList(people);
-        expect(list === undefined ? [] : bibtexNames(list).map(vonAndLast)).toEqual(expected);
+        const read =
+          list === undefined ? [] : bibtexNames(list).map((name) => withoutBraces(vonAndLast(name)));
+        expect(read).toEqual(expected);
       }),
       { examples: [[[{ family: "Garcia Perez" }]]] },
     );
