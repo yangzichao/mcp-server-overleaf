@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 
+import { type OverleafProjectDetails, readProjectDetails } from "./overleafProjectDetails.js";
 import { type OverleafProjectTree, readProjectTree } from "./overleafProjectDocuments.js";
 import {
   RealtimeCallError,
@@ -77,6 +78,7 @@ export class OverleafRealtimeSession {
     client: SocketIoZeroNineClient,
     readonly project: OverleafProjectTree,
     readonly permissionsLevel: string,
+    readonly details: OverleafProjectDetails,
   ) {
     this.client = client;
   }
@@ -91,7 +93,7 @@ export class OverleafRealtimeSession {
     });
     try {
       const joined = await waitForProjectJoin(client, options.connectTimeoutMs ?? PROJECT_JOIN_TIMEOUT_MS);
-      return new OverleafRealtimeSession(client, joined.project, joined.permissionsLevel);
+      return new OverleafRealtimeSession(client, joined.project, joined.permissionsLevel, joined.details);
     } catch (error) {
       client.close();
       throw error;
@@ -197,7 +199,7 @@ function explainHistoryOtRefusal(error: unknown): unknown {
   if (!(error instanceof RealtimeCallError) || !/history-ot/i.test(error.message)) return error;
   return new RealtimeCallError(
     "This document is stored in Overleaf's newer history-OT format, which the review tools do not support yet. " +
-      "Reading and editing it through the Git-bridge tools (read_file, replace_text, push_changes) still works; " +
+      "Reading and editing it through the Git-bridge tools (read_file, edit_file, push_changes) still works; " +
       "suggestions, comments and decisions on it have to be made in the Overleaf editor for now.",
     "joinDoc",
   );
@@ -206,6 +208,7 @@ function explainHistoryOtRefusal(error: unknown): unknown {
 interface ProjectJoin {
   readonly project: OverleafProjectTree;
   readonly permissionsLevel: string;
+  readonly details: OverleafProjectDetails;
 }
 
 function describeRejection(payload: unknown): RealtimeConnectionError {
@@ -250,6 +253,7 @@ function waitForProjectJoin(client: SocketIoZeroNineClient, timeoutMs: number): 
       resolve({
         project,
         permissionsLevel: typeof body.permissionsLevel === "string" ? body.permissionsLevel : "unknown",
+        details: readProjectDetails(body.project),
       });
     });
   });

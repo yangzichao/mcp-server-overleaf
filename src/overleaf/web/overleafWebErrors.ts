@@ -15,6 +15,17 @@ export class OverleafWebRequestError extends Error {
   }
 }
 
+/** A download stopped because the file is larger than the caller allows; nothing more was read. */
+export class DownloadTooLargeError extends OverleafWebRequestError {}
+
+/** A request this server did not send, because Overleaf would refuse it or misread it. Nothing changed. */
+export class RequestNotSentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RequestNotSentError";
+  }
+}
+
 const EXPIRED_SESSION_REMEDY =
   "Copy a fresh overleaf_session2 cookie from a browser where you are signed in. Cookies stop working when you sign out, change your password, or after they expire.";
 
@@ -29,8 +40,8 @@ export function expiredSessionError(): OverleafWebRequestError {
 
 /**
  * Turns a failed response into a message worth showing. Overleaf's JSON errors put the reason
- * in `message` or `error`; anything else is reported by status alone, because an HTML error
- * page is noise to a model.
+ * in `message` or `error`, and its file-tree errors are short plain text such as "file already
+ * exists"; an HTML error page is noise to a model, so it is reported by status alone.
  */
 export function describeFailedResponse(
   method: string,
@@ -38,7 +49,7 @@ export function describeFailedResponse(
   status: number,
   body: string,
 ): OverleafWebRequestError {
-  const overleafReason = readJsonReason(body);
+  const overleafReason = readOverleafReason(body);
   const action = `${method} ${path}`;
   if (status === 401) return expiredSessionError();
   if (status === 403) {
@@ -68,17 +79,33 @@ export function describeFailedResponse(
   );
 }
 
-function readJsonReason(body: string): string | undefined {
+const LONGEST_PLAIN_TEXT_REASON = 200;
+
+function readOverleafReason(body: string): string | undefined {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(body) as { message?: unknown; error?: unknown };
-    if (typeof parsed.message === "string" && parsed.message) return parsed.message;
-    if (typeof parsed.error === "string" && parsed.error) return parsed.error;
-    if (parsed.message && typeof parsed.message === "object") {
-      const nested = (parsed.message as { text?: unknown }).text;
-      if (typeof nested === "string") return nested;
-    }
+    parsed = JSON.parse(body);
   } catch {
-    // Not JSON: an HTML error page, which says nothing a model can use.
+    return readPlainTextReason(body);
+  }
+  return readJsonReason(parsed);
+}
+
+function readPlainTextReason(body: string): string | undefined {
+  const text = body.trim();
+  if (!text || text.length > LONGEST_PLAIN_TEXT_REASON || text.includes("<")) return undefined;
+  return text;
+}
+
+function readJsonReason(parsed: unknown): string | undefined {
+  if (typeof parsed === "string") return parsed || undefined;
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const { message, error } = parsed as { message?: unknown; error?: unknown };
+  if (typeof message === "string" && message) return message;
+  if (typeof error === "string" && error) return error;
+  if (message && typeof message === "object") {
+    const nested = (message as { text?: unknown }).text;
+    if (typeof nested === "string") return nested;
   }
   return undefined;
 }

@@ -13,7 +13,8 @@ describe("accepting and rejecting tracked changes", () => {
 
   async function suggestReplacement(): Promise<McpStdioClient> {
     const client = await harness.startClient();
-    await client.call("suggest_edit", {
+    await client.call("manage_tracked_changes", {
+      action: "suggest",
       path: "main.tex",
       findText: "Hello world.",
       replaceWith: "Hello, brave new world.",
@@ -31,7 +32,11 @@ describe("accepting and rejecting tracked changes", () => {
 
   it("accepts every suggestion in a document", async () => {
     const client = await suggestReplacement();
-    const answer = await client.call("accept_tracked_changes", { path: "main.tex", all: true });
+    const answer = await client.call("manage_tracked_changes", {
+      action: "accept",
+      path: "main.tex",
+      all: true,
+    });
     expect(answer).toContain("Accepted 2 suggestions in main.tex");
     expect(harness.editor.trackedChanges(harness.mainDocumentId)).toHaveLength(0);
     expect(harness.editor.documentText(harness.mainDocumentId)).toContain("Hello, brave new world.");
@@ -40,7 +45,8 @@ describe("accepting and rejecting tracked changes", () => {
   it("accepts only the suggestions named by id", async () => {
     const client = await suggestReplacement();
     const insertionId = changeIdOfKind("insertion");
-    const answer = await client.call("accept_tracked_changes", {
+    const answer = await client.call("manage_tracked_changes", {
+      action: "accept",
       path: "main.tex",
       changeIds: [insertionId],
     });
@@ -56,7 +62,11 @@ describe("accepting and rejecting tracked changes", () => {
 
   it("rejects a replacement and puts the original text back", async () => {
     const client = await suggestReplacement();
-    const answer = await client.call("reject_tracked_changes", { path: "main.tex", all: true });
+    const answer = await client.call("manage_tracked_changes", {
+      action: "reject",
+      path: "main.tex",
+      all: true,
+    });
     expect(answer).toContain("Rejected 2 suggestions in main.tex");
     expect(harness.editor.documentText(harness.mainDocumentId)).toBe(PAPER);
     expect(harness.editor.trackedChanges(harness.mainDocumentId)).toHaveLength(0);
@@ -65,7 +75,11 @@ describe("accepting and rejecting tracked changes", () => {
   it("rejects one suggestion and leaves the other pending", async () => {
     const client = await suggestReplacement();
     const insertionId = changeIdOfKind("insertion");
-    await client.call("reject_tracked_changes", { path: "main.tex", changeIds: [insertionId] });
+    await client.call("manage_tracked_changes", {
+      action: "reject",
+      path: "main.tex",
+      changeIds: [insertionId],
+    });
     expect(harness.editor.documentText(harness.mainDocumentId)).not.toContain("brave new world");
     const remaining = harness.editor.trackedChanges(harness.mainDocumentId);
     expect(remaining.map((change) => change.op.d)).toEqual(["Hello world."]);
@@ -75,7 +89,11 @@ describe("accepting and rejecting tracked changes", () => {
     const position = harness.offsetOf(harness.mainDocumentId, "world");
     harness.editor.collaboratorSuggests(harness.mainDocumentId, [{ p: position, i: "big " }]);
     const client = await harness.startClient();
-    const answer = await client.call("reject_tracked_changes", { path: "main.tex", all: true });
+    const answer = await client.call("manage_tracked_changes", {
+      action: "reject",
+      path: "main.tex",
+      all: true,
+    });
     expect(answer).toContain('insert "big "');
     expect(harness.editor.documentText(harness.mainDocumentId)).toBe(PAPER);
     expect(harness.editor.trackedChanges(harness.mainDocumentId)).toHaveLength(0);
@@ -84,7 +102,11 @@ describe("accepting and rejecting tracked changes", () => {
   it("refuses a reviewer account before sending anything", async () => {
     const client = await suggestReplacement();
     harness.editor.permissionsLevel = "review";
-    const answer = await client.call("accept_tracked_changes", { path: "main.tex", all: true });
+    const answer = await client.call("manage_tracked_changes", {
+      action: "accept",
+      path: "main.tex",
+      all: true,
+    });
     expect(answer).toContain("review access");
     expect(answer).toContain("needs edit access");
     expect(harness.editor.trackedChanges(harness.mainDocumentId)).toHaveLength(2);
@@ -92,7 +114,8 @@ describe("accepting and rejecting tracked changes", () => {
 
   it("refuses an unknown id and decides nothing", async () => {
     const client = await suggestReplacement();
-    const answer = await client.call("reject_tracked_changes", {
+    const answer = await client.call("manage_tracked_changes", {
+      action: "reject",
       path: "main.tex",
       changeIds: [changeIdOfKind("insertion"), "not-a-change"],
     });
@@ -102,13 +125,17 @@ describe("accepting and rejecting tracked changes", () => {
 
   it("asks for either ids or all, not neither", async () => {
     const client = await suggestReplacement();
-    const answer = await client.call("accept_tracked_changes", { path: "main.tex" });
+    const answer = await client.call("manage_tracked_changes", { action: "accept", path: "main.tex" });
     expect(answer).toContain("Give either changeIds or all: true");
   });
 
   it("says so when there is nothing to decide", async () => {
     const client = await harness.startClient();
-    const answer = await client.call("accept_tracked_changes", { path: "main.tex", all: true });
+    const answer = await client.call("manage_tracked_changes", {
+      action: "accept",
+      path: "main.tex",
+      all: true,
+    });
     expect(answer).toContain("There are no tracked changes in main.tex.");
   });
 });

@@ -35,6 +35,8 @@ export async function compileLatexProject(options: {
     "-interaction=nonstopmode",
     "-file-line-error",
     "-halt-on-error",
+    // The map from PDF positions to source lines, beside the PDF, for SyncTeX lookups.
+    "-synctex=1",
     `-outdir=${buildDirectory}`,
     // "./" prefixed, always. latexmk parses any argument starting with a dash as an
     // option, so a file called "-weird.tex" is otherwise rejected as an unknown option
@@ -72,7 +74,7 @@ export async function compileLatexProject(options: {
     };
     if (failure.code === "ENOENT") {
       throw new Error(
-        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live), or compile on Overleaf's servers with compile_on_overleaf, which needs OVERLEAF_SESSION_COOKIE and compiles only what has been pushed.",
+        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live), or compile on Overleaf's servers with compile_project (where overleaf), which needs OVERLEAF_SESSION_COOKIE and compiles only what has been pushed.",
       );
     }
     const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;

@@ -68,16 +68,30 @@ describe("the LaTeX source checks", () => {
     expect(answer).toContain("main.tex, old/notes.tex, sections/method.tex");
   });
 
-  it("outlines the whole document across included files when asked", async () => {
+  it("outlines the whole document across included files unless told not to", async () => {
     const mcp = await startClient();
-    const single = await mcp.call("list_sections", { path: "main.tex" });
+    const single = await mcp.call("read_project", {
+      view: "outline",
+      path: "main.tex",
+      followIncludes: false,
+    });
+    expect(single).toContain("\\section{Introduction}  [lines 3-");
     expect(single).not.toContain("Method");
 
-    const whole = await mcp.call("list_sections", { path: "main.tex", followIncludes: true });
-    expect(whole.split("\n")).toEqual([
+    const expectedOutline = [
       "    \\section{Introduction}  [main.tex lines 3-7]",
       "    \\section{Method}  [sections/method.tex lines 1-4]",
       "      \\subsection{Data}  [sections/method.tex lines 2-4]",
+    ];
+    const byDefault = await mcp.call("read_project", { view: "outline", path: "main.tex" });
+    expect(byDefault.split("\n")).toEqual(expectedOutline);
+    const whole = await mcp.call("read_project", { view: "outline", path: "main.tex", followIncludes: true });
+    expect(whole).toBe(byDefault);
+
+    const withoutPath = await mcp.call("read_project", { view: "outline" });
+    expect(withoutPath.split("\n")).toEqual([
+      "Outline of main.tex, the likely main document:",
+      ...expectedOutline,
     ]);
   });
 });

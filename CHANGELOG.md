@@ -1,5 +1,105 @@
 # Changelog
 
+## 0.5.0
+
+36 tools become 15. Each one only reads or only writes, and an `action` or `view` argument
+picks what it does, so a client lists less and a model picks from fewer names. A Git token
+offers 11 tools, a session cookie alone 13, both 15. The old names are gone; a client picks up
+the new list when it reconnects.
+
+| 0.4.1 | 0.5.0 |
+| --- | --- |
+| `list_projects`, `list_account_projects` | `list_projects` |
+| `project_summary` | `read_project` (view `overview`) |
+| `list_files` | `read_project` (view `files`) |
+| `list_sections` | `read_project` (view `outline`), now following included files by default |
+| `project_status`, `sync_project` | `read_project` (view `status`) |
+| `show_diff` without revisions | `read_project` (view `changes`) |
+| `show_diff` with `fromRevision` | `read_history` (view `diff`) |
+| `list_history` | `read_history` (view `commits`) |
+| `read_section` | `read_file` with `sectionTitle` |
+| `replace_text`, `edit_section`, `write_file` | `edit_file` (actions `replace_text`, `replace_section`, `write`) |
+| `delete_file`, `move_file`, `upload_file`, `restore_file`, `discard_local_changes` | `manage_files` (actions `delete`, `move`, `upload`, `restore`, `discard_local_changes`); a move takes `path` and `toPath` |
+| `verify_citations` | `look_up_citations` (action `verify`) |
+| `list_tracked_changes`, `list_comments` | `read_review` (views `tracked_changes`, `comments`) |
+| `suggest_edit`, `accept_tracked_changes`, `reject_tracked_changes` | `manage_tracked_changes` (actions `suggest`, `accept`, `reject`) |
+| `add_comment`, `reply_to_comment`, `resolve_comment`, `delete_comment` | `manage_comments` (actions `add`, `reply`, `resolve`, `reopen`, `delete`) |
+| `create_project`, `download_project_zip` | `manage_project` (actions `create`, `download_zip`) |
+| `compile_project`, `compile_on_overleaf` | `compile_project` (`where: "local"` or `"overleaf"`) |
+
+`read_file`, `search_project`, `check_references` and `push_changes` keep their names.
+
+New:
+
+- `list_projects` filters the account's projects (`filter`: owned, shared, archived, trashed;
+  `tag`) and shows each project's tags. A filter or a tag lists the account's projects
+  alone, without the configured ones.
+- `read_project` adds `members` (owner, collaborators and their access, pending invitations)
+  and `word_count`: Overleaf's own count with a session cookie, texcount in the clone with
+  only a Git token. Without Git its overview adds the compiler, TeX Live image, spell check
+  and track-changes state, and it outlines the paper too.
+- `read_file` returns PNG, JPEG, GIF and WebP figures as images, up to 3,750,000 bytes and
+  8000 pixels a side, and names the command that renders a PDF, EPS or SVG figure to PNG.
+  With `followIncludes` it returns a `.tex` file with every file it reaches through
+  `\input`, `\include`, `\subfile` or `\import` inlined between `% ---- begin` and
+  `% ---- end` comments.
+- `read_history` adds `blame`: each line of a file, or of a line range, with the short hash,
+  date and author of the commit that last changed it. Lines edited in the clone and not
+  pushed are marked as not committed yet.
+- `look_up_citations` adds `find`. It turns 1 to 20 DOIs, arXiv ids or title searches into
+  BibTeX entries with keys no `.bib` file in the project uses, names the key of a work the
+  bibliography already holds, and writes nothing.
+- `edit_file` adds `append`, which puts text on its own line after a file's last line and
+  refuses a missing file.
+- `manage_files` deletes and moves whole folders in the clone. With a session cookie it adds
+  `create_folder`, which acts on Overleaf at once, since Git cannot hold an empty folder.
+- `manage_tracked_changes` (action `suggest`) also takes `content`: alone it is the document's
+  new text, and with `sectionTitle` it replaces that section. Only the passages that differ
+  become tracked changes, so unchanged text keeps its comments.
+- `manage_project` creates a project from a ZIP, and copies, renames, archives, unarchives,
+  trashes, untrashes, tags and untags projects. `update_settings` changes the compiler, main
+  document, spell-check language, TeX Live image and the track-changes switch, and reads
+  them back.
+- `manage_comments` edits one message of a thread, or deletes a reply. The first message is
+  the thread's own text, which `delete` removes with the thread.
+- `compile_project` on Overleaf also saves the `.bbl`, `.blg` and SyncTeX map next to the PDF
+  and log, and a local build writes a SyncTeX map too. The reply lists every saved path.
+- With only a session cookie, more of the work happens in Overleaf's editor and file tree.
+  `search_project`, `check_references` and `look_up_citations` read the project from the
+  editor. `edit_file` also replaces a section, writes a whole file (creating a missing
+  document and its folders) and appends, sending the fewest operations so comments outside
+  the change keep their anchors. `manage_files` deletes, moves, uploads and creates folders.
+- Five MCP prompts, each offered when its tools are: `review_paper`, `revise_section`,
+  `address_review_comments` (with a session cookie), `resolve_push_conflict` (with Git) and
+  `prepare_arxiv_submission`.
+- The Claude Code and Codex plugins ship five skills for local LaTeX tools: chktex,
+  latexindent and texcount checks, latexdiff and flattening, PDF pages and SyncTeX,
+  arXiv submission, and working with co-authors.
+
+Not offered, on purpose: sharing changes (inviting, removing, transferring ownership) and
+permanent project deletion. Project text and comments reach the model, so a prompt hidden in
+a paper must not be able to give anyone access or destroy a project.
+
+Changed:
+
+- Citation lookups queue across calls: Crossref searches 1.1 s apart (was 250 ms), doi.org
+  250 ms apart (was unspaced), arXiv 3 s apart as before. Crossref's public pool allows one
+  search a second and answers a second one within the second with 429.
+- Both `look_up_citations` actions stop starting lookups after 45 seconds, under the MCP
+  SDK's default 60 second request timeout, and name the entries or queries they did not
+  reach.
+- arXiv is reached at `https://export.arxiv.org/api`. The `http://` address now answers
+  every request with a redirect there.
+- `look_up_citations` (action `verify`) on a document whose entries are written with
+  `\bibitem` names the cited keys and says there is no `.bib` file to check. It used to say
+  the document cited no entry.
+
+Verification: the session-cookie features added here are tested against fakes built from
+Overleaf's open-source routes. Their reads were run against overleaf.com on a test project on
+2026-11-23 and their writes were not; [tracked changes](docs/tracked-changes.md#verification)
+lists both. The track-changes switch and the comment-message routes are closed source, so
+their tests follow what the editor sends.
+
 ## 0.4.1
 
 Work on an Overleaf plan without Git integration. With only a session cookie the server

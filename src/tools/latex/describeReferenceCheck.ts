@@ -20,7 +20,7 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
-function listNames(names: readonly string[]): string {
+export function listNames(names: readonly string[]): string {
   const shown = names.slice(0, MAXIMUM_NAMES_IN_A_NOTE).join(", ");
   return names.length > MAXIMUM_NAMES_IN_A_NOTE
     ? `${shown}, and ${names.length - MAXIMUM_NAMES_IN_A_NOTE} more`

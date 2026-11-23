@@ -2,9 +2,9 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 
 /**
- * doi.org, Crossref and arXiv as verify_citations calls them, on one local port. Each answers
- * in its documented form: CSL JSON or 404 for a DOI, Crossref's `message.items` for a search,
- * and an Atom feed for an arXiv id.
+ * doi.org, Crossref and arXiv as look_up_citations calls them, on one local port. Each answers
+ * in its documented form: CSL JSON, BibTeX or 404 for a DOI, Crossref's `message.items` for a
+ * search, and an Atom feed for an arXiv id.
  */
 
 export interface RecordedMetadataRequest {
@@ -19,18 +19,76 @@ export interface FakeWork {
   readonly subtitle?: string;
 }
 
+/** The parts of an arXiv API entry a citation is built from; all but the title are optional. */
+export interface FakeArxivPaper extends FakeWork {
+  readonly authors?: readonly string[];
+  /** As `2017-06-12T17:57:34Z`. */
+  readonly published?: string;
+  readonly primaryCategory?: string;
+  readonly doi?: string;
+  readonly journalReference?: string;
+  /** The latest version, named in the entry's `<id>`; 1 when left out. */
+  readonly latestVersion?: number;
+}
+
+/** A Crossref `/works` item, with the fields a search answer may carry. */
+export interface FakeCrossrefWork {
+  readonly DOI: string;
+  readonly title: string[];
+  readonly type?: string;
+  readonly subtitle?: string[];
+  readonly author?: Array<{ family?: string; given?: string; name?: string; suffix?: string }>;
+  readonly editor?: Array<{ family?: string; given?: string; name?: string }>;
+  readonly "container-title"?: string[];
+  readonly volume?: string;
+  readonly issue?: string;
+  readonly page?: string;
+  readonly "article-number"?: string;
+  readonly issued?: { "date-parts": number[][] };
+  readonly published?: { "date-parts": number[][] };
+  readonly publisher?: string;
+  readonly "publisher-location"?: string;
+  readonly ISBN?: string[];
+}
+
+const CSL_JSON = "application/vnd.citationstyles.csl+json";
+const BIBTEX = "application/x-bibtex";
+
+function escapeXml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function arxivEntry(arxivId: string, paper: FakeArxivPaper): string {
+  const optional = [
+    paper.published === undefined ? "" : `<published>${paper.published}</published>`,
+    ...(paper.authors ?? []).map((name) => `<author><name>${escapeXml(name)}</name></author>`),
+    paper.doi === undefined ? "" : `<arxiv:doi>${escapeXml(paper.doi)}</arxiv:doi>`,
+    paper.journalReference === undefined
+      ? ""
+      : `<arxiv:journal_ref>${escapeXml(paper.journalReference)}</arxiv:journal_ref>`,
+    paper.primaryCategory === undefined
+      ? ""
+      : `<arxiv:primary_category term="${paper.primaryCategory}" scheme="http://arxiv.org/schemas/atom"/>`,
+  ];
+  return [
+    `<entry><id>http://arxiv.org/abs/${arxivId}v${paper.latestVersion ?? 1}</id>`,
+    `<title>${escapeXml(paper.title)}</title>`,
+    ...optional,
+    "</entry>",
+  ].join("");
+}
+
 export class FakeMetadataServices {
   readonly requests: RecordedMetadataRequest[] = [];
-  /** Registered DOIs; any other answers 404. */
+  /** Registered DOIs, answered in CSL JSON; any DOI in neither map answers 404. */
   readonly dois = new Map<string, FakeWork>();
-  readonly arxivPapers = new Map<string, FakeWork>();
+  /** What doi.org sends for a DOI asked for as BibTeX, exactly as given. */
+  readonly doiBibtex = new Map<string, string>();
+  readonly arxivPapers = new Map<string, FakeArxivPaper>();
   /** What every Crossref search returns, best first. */
-  searchResults: Array<{
-    DOI: string;
-    title: string[];
-    author?: Array<{ family?: string; given?: string; name?: string }>;
-    issued?: { "date-parts": number[][] };
-  }> = [];
+  searchResults: FakeCrossrefWork[] = [];
+  /** How many of the next requests, to any service, are refused with 429 as a busy Crossref does. */
+  tooManyRequestsAhead = 0;
 
   private constructor(
     private readonly server: Server,
@@ -66,15 +124,18 @@ export class FakeMetadataServices {
       accept: request.headers.accept,
       userAgent: request.headers["user-agent"],
     });
+    if (this.tooManyRequestsAhead > 0) {
+      this.tooManyRequestsAhead -= 1;
+      response.writeHead(429).end();
+      return;
+    }
 
     if (url.pathname.startsWith("/doi/")) {
-      const work = this.dois.get(decodeURIComponent(url.pathname.slice("/doi/".length)));
-      if (!work || request.headers.accept !== "application/vnd.citationstyles.csl+json") {
-        response.writeHead(work ? 406 : 404).end();
-        return;
-      }
-      response.writeHead(200, { "content-type": "application/vnd.citationstyles.csl+json" });
-      response.end(JSON.stringify({ type: "article-journal", ...work }));
+      this.answerDoi(
+        decodeURIComponent(url.pathname.slice("/doi/".length)),
+        request.headers.accept,
+        response,
+      );
       return;
     }
     if (url.pathname === "/crossref/works") {
@@ -83,12 +144,32 @@ export class FakeMetadataServices {
       return;
     }
     if (url.pathname === "/arxiv/query") {
-      const work = this.arxivPapers.get(url.searchParams.get("id_list") ?? "");
-      const entry = work ? `<entry><id>x</id><title>${work.title}</title></entry>` : "";
+      const arxivId = url.searchParams.get("id_list") ?? "";
+      const paper = this.arxivPapers.get(arxivId);
+      const entry = paper ? arxivEntry(arxivId.replace(/v\d+$/, ""), paper) : "";
       response.writeHead(200, { "content-type": "application/atom+xml" });
-      response.end(`<?xml version="1.0"?><feed><title>ArXiv Query</title>${entry}</feed>`);
+      response.end(
+        `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom"><title>ArXiv Query</title>${entry}</feed>`,
+      );
       return;
     }
     response.writeHead(404).end();
+  }
+
+  /** 406 for a registered DOI asked for in a form it is not registered in, as doi.org answers. */
+  private answerDoi(doi: string, accept: string | undefined, response: ServerResponse): void {
+    const work = this.dois.get(doi);
+    const bibtex = this.doiBibtex.get(doi);
+    if (accept === CSL_JSON && work) {
+      response.writeHead(200, { "content-type": CSL_JSON });
+      response.end(JSON.stringify({ type: "article-journal", ...work }));
+      return;
+    }
+    if (accept === BIBTEX && bibtex !== undefined) {
+      response.writeHead(200, { "content-type": `${BIBTEX}; charset=utf-8` });
+      response.end(bibtex);
+      return;
+    }
+    response.writeHead(work || bibtex !== undefined ? 406 : 404).end();
   }
 }

@@ -6,10 +6,11 @@ import {
   configureSparseCheckout,
   materializeFullCheckout,
 } from "./checkout/sparseCheckout.js";
-import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
+import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./gitCommandRunner.js";
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import { ProjectDirectories } from "./workingTree/projectDirectories.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -220,6 +221,12 @@ export class OverleafGitRepository {
     await materializeFullCheckout((args, options) => this.git(args, options));
   }
 
+  /** True while sparse checkout keeps binary files such as figures off disk. */
+  async hasTextOnlyCheckout(): Promise<boolean> {
+    const { stdout } = await this.git(["config", "--bool", "core.sparseCheckout"], { tolerateFailure: true });
+    return stdout.trim() === "true";
+  }
+
   /**
    * True when Git has this path in the index, whatever the working tree looks like. A
    * sparse checkout leaves skipped files tracked, so this is what separates "hidden by
@@ -285,6 +292,42 @@ export class OverleafGitRepository {
     return contents.toString("utf8");
   }
 
+  /**
+   * A file's bytes, for figures. A file sparse checkout keeps off disk is read from Git's index
+   * rather than materialized, because expansion is permanent and looking at a figure should not
+   * turn a text-only checkout into a full one.
+   */
+  async readFileBytes(relativePath: string): Promise<Buffer> {
+    const absolutePath = await this.resolveClientPath(relativePath);
+    try {
+      return await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    const indexEntry = await this.describeIndexEntry(absolutePath);
+    if (indexEntry === "untracked") throw new Error(`No file ${relativePath} in the project.`);
+    if (indexEntry === "tracked") {
+      throw new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`);
+    }
+    return await runGitCommandForBytes({
+      workingDirectory: this.options.repositoryDirectory,
+      args: ["cat-file", "blob", `:${await this.toGitPath(relativePath)}`],
+      overleafGitToken: this.options.overleafGitToken,
+    });
+  }
+
+  /**
+   * Whether Git tracks a path absent from disk, and why it is absent: `ls-files -t` marks a file
+   * sparse checkout skipped with S, while one deleted in the clone keeps the plain H.
+   */
+  private async describeIndexEntry(absolutePath: string): Promise<"untracked" | "tracked" | "skipped"> {
+    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+    const { stdout } = await this.git(["ls-files", "-t", "-z", "--", `:(literal)${gitPath}`]);
+    const entries = stdout.split("\0").filter((entry) => entry !== "");
+    if (entries.length === 0) return "untracked";
+    return entries.includes(`S ${gitPath}`) ? "skipped" : "tracked";
+  }
+
   /** Bytes as they are, for figures and other binary files. */
   async writeFileBytes(relativePath: string, content: Buffer): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
@@ -301,6 +344,17 @@ export class OverleafGitRepository {
   async restoreFileFromCommit(commitHash: string, relativePath: string): Promise<void> {
     const gitPath = await this.toGitPath(relativePath);
     await this.git(["restore", `--source=${commitHash}`, "--worktree", "--", `:(literal)${gitPath}`]);
+  }
+
+  /** Deleting and moving whole directories, behind the same path guards as single files. */
+  directories(): ProjectDirectories {
+    return new ProjectDirectories({
+      repositoryDirectory: this.options.repositoryDirectory,
+      git: (args) => this.git(args),
+      resolveClientPath: (relativePath) => this.resolveClientPath(relativePath),
+      materializePathIfNeeded: (relativePath) => this.materializePathIfNeeded(relativePath),
+      materializeAllFiles: () => this.materializeAllFiles(),
+    });
   }
 
   /** History queries, kept in src/overleaf/history so this class stays about the working copy. */

@@ -12,7 +12,7 @@ beforeEach(async () => {
   remote = await FakeOverleafRemote.create();
   await remote.collaboratorPushes("main.tex", originalPaper, "Initial draft");
   client = await McpStdioClient.start(remote.environment());
-  await client.call("write_file", { path: "main.tex", content: "Reviewed draft.\n" });
+  await client.call("edit_file", { action: "write", path: "main.tex", content: "Reviewed draft.\n" });
 });
 
 afterEach(async () => {
@@ -29,7 +29,7 @@ describe("a rejected push", () => {
       true,
     );
     expect(await remote.readPublishedFile("main.tex")).toBe(originalPaper);
-    expect(await client.call("show_diff")).toContain("+Reviewed draft.");
+    expect(await client.call("read_project", { view: "changes" })).toContain("+Reviewed draft.");
     await client.stop();
     client = await McpStdioClient.start(remote.environment());
     await rm(rejectHook);
@@ -37,7 +37,7 @@ describe("a rejected push", () => {
     expect(report).toContain("Pushed to Overleaf");
     expect(report).toContain("+Reviewed draft.");
     expect(await remote.publishedCommitSubjects()).toEqual(["Reviewed draft", "Initial draft"]);
-    expect(await client.call("show_diff")).toBe("No local changes pending.");
+    expect(await client.call("read_project", { view: "changes" })).toBe("No local changes pending.");
   });
 });
 
@@ -47,11 +47,13 @@ describe("an unavailable remote", () => {
     await rename(remote.bareRepositoryDirectory, offlineDirectory);
     try {
       expect((await client.callRaw("read_file", { path: "main.tex" })).result?.isError).toBe(true);
-      expect((await client.callRaw("discard_local_changes")).result?.isError).toBe(true);
+      expect(
+        (await client.callRaw("manage_files", { action: "discard_local_changes" })).result?.isError,
+      ).toBe(true);
       expect(await readFile(join(remote.workspaceDirectory, remote.projectId, "main.tex"), "utf8")).toBe(
         "Reviewed draft.\n",
       );
-      expect(await client.call("show_diff")).toContain("+Reviewed draft.");
+      expect(await client.call("read_project", { view: "changes" })).toContain("+Reviewed draft.");
     } finally {
       await rename(offlineDirectory, remote.bareRepositoryDirectory);
     }

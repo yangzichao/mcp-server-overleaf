@@ -107,6 +107,5 @@ export function reviewCredentialSecrets(
 
 /** The message every review tool gives when no cookie is configured, kept in one place. */
 export const REVIEW_CREDENTIALS_MISSING_MESSAGE =
-  "Tracked changes need an Overleaf session cookie, which is a different credential from the Git token. " +
-  "Set OVERLEAF_SESSION_COOKIE to the value of your overleaf_session2 cookie, copied from a browser where you are signed in to Overleaf. " +
-  "Every other tool works without it.";
+  "This tool works through Overleaf's editor and web application, which need an Overleaf session cookie, a different credential from the Git token. " +
+  "Set OVERLEAF_SESSION_COOKIE_FILE to a file holding the value of your overleaf_session2 cookie, or OVERLEAF_SESSION_COOKIE to the value itself, copied from a browser where you are signed in to Overleaf.";

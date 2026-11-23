@@ -2,7 +2,7 @@ import type { CommentThread } from "../../overleaf/web/commentThreads.js";
 import type { AnchoredCommentThread } from "./locateCommentThreads.js";
 
 /**
- * The text `list_comments` returns: each thread under its document, with its anchor, its
+ * The text read_review returns for its comments view: each thread under its document, with its anchor, its
  * status and its messages in order.
  *
  * Comment text is written by collaborators, not by the person running this server, so the
@@ -29,7 +29,8 @@ function describeThread(entry: AnchoredCommentThread, thread: CommentThread | un
   const heading = `- [thread ${entry.anchor.threadId}] line ${entry.lineNumber}, on "${quote(entry.anchor.quotedText)}" (${describeStatus(thread)})`;
   const messages = (thread?.messages ?? []).map((message) => {
     const when = message.postedAt ? ` ${message.postedAt}` : "";
-    return `    ${message.authorName}${when}: ${quote(message.content, 2000)}`;
+    const id = message.messageId ? `[message ${message.messageId}] ` : "";
+    return `    ${id}${message.authorName}${when}: ${quote(message.content, 2000)}`;
   });
   return [heading, ...messages].join("\n");
 }

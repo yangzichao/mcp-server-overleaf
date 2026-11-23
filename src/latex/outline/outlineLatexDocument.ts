@@ -8,8 +8,8 @@ import { type LatexSection, parseLatexSections } from "../parseLatexSections.js"
 
 /**
  * A whole document's headings in reading order, across the files it includes. Each heading
- * keeps its own file and that file's line numbers, which is what read_section and
- * edit_section take.
+ * keeps its own file and that file's line numbers, which is what read_file (sectionTitle)
+ * and edit_file (action replace_section) take.
  */
 
 export interface OutlineHeading {

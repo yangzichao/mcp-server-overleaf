@@ -45,7 +45,7 @@ export interface IncludeWalk {
 }
 
 /** Deeper than any real document nests; a guard against a pathological project, not a limit anyone meets. */
-const MAXIMUM_INCLUDE_DEPTH = 32;
+export const MAXIMUM_INCLUDE_DEPTH = 32;
 
 export async function walkIncludedFiles(reader: ProjectSourceReader, rootPath: string): Promise<IncludeWalk> {
   const visited: VisitedSourceFile[] = [];

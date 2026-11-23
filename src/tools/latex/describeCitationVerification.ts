@@ -3,7 +3,7 @@ import type { CitationVerdict, ClosestSearchResult } from "../../citations/verif
 import { describeLocation } from "../../latex/source/scannedSource.js";
 
 /**
- * The reply `verify_citations` gives: a verdict line, then entries whose DOI or arXiv id
+ * The reply `look_up_citations` gives: a verdict line, then entries whose DOI or arXiv id
  * points somewhere wrong, then entries no search could confirm, then the confirmed ones.
  */
 
@@ -15,6 +15,10 @@ export interface VerifiedRecord {
 export interface CitationVerificationSummary {
   readonly bibliographyFiles: string[];
   readonly verified: VerifiedRecord[];
+  /** Entries within maximumEntries that the call had no time left to look up. */
+  readonly keysLeftByDeadline: readonly string[];
+  readonly deadlineSeconds: number;
+  /** Entries beyond maximumEntries. */
   readonly entriesNotLookedUp: number;
   readonly keysWithoutEntries: string[];
 }
@@ -86,6 +90,13 @@ export function describeCitationVerification(summary: CitationVerificationSummar
     ...section("Not confirmed; books, theses, reports and web pages are often not in Crossref", unconfirmed),
   );
   if (confirmed.length > 0) lines.push("", `Confirmed (${confirmed.length}): ${confirmed.join(", ")}`);
+  const leftByDeadline = summary.keysLeftByDeadline;
+  if (leftByDeadline.length > 0) {
+    lines.push(
+      "",
+      `This call stopped starting lookups after ${summary.deadlineSeconds} seconds, so ${leftByDeadline.length} ${leftByDeadline.length === 1 ? "entry was" : "entries were"} not looked up: ${leftByDeadline.join(", ")}. Pass them as keys in another call to check them.`,
+    );
+  }
   if (summary.entriesNotLookedUp > 0) {
     lines.push(
       "",

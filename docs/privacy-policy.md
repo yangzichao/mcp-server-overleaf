@@ -27,13 +27,15 @@ It handles what you give it:
 | Overleaf Git token | The Claude Desktop extension keeps it in the operating system keychain and passes it to the server as an environment variable. The `setup` command instead writes it to `overleaf-mcp/projects.json` in your user configuration directory, at file mode `600`. | Only to the Overleaf Git host, as a Git credential. It is never written to stdout, and it is redacted from error messages. |
 | Project files | A clone under `~/.overleaf-mcp/projects`, or the directory you set with `OVERLEAF_MCP_WORKSPACE_DIR`. | To Overleaf when you approve `push_changes`. To the MCP client that started the server, whenever a tool returns file content. |
 | Overleaf session cookie | Wherever you put it: `OVERLEAF_SESSION_COOKIE`, or the file `OVERLEAF_SESSION_COOKIE_FILE` names. | Only to Overleaf's web host, `https://www.overleaf.com` or the one you set with `OVERLEAF_WEB_BASE_URL`. Compiled output is fetched from that same host, never from Overleaf's separate PDF domain. It is redacted from error messages. |
-| Compile output | The same clone directory, or for `compile_on_overleaf` a path you pass. | To the MCP client, as the compile report. |
-| Bibliography entries you ask `verify_citations` to check | Nowhere new. | Each entry's title, DOI, arXiv id, first author's family name and year, to `https://doi.org`, `https://api.crossref.org` and `http://export.arxiv.org`, or the hosts you set with `OVERLEAF_MCP_DOI_RESOLVER_URL`, `OVERLEAF_MCP_CROSSREF_API_URL` and `OVERLEAF_MCP_ARXIV_API_URL`. No cookie, token, e-mail address or other file content is sent. |
+| Compile output | A build directory beside the clones, under `.build/`, for a local compile and for one on Overleaf (`compile_project` with `where: "overleaf"`). | To the MCP client, as the compile report and the paths of the saved files. |
+| Local files you upload | Nowhere new. | To Overleaf, when `manage_files` uploads a file or `manage_project` creates a project from a ZIP you name. With a Git token, an upload stays in the clone until `push_changes`; with only a cookie, it goes at once. |
+| Bibliography entries you ask `look_up_citations` to check | Nowhere new. | Each entry's title, DOI, arXiv id, first author's family name and year, to `https://doi.org`, `https://api.crossref.org` and `https://export.arxiv.org`, or the hosts you set with `OVERLEAF_MCP_DOI_RESOLVER_URL`, `OVERLEAF_MCP_CROSSREF_API_URL` and `OVERLEAF_MCP_ARXIV_API_URL`. No cookie, token, e-mail address or other file content is sent. |
+| Works you ask `look_up_citations` to find | Nowhere new. | The DOI, arXiv id or free-text query you give it, to the same three services. |
 
 The server opens no other network connections. It sends Git over HTTPS to
 `https://git.overleaf.com`, or to the host you set with `OVERLEAF_GIT_BASE_URL`. With a
 session cookie configured, the review and web tools also talk to Overleaf's web host. Only
-`verify_citations` contacts a service other than Overleaf, and only when it is called. The
+`look_up_citations` contacts a service other than Overleaf, and only when it is called. The
 `setup` command may also run `npm install` against the npm registry to place a stable copy of
 the server outside the disposable `npx` cache.
 
@@ -47,8 +49,8 @@ each of them:
 - **Overleaf** receives the Git operations you ask for, and the web and editor requests the
   session-cookie tools make, under
   [Overleaf's own privacy policy](https://www.overleaf.com/legal#Privacy).
-- **doi.org, Crossref and arXiv** receive the bibliography metadata listed above when
-  `verify_citations` is called, and nothing at any other time.
+- **doi.org, Crossref and arXiv** receive the bibliography metadata and queries listed above
+  when `look_up_citations` is called, and nothing at any other time.
 - **The MCP client you connect** — Claude Desktop, Claude Code, Codex, Cursor, or another —
   receives whatever a tool returns, and handles it under that client's own policy. Content a
   tool returns becomes part of the conversation with that client's model provider.

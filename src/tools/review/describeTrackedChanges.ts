@@ -49,7 +49,7 @@ export function describeDocumentRanges(
     sections.push(
       `${ranges.comments.length} comment thread${ranges.comments.length === 1 ? "" : "s"}:`,
       ranges.comments.map((comment) => describeComment(comment, lines)).join("\n"),
-      "list_comments reads the messages in each thread.",
+      "read_review (view comments) reads the messages in each thread.",
     );
   }
   return sections.join("\n\n");

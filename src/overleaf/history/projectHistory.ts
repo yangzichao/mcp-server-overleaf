@@ -1,4 +1,5 @@
 import type { GitCommandResult } from "../gitCommandRunner.js";
+import { type BlameRange, blameFile, type FileBlame } from "./blame/blameFile.js";
 
 /**
  * Read-only questions about a project's past, answered from the clone's Git history: which
@@ -44,7 +45,7 @@ export interface CommitQuery {
   readonly limit: number;
 }
 
-/** Hashes as list_history prints them, or in full. */
+/** Hashes as read_history prints them, or in full. */
 export const COMMIT_HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 
 const RECORD_SEPARATOR = "\u001e";
@@ -122,7 +123,7 @@ export class ProjectHistory {
     const result = await this.sources.git(["show", `${hash}:${gitPath}`], { tolerateFailure: true });
     if (result.exitCode !== 0) {
       throw new Error(
-        `${relativePath} did not exist at revision ${revision}. list_history with this path shows when it did.`,
+        `${relativePath} did not exist at revision ${revision}. read_history with this path shows when it did.`,
       );
     }
     if (result.stdout.slice(0, 8192).includes("\0")) {
@@ -152,10 +153,15 @@ export class ProjectHistory {
     return stdout;
   }
 
+  /** Who last changed each line of a file in the clone, and in which commit. */
+  blame(relativePath: string, range: BlameRange = {}): Promise<FileBlame> {
+    return blameFile(this.sources, relativePath, range);
+  }
+
   private async resolveCommit(revision: string): Promise<string> {
     if (!COMMIT_HASH_PATTERN.test(revision)) {
       throw new UnknownRevisionError(
-        `"${revision}" is not a commit hash. Use a hash as list_history prints it, for example a1b2c3d.`,
+        `"${revision}" is not a commit hash. Use a hash as read_history prints it, for example a1b2c3d.`,
       );
     }
     const result = await this.sources.git(["rev-parse", "--verify", "--quiet", `${revision}^{commit}`], {
@@ -164,7 +170,7 @@ export class ProjectHistory {
     const hash = result.stdout.trim();
     if (result.exitCode !== 0 || !hash) {
       throw new UnknownRevisionError(
-        `No commit ${revision} in this project's history. list_history shows the revisions that exist.`,
+        `No commit ${revision} in this project's history. read_history shows the revisions that exist.`,
       );
     }
     return hash;

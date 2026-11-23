@@ -31,7 +31,8 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
 
   defineSteps(({ When, And, Then, But }) => {
     When("I correct the sample size to 8000", async () => {
-      lastReply = await project.client.call("replace_text", {
+      lastReply = await project.client.call("edit_file", {
+        action: "replace_text",
         path: "main.tex",
         findText: publishedSampleSize,
         replaceWith: correctedSampleSize,
@@ -39,19 +40,20 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     });
 
     When("I rewrite the conclusion", async () => {
-      lastReply = await project.client.call("edit_section", {
+      lastReply = await project.client.call("edit_file", {
+        action: "replace_section",
         path: "main.tex",
         sectionTitle: "Conclusion",
-        newContent: `\\section{Conclusion}\n${rewrittenConclusion}`,
+        content: `\\section{Conclusion}\n${rewrittenConclusion}`,
       });
     });
 
     When("I delete {string}", async (_context: unknown, path: string) => {
-      lastReply = await project.client.call("delete_file", { path });
+      lastReply = await project.client.call("manage_files", { action: "delete", path });
     });
 
-    When("I move {string} to {string}", async (_context: unknown, fromPath: string, toPath: string) => {
-      lastReply = await project.client.call("move_file", { fromPath, toPath });
+    When("I move {string} to {string}", async (_context: unknown, path: string, toPath: string) => {
+      lastReply = await project.client.call("manage_files", { action: "move", path, toPath });
     });
 
     And("I push the work as {string}", async (_context: unknown, commitMessage: string) => {
@@ -59,7 +61,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     });
 
     And("I discard the local changes", async () => {
-      lastReply = await project.client.call("discard_local_changes");
+      lastReply = await project.client.call("manage_files", { action: "discard_local_changes" });
     });
 
     And("the co-author publishes a sample size of 20000", async () => {
@@ -75,7 +77,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     });
 
     Then("the pending diff shows the corrected sample size", async () => {
-      expect(await project.client.call("show_diff")).toContain(correctedSampleSize);
+      expect(await project.client.call("read_project", { view: "changes" })).toContain(correctedSampleSize);
     });
 
     But("Overleaf still reports 5000", async () => {
@@ -93,7 +95,9 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     });
 
     And("there is nothing left to push", async () => {
-      expect(await project.client.call("show_diff")).toContain("No local changes pending.");
+      expect(await project.client.call("read_project", { view: "changes" })).toContain(
+        "No local changes pending.",
+      );
     });
 
     Then("the push is refused", () => {

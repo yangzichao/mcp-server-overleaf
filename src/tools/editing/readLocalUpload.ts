@@ -2,7 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { isAbsolute, resolve, sep } from "node:path";
 
 /**
- * Reads a file from this computer for upload_file, with the limits that keep a confused or
+ * Reads a file from this computer for manage_files (action upload), with the limits that keep a confused or
  * manipulated model from publishing something it should not: an absolute path to a regular
  * file, no hidden file or directory anywhere in the path (where SSH keys, cloud credentials
  * and `.env` files live), and no more than Overleaf accepts for one file.
