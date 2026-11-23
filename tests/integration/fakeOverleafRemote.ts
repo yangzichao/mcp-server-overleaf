@@ -82,6 +82,17 @@ export class FakeOverleafRemote {
     await this.commitAndPushAsCollaborator(message);
   }
 
+  /**
+   * Renames a file or folder as the co-author and pushes the rename. It goes through a temporary
+   * name, because on a disk that ignores case `git mv sections Sections` moves sections into itself.
+   */
+  async collaboratorRenames(fromPath: string, toPath: string, message: string): Promise<void> {
+    const temporaryPath = `${toPath}.renaming`;
+    await execFileAsync("git", ["mv", fromPath, temporaryPath], { cwd: this.collaboratorDirectory });
+    await execFileAsync("git", ["mv", temporaryPath, toPath], { cwd: this.collaboratorDirectory });
+    await this.commitAndPushAsCollaborator(message);
+  }
+
   /** The hash of the newest commit "on Overleaf", for addressing a revision in a test. */
   async publishedHeadHash(): Promise<string> {
     const { stdout } = await execFileAsync("git", ["rev-parse", "main"], {

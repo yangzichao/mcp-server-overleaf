@@ -10,6 +10,10 @@ import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./g
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import {
+  NameSpelledOtherwiseOnDiskError,
+  refuseNameSpelledOtherwiseOnDisk,
+} from "./workingTree/diskSpelling/refuseNameSpelledOtherwiseOnDisk.js";
 import { isNothingAtPathError } from "./workingTree/isNothingAtPathError.js";
 import { ProjectDirectories } from "./workingTree/projectDirectories.js";
 import { requireFileShapedPath } from "./workingTree/requireFileShapedPath.js";
@@ -239,9 +243,16 @@ export class OverleafGitRepository {
    * files are all skipped.
    */
   private async isTrackedInIndex(absolutePath: string): Promise<boolean> {
-    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
-    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPath}`]);
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${this.gitPathOf(absolutePath)}`]);
     return stdout.split("\0").some((entry) => entry !== "");
+  }
+
+  /** True when Git tracks this exact spelling, as a file or as a folder holding files. */
+  private async isTrackedUnderThatSpelling(gitPathPrefix: string): Promise<boolean> {
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPathPrefix}`]);
+    return stdout
+      .split("\0")
+      .some((entry) => entry === gitPathPrefix || entry.startsWith(`${gitPathPrefix}/`));
   }
 
   private async materializePathIfNeeded(relativePath: string): Promise<void> {
@@ -264,20 +275,39 @@ export class OverleafGitRepository {
   }
 
   /**
-   * The single place a client-supplied path becomes an absolute one. Both halves of the
-   * guard run here: path arithmetic first, then the symlink check, which needs the disk.
+   * The single place a client-supplied path becomes an absolute one in the working tree. The
+   * spelling check runs after the containment guards, because on a disk that ignores case
+   * Main.tex would otherwise act on main.tex.
    */
   private async resolveClientPath(relativePath: string): Promise<string> {
+    const absolutePath = await this.resolveContainedPath(relativePath);
+    await refuseNameSpelledOtherwiseOnDisk(
+      this.options.repositoryDirectory,
+      this.gitPathOf(absolutePath),
+      (gitPathPrefix) => this.isTrackedUnderThatSpelling(gitPathPrefix),
+    );
+    return absolutePath;
+  }
+
+  /**
+   * Both halves of the containment guard: path arithmetic first, then the symlink check, which
+   * needs the disk. History stops here, because its paths name files in commits, spelled as Git
+   * has them, whatever the disk now holds.
+   */
+  private async resolveContainedPath(relativePath: string): Promise<string> {
     const absolutePath = resolvePathInsideRepository(this.options.repositoryDirectory, relativePath);
     await assertRealPathInsideRepository(this.options.repositoryDirectory, absolutePath);
     return absolutePath;
   }
 
-  /** A validated client path in the form Git prints and takes: relative, with forward slashes. */
+  /** An absolute path inside the clone in the form Git prints and takes: relative, with forward slashes. */
+  private gitPathOf(absolutePath: string): string {
+    return relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+  }
+
+  /** A validated client path in Git's form. */
   private async toGitPath(relativePath: string): Promise<string> {
-    return relative(this.options.repositoryDirectory, await this.resolveClientPath(relativePath))
-      .split(sep)
-      .join("/");
+    return this.gitPathOf(await this.resolveClientPath(relativePath));
   }
 
   async readTextFile(relativePath: string): Promise<string> {
@@ -337,7 +367,7 @@ export class OverleafGitRepository {
    * sparse checkout skipped with S, while one deleted in the clone keeps the plain H.
    */
   private async describeIndexEntry(absolutePath: string): Promise<"untracked" | "tracked" | "skipped"> {
-    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+    const gitPath = this.gitPathOf(absolutePath);
     const { stdout } = await this.git(["ls-files", "-t", "-z", "--", `:(literal)${gitPath}`]);
     const entries = stdout.split("\0").filter((entry) => entry !== "");
     if (entries.length === 0) return "untracked";
@@ -378,7 +408,7 @@ export class OverleafGitRepository {
   history(): ProjectHistory {
     return new ProjectHistory({
       git: (args, options) => this.git(args, options),
-      toGitPath: (relativePath) => this.toGitPath(relativePath),
+      toGitPath: async (relativePath) => this.gitPathOf(await this.resolveContainedPath(relativePath)),
       latestOverleafRevision: async () => `origin/${await this.getBranchName()}`,
     });
   }
@@ -432,7 +462,13 @@ export class OverleafGitRepository {
       const entry = await stat(await this.resolveClientPath(relativePath));
       return entry.isFile();
     } catch (error) {
-      if (error instanceof UnsafeRepositoryPathError || isNothingAtPathError(error)) return false;
+      if (
+        error instanceof UnsafeRepositoryPathError ||
+        error instanceof NameSpelledOtherwiseOnDiskError ||
+        isNothingAtPathError(error)
+      ) {
+        return false;
+      }
       throw error;
     }
   }

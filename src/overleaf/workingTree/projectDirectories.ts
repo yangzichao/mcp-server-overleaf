@@ -1,7 +1,9 @@
 import { lstat, mkdir, rename, rm, stat } from "node:fs/promises";
-import { dirname, join, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 
 import type { GitCommandResult } from "../gitCommandRunner.js";
+import { resolvePathInsideRepository } from "../repositoryPaths.js";
+import { moveIndexEntries } from "./diskSpelling/moveIndexEntries.js";
 import { isAtOrInsideDirectory } from "./isAtOrInsideDirectory.js";
 import { isNothingAtPathError } from "./isNothingAtPathError.js";
 import { requireFileShapedPath } from "./requireFileShapedPath.js";
@@ -19,15 +21,25 @@ import { requireFileShapedPath } from "./requireFileShapedPath.js";
 export type ProjectPathKind = "file" | "directory" | "missing";
 
 /**
- * How two existing paths relate: one path written two ways, such as ./main.tex and main.tex;
- * two names of one entry, as main.tex and Main.tex are on a disk that ignores case; or two entries.
+ * Where a move's destination points, judged before its spelling is checked: at the source
+ * itself, such as ./main.tex for main.tex; at the source under a name that differs only in case,
+ * in the same folder, which on a disk that ignores case is the same entry; or somewhere else.
  */
-export type ExistingPathRelation = "same path" | "two names of one entry" | "two entries";
+export type MoveDestination = "the source itself" | "the source respelled" | "elsewhere";
+
+/**
+ * How two existing paths relate once both passed the spelling check: two names of one entry,
+ * which happens only where the disk and Git spell a folder differently, or two entries.
+ */
+export type ExistingPathRelation = "two names of one entry" | "two entries";
 
 export interface ProjectDirectoryAccess {
   readonly repositoryDirectory: string;
   readonly git: (args: readonly string[]) => Promise<GitCommandResult>;
-  /** Path arithmetic plus the symlink check; throws for a path that leaves the clone. */
+  /**
+   * Path arithmetic, the symlink check and the spelling check; throws for a path that leaves
+   * the clone or that reaches an existing entry only because the disk ignores case.
+   */
   readonly resolveClientPath: (relativePath: string) => Promise<string>;
   /** Brings back a tracked path that sparse checkout left off disk. */
   readonly materializePathIfNeeded: (relativePath: string) => Promise<void>;
@@ -40,6 +52,20 @@ async function existsOnDisk(absolutePath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/** True when both paths reach one entry on disk; false when either is missing. */
+async function isOneEntry(firstAbsolutePath: string, secondAbsolutePath: string): Promise<boolean> {
+  try {
+    const [first, second] = await Promise.all([
+      lstat(firstAbsolutePath, { bigint: true }),
+      lstat(secondAbsolutePath, { bigint: true }),
+    ]);
+    return first.dev === second.dev && first.ino === second.ino;
+  } catch (error) {
+    if (isNothingAtPathError(error)) return false;
+    throw error;
   }
 }
 
@@ -70,9 +96,43 @@ export class ProjectDirectories {
   ): Promise<ExistingPathRelation> {
     const firstAbsolutePath = await this.access.resolveClientPath(firstRelativePath);
     const secondAbsolutePath = await this.access.resolveClientPath(secondRelativePath);
-    if (firstAbsolutePath === secondAbsolutePath) return "same path";
-    const [first, second] = await Promise.all([lstat(firstAbsolutePath), lstat(secondAbsolutePath)]);
-    return first.dev === second.dev && first.ino === second.ino ? "two names of one entry" : "two entries";
+    return (await isOneEntry(firstAbsolutePath, secondAbsolutePath))
+      ? "two names of one entry"
+      : "two entries";
+  }
+
+  /**
+   * Where `toRelativePath` points relative to the existing `fromRelativePath`. The destination is
+   * placed by path arithmetic only, since a respelled name would fail the spelling check; the
+   * source passed every guard, and a respelled destination stays in the source's folder.
+   */
+  async describeMoveDestination(fromRelativePath: string, toRelativePath: string): Promise<MoveDestination> {
+    const fromAbsolutePath = await this.access.resolveClientPath(fromRelativePath);
+    const toAbsolutePath = resolvePathInsideRepository(this.access.repositoryDirectory, toRelativePath);
+    if (fromAbsolutePath === toAbsolutePath) return "the source itself";
+    if (dirname(fromAbsolutePath) !== dirname(toAbsolutePath)) return "elsewhere";
+    if (!(await isOneEntry(fromAbsolutePath, toAbsolutePath))) return "elsewhere";
+    const sameNameOnceNormalized =
+      basename(fromAbsolutePath).normalize("NFC") === basename(toAbsolutePath).normalize("NFC");
+    return sameNameOnceNormalized ? "the source itself" : "the source respelled";
+  }
+
+  /**
+   * Renames a file or folder to a name that differs only in case, for a destination
+   * describeMoveDestination called the source respelled. rename(2) changes the name the disk
+   * stores; Git's index entries follow it, since Git on such a disk cannot see the change itself.
+   * Answers with the project files at their new paths.
+   */
+  async respell(fromRelativePath: string, toRelativePath: string): Promise<string[]> {
+    const fromAbsolutePath = await this.access.resolveClientPath(fromRelativePath);
+    const toAbsolutePath = resolvePathInsideRepository(this.access.repositoryDirectory, toRelativePath);
+    await this.bringBackHiddenFilesUnder(fromAbsolutePath);
+    const files = await this.listFilesUnder(fromAbsolutePath);
+    await rename(fromAbsolutePath, toAbsolutePath);
+    const fromGitPath = this.toGitPath(fromAbsolutePath);
+    const toGitPath = this.toGitPath(toAbsolutePath);
+    await moveIndexEntries(this.access.git, fromGitPath, toGitPath);
+    return files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`);
   }
 
   /** Removes the directory and everything in it; answers with the project files that were in it. */
