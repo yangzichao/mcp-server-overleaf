@@ -34,8 +34,17 @@ function keepNewlinesOnly(text: string): string {
   return text.replace(/[^\n]/g, "");
 }
 
-export function prepareLatexSource(source: string): string {
-  const uncommented = source.split("\n").map(stripLineComment).join("\n");
+function blankAllButNewlines(text: string): string {
+  return text.replace(/[^\n]/g, " ");
+}
+
+/** Like `stripLineComment`, but the comment becomes spaces, so the line keeps its length. */
+function maskLineComment(line: string): string {
+  const kept = stripLineComment(line);
+  return kept + " ".repeat(line.length - kept.length);
+}
+
+function replaceOpaqueBodies(uncommented: string, replaceBody: (body: string) => string): string {
   const beginPattern = new RegExp(OPAQUE_ENVIRONMENT_PATTERN.source, "g");
   let prepared = "";
   let cursor = 0;
@@ -50,11 +59,23 @@ export function prepareLatexSource(source: string): string {
     const end = endPattern.exec(uncommented);
     const bodyEnd = end ? end.index : uncommented.length;
 
-    prepared +=
-      uncommented.slice(cursor, bodyStart) + keepNewlinesOnly(uncommented.slice(bodyStart, bodyEnd));
+    prepared += uncommented.slice(cursor, bodyStart) + replaceBody(uncommented.slice(bodyStart, bodyEnd));
     cursor = bodyEnd;
     beginPattern.lastIndex = end ? end.index + end[0].length : uncommented.length;
   }
 
   return prepared + uncommented.slice(cursor);
+}
+
+export function prepareLatexSource(source: string): string {
+  return replaceOpaqueBodies(source.split("\n").map(stripLineComment).join("\n"), keepNewlinesOnly);
+}
+
+/**
+ * The same reading as `prepareLatexSource`, but comments and opaque bodies become spaces
+ * instead of disappearing, so the result is exactly as long as the source and every index in
+ * it is the index in the file. For edits that map a match back onto the original text.
+ */
+export function maskLatexSource(source: string): string {
+  return replaceOpaqueBodies(source.split("\n").map(maskLineComment).join("\n"), blankAllButNewlines);
 }

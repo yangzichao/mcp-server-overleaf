@@ -17,6 +17,8 @@ export interface IncludeDirective {
   /** \include always appends .tex; \input appends it only when the name has none. */
   readonly alwaysAddsTexExtension: boolean;
   readonly index: number;
+  /** How many characters the whole directive spans in the source, from its backslash on. */
+  readonly length: number;
 }
 
 export interface IncludeDirectiveScan {
@@ -50,6 +52,7 @@ function readDirective(
     importIsRelative: isImport && command.startsWith("sub"),
     alwaysAddsTexExtension: command.includes("include"),
     index: match.index ?? 0,
+    length: match[0].length,
   };
 }
 
