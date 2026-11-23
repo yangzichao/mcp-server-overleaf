@@ -1,8 +1,9 @@
 /**
  * The parts of Overleaf's project description that are not the file tree: who is in the project,
  * whose typing becomes suggestions, and the compile settings, all from
- * `ProjectEditorHandler.buildProjectModelView`. A user who reached the project through a
- * read-only link gets only the owner's id and no members.
+ * `ProjectEditorHandler.buildProjectModelView`. The owner is described like a member
+ * (`buildUserModelView`: `_id`, `first_name`, `last_name`, `email`), except to a user who reached
+ * the project through a read-only link, who gets only the owner's id and no members.
  *
  * `trackChangesState` is there only when the owner's plan has the feature (`features.trackChanges`),
  * as the project's `track_changes || false`. `ProjectHelper.isTrackChangesEnabledForUser` reads
@@ -20,6 +21,9 @@ export interface OverleafTrackChangesState {
 
 export interface OverleafProjectDetails {
   readonly ownerId: string | undefined;
+  /** First and last name, when Overleaf described the owner to this account. */
+  readonly ownerName: string | undefined;
+  readonly ownerEmail: string | undefined;
   readonly memberIds: readonly string[];
   /** False when the owner's plan has no track changes, so there is no switch to turn. */
   readonly trackChangesAvailable: boolean;
@@ -38,6 +42,17 @@ function readString(value: unknown): string | undefined {
 
 function readUserId(user: unknown): string | undefined {
   return user && typeof user === "object" ? readString((user as { _id?: unknown })._id) : undefined;
+}
+
+function readUserField(user: unknown, field: "first_name" | "last_name" | "email"): string | undefined {
+  return user && typeof user === "object" ? readString((user as Record<string, unknown>)[field]) : undefined;
+}
+
+function readUserName(user: unknown): string | undefined {
+  const name = [readUserField(user, "first_name"), readUserField(user, "last_name")]
+    .filter(Boolean)
+    .join(" ");
+  return readString(name);
 }
 
 function readTrackChangesState(value: unknown): OverleafTrackChangesState {
@@ -60,6 +75,8 @@ export function readProjectDetails(payload: unknown): OverleafProjectDetails {
   };
   return {
     ownerId: readUserId(project.owner),
+    ownerName: readUserName(project.owner),
+    ownerEmail: readUserField(project.owner, "email"),
     memberIds: members.flatMap((member) => readUserId(member) ?? []),
     trackChangesAvailable: features.trackChanges === true,
     trackChanges: readTrackChangesState(project.trackChangesState),

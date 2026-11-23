@@ -1,5 +1,6 @@
 import type { OverleafRealtimeSession } from "../../../overleaf/realtime/overleafRealtimeSession.js";
 import { describeAccessLevel } from "../../reading/accessLevelNames.js";
+import { describeProjectSettings } from "../../web/projectSettings/describeProjectSettings.js";
 import { NO_GIT_BRIDGE_NOTE } from "../editorFileArguments.js";
 import { findMainDocumentPath } from "./editorFilesView.js";
 
@@ -12,6 +13,7 @@ export function describeEditorOverview(session: OverleafRealtimeSession): string
     `Project: "${tree.name}"`,
     `Main document: ${findMainDocumentPath(tree) ?? "not set in Overleaf's menu"}`,
     `Files: ${documentCount} editable document${documentCount === 1 ? "" : "s"} and ${uploadCount} binary upload${uploadCount === 1 ? "" : "s"}, such as figures.`,
+    ...describeProjectSettings(session.details),
     `This account's access: ${describeAccessLevel(session.permissionsLevel)}.`,
     NO_GIT_BRIDGE_NOTE,
   ].join("\n");

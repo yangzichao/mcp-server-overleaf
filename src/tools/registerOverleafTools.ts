@@ -33,7 +33,7 @@ export function registerOverleafTools(
 ): void {
   registerListProjectsTool(server, context, offered);
   if (offered.gitBridgeToolsOffered) {
-    registerReadProjectTool(server, context);
+    registerReadProjectTool(server, context, offered);
     registerReadFileTool(server, context);
     registerSearchProjectTool(server, context);
     registerReadHistoryTool(server, context);
