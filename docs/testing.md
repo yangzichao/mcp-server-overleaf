@@ -1,0 +1,39 @@
+# Testing
+
+`npm run check` runs everything that needs no Overleaf account. Three layers sit on top of
+the unit tests, each in its own folder:
+
+| Command | Folder | What it proves |
+| --- | --- | --- |
+| `npm run test:features` | `tests/features/` | Gherkin feature files state what each tool promises; every sentence is bound to a call against the compiled server over stdio, with fake Overleaf Git, editor and web services. |
+| `npm run test:properties` | `tests/properties/` | fast-check properties for the pure parts: text replacement, LaTeX parsing, Socket.IO framing, path safety, redaction and others. |
+| `npm run test:e2e` | `tests/endToEnd/` | The same server against a real Overleaf project. Not part of `npm run check`. |
+
+The first two also run inside `npm test`.
+
+## Live end-to-end run
+
+Use a throwaway project you own, never a co-author's paper. The run writes a scratch folder
+`mcp-e2e/<run id>/` through the Git bridge and pushes it, then deletes it and pushes again.
+Through the editor it appends one LaTeX comment line to a document, suggests, accepts and
+rejects edits and runs a comment thread inside that line, then removes it. It also compiles
+on Overleaf and downloads the ZIP. It never creates projects, because no tool can delete one
+for good.
+
+The suite reads its own variable names, so a normal `.env` cannot aim it at a real paper:
+
+| Variable | Needed for |
+| --- | --- |
+| `OVERLEAF_E2E_PROJECT_ID` | Everything. Without it every file is skipped. |
+| `OVERLEAF_E2E_GIT_TOKEN` | `tests/endToEnd/gitBridge/`. Needs a plan with Git integration. |
+| `OVERLEAF_E2E_SESSION_COOKIE` | `tests/endToEnd/editor/` and `tests/endToEnd/account/`. The `overleaf_session2=…` cookie. |
+| `OVERLEAF_E2E_WEB_BASE_URL` | Optional, defaults to `https://www.overleaf.com`. |
+| `OVERLEAF_E2E_EDITOR_DOCUMENT` | Optional, defaults to `main.tex`. Needs one line of 8+ characters that occurs once. |
+| `OVERLEAF_E2E_ENV_FILE` | Optional absolute path to a file holding the variables above. |
+
+```sh
+OVERLEAF_E2E_ENV_FILE=$HOME/.config/overleaf-e2e.env npm run test:e2e
+```
+
+`look_up_citations` (action `verify`) in the Git bridge run sends one DOI to doi.org and
+Crossref.

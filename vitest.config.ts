@@ -4,6 +4,7 @@ import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "./tests/support/withoutBackg
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
+    exclude: ["tests/endToEnd/**"],
     globalSetup: ["./tests/support/buildServer.ts"],
     setupFiles: ["./tests/properties/support/fastCheckSettings.ts"],
     // Integration tests clone real git repositories and run latexmk, so they are slower
