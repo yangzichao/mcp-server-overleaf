@@ -53,7 +53,31 @@ describe("BibTeX field values", () => {
     expect(balanceBraces("{BERT}: {Pre}-training")).toBe("{BERT}: {Pre}-training");
     expect(balanceBraces("a } b { c")).toBe("a  b  c");
     expect(balanceBraces("open { only")).toBe("open  only");
-    expect(balanceBraces("an escaped \\{ brace")).toBe("an escaped \\{ brace");
+    // BibTeX counts an escaped brace too, so alone it would run the value on into the next field.
+    expect(balanceBraces("an escaped \\{ brace")).toBe("an escaped  brace");
+    expect(balanceBraces("an escaped \\{pair\\}")).toBe("an escaped \\{pair\\}");
+  });
+
+  it("drops a brace that pairs only with one of the other kind", () => {
+    expect(balanceBraces("\\{")).toBe("");
+    expect(balanceBraces("{a\\}")).toBe("a");
+    expect(balanceBraces("{ \\} }")).toBe("{  }");
+    expect(balanceBraces("\\\\}")).toBe("\\\\");
+  });
+
+  it("keeps the braces of markup when another brace does not balance", () => {
+    expect(cleanFieldText("<i>E. coli</i> in {vitro")).toBe("\\textit{E. coli} in vitro");
+  });
+
+  it("drops a backslash at the end, which would escape the closing brace", () => {
+    expect(cleanFieldText("Lecture Notes \\")).toBe("Lecture Notes");
+    expect(cleanFieldText("Lecture Notes \\ ")).toBe("Lecture Notes");
+    expect(cleanFieldText("two lines\\\\")).toBe("two lines\\\\");
+  });
+
+  it("escapes a special that follows a line break", () => {
+    expect(cleanFieldText("one\\\\#2 and \\\\%")).toBe("one\\\\\\#2 and \\\\\\%");
+    expect(cleanFieldText("\\\\\\&")).toBe("\\\\\\&");
   });
 
   it("writes page ranges with a double hyphen", () => {

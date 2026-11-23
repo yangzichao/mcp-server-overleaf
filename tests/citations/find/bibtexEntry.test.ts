@@ -39,6 +39,11 @@ describe("BibTeX entries", () => {
     expect(formatBibtexEntry({ ...draft, key: "anon" })).toBe("@misc{anon,\n  month = {Spring}\n}");
   });
 
+  it("drops a backslash at the end of an identifier, which would escape the closing brace", () => {
+    expect(createBibtexDraft("misc", { doi: "10.1000/x\\" }).fields.get("doi")).toBe("10.1000/x");
+    expect(createBibtexDraft("misc", { doi: "10.1000/x\\\\" }).fields.get("doi")).toBe("10.1000/x\\\\");
+  });
+
   it("names the fields a reference needs that are missing", () => {
     expect(findMissingFields(createBibtexDraft("misc", {}))).toEqual(["author", "title", "year"]);
     expect(findMissingFields(createBibtexDraft("book", { editor: "Knuth, Donald", year: "1968" }))).toEqual([

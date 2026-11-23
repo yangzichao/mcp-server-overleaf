@@ -1,4 +1,10 @@
-import { cleanFieldText, isMonthMacro, normalizePages, toMonthMacro } from "./bibtexFieldValues.js";
+import {
+  cleanFieldText,
+  dropLoneBackslashAtEnd,
+  isMonthMacro,
+  normalizePages,
+  toMonthMacro,
+} from "./bibtexFieldValues.js";
 import { protectTitleCapitals } from "./protectTitleCapitals.js";
 
 /**
@@ -60,7 +66,9 @@ export function canonicalFieldName(name: string): BibtexFieldName | undefined {
 const VERBATIM_FIELDS: ReadonlySet<BibtexFieldName> = new Set(["doi", "eprint", "url"]);
 
 function cleanFieldValue(field: BibtexFieldName, value: string): string {
-  if (VERBATIM_FIELDS.has(field)) return value.replace(/\s+/g, "").replace(/[{}]/g, "");
+  if (VERBATIM_FIELDS.has(field)) {
+    return dropLoneBackslashAtEnd(value.replace(/\s+/g, "").replace(/[{}]/g, ""));
+  }
   if (field === "month") return toMonthMacro(value) ?? cleanFieldText(value);
   if (field === "pages") return normalizePages(cleanFieldText(value));
   if (field === "title") return protectTitleCapitals(cleanFieldText(value));
