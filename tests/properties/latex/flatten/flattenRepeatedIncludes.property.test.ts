@@ -49,6 +49,37 @@ const includeChain = fc
     return files;
   });
 
+/** A main file of many includes, each on its own line. */
+const includesOnSeparateLines = fc
+  .record({
+    directive: fc.constantFrom(
+      "\\input{b}",
+      "\\include{b}",
+      "\\subfile{b}",
+      "\\input{missing}",
+      "\\input{main}",
+    ),
+    lineEnd: fc.constantFrom("\n", "\r\n", "%\n", " % note\n"),
+    count: fc.integer({ min: 1000, max: 40_000 }),
+  })
+  .map(({ directive, lineEnd, count }) => ({
+    [ROOT_PATH]: `${directive}${lineEnd}`.repeat(count),
+    "b.tex": "x\n",
+  }));
+
+/** A main file of many inlined includes on one line, with long text after them. */
+const includesOnOneLine = fc
+  .record({
+    directive: fc.constantFrom("\\input{b}", "\\subfile{b}", "\\import{./}{b}"),
+    between: fc.constantFrom("", " ", "\t", "x"),
+    count: fc.integer({ min: 5000, max: 40_000 }),
+    textAfter: fc.integer({ min: 500_000, max: 3_000_000 }),
+  })
+  .map(({ directive, between, count, textAfter }) => ({
+    [ROOT_PATH]: `${`${directive}${between}`.repeat(count)}${"x".repeat(textAfter)}\n`,
+    "b.tex": "x\n",
+  }));
+
 describe("flattenLatexDocument on files included many times over", () => {
   // A main file with 60 copies of \input{chapter}, a chapter with 90 copies of \input{table} and
   // a table of 100,000 characters once threw RangeError after 7 seconds, because the length was
@@ -56,6 +87,28 @@ describe("flattenLatexDocument on files included many times over", () => {
   it("flattens a chain of repeated includes, or refuses it for its length, at once", async () => {
     await fc.assert(
       fc.asyncProperty(includeChain, async (files) => {
+        expectFlattenedOrRefusedAtOnce(await timeFlattening(files));
+      }),
+      { numRuns: 40, endOnFailure: true },
+    );
+  });
+
+  // 40,000 lines of \input{b} once took 4 seconds, because the text written so far was searched
+  // for its last line break at every directive.
+  it("flattens a file of many includes on separate lines at once", async () => {
+    await fc.assert(
+      fc.asyncProperty(includesOnSeparateLines, async (files) => {
+        expectFlattenedOrRefusedAtOnce(await timeFlattening(files));
+      }),
+      { numRuns: 40, endOnFailure: true },
+    );
+  });
+
+  // 50,000 copies of \input{b} and then 5 million characters, all on one line, once took 4.5
+  // seconds, because each inlined directive searched for the end of its line.
+  it("flattens many includes on one long line at once", async () => {
+    await fc.assert(
+      fc.asyncProperty(includesOnOneLine, async (files) => {
         expectFlattenedOrRefusedAtOnce(await timeFlattening(files));
       }),
       { numRuns: 40, endOnFailure: true },

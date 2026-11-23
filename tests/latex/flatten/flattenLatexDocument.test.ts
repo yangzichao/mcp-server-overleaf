@@ -175,4 +175,21 @@ describe("flattenLatexDocument", () => {
     await expect(flattenLatexDocument(project, "main.tex")).rejects.toThrow(FlattenedDocumentTooLongError);
     expect(performance.now() - started).toBeLessThan(1000);
   });
+
+  it("flattens a file of many includes at once", async () => {
+    const project = inMemoryProject({ "main.tex": "\\input{b}\n".repeat(40_000), "b.tex": "x\n" });
+    const started = performance.now();
+    const { inlinedFiles } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(inlinedFiles).toEqual(["b.tex"]);
+  });
+
+  it("flattens many includes on one long line at once", async () => {
+    const line = `${"\\input{b}".repeat(50_000)}${"x".repeat(5_000_000)}\n`;
+    const project = inMemoryProject({ "main.tex": line, "b.tex": "x\n" });
+    const started = performance.now();
+    const { text } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(text.endsWith(`${end("b.tex")}\n${"x".repeat(5_000_000)}\n`)).toBe(true);
+  });
 });

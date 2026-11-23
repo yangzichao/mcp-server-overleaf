@@ -49,15 +49,28 @@ interface FileBeingFlattened {
   readonly regionEnd: number;
 }
 
-/** True when only spaces stand between the last line break written so far and the directive. */
-function endsAtLineStart(flattenedSoFar: string): boolean {
-  return flattenedSoFar.slice(flattenedSoFar.lastIndexOf("\n") + 1).trim() === "";
+/**
+ * Whether only spaces follow the last line break once `appended` is added to the text so far,
+ * given whether they did before. Searching the whole text so far for its last line break, at
+ * every directive, took quadratic time on a file of many includes.
+ */
+function endsAtLineStart(endedAtLineStart: boolean, appended: string): boolean {
+  const lastLineBreak = appended.lastIndexOf("\n");
+  if (lastLineBreak === -1) return endedAtLineStart && appended.trim() === "";
+  return appended.slice(lastLineBreak + 1).trim() === "";
 }
 
+/**
+ * Stops at the first character that is not a space. Searching for the line's end first took
+ * quadratic time on a line of many includes.
+ */
 function isRestOfLineBlank(file: FileBeingFlattened, from: number): boolean {
-  const newline = file.masked.indexOf("\n", from);
-  const lineEnd = Math.min(newline === -1 ? file.masked.length : newline, file.regionEnd);
-  return file.masked.slice(from, lineEnd).trim() === "";
+  for (let index = from; index < file.regionEnd; index += 1) {
+    const character = file.masked.charAt(index);
+    if (character === "\n") return true;
+    if (character.trim() !== "") return false;
+  }
+  return true;
 }
 
 /**
@@ -123,11 +136,15 @@ class DocumentFlattener {
     this.pathsBuiltFromMacros += scan.pathsBuiltFromMacros;
 
     let flattened = "";
+    let atLineStart = true;
     let cursor = region.start;
     for (const directive of scan.directives) {
       if (directive.index < cursor || directive.index + directive.length > region.end) continue;
-      flattened += original.slice(cursor, directive.index);
-      flattened += await this.replaceDirective(directive, file, endsAtLineStart(flattened));
+      const before = original.slice(cursor, directive.index);
+      atLineStart = endsAtLineStart(atLineStart, before);
+      const replacement = await this.replaceDirective(directive, file, atLineStart);
+      atLineStart = endsAtLineStart(atLineStart, replacement);
+      flattened += before + replacement;
       cursor = directive.index + directive.length;
       // Checked as the text grows: a file that includes another large one many times would
       // otherwise build a string past what JavaScript can hold before any check ran.
