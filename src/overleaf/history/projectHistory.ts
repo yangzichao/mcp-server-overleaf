@@ -44,7 +44,7 @@ export interface CommitQuery {
   readonly limit: number;
 }
 
-/** Hashes as list_history prints them, or in full. */
+/** Hashes as read_history prints them, or in full. */
 export const COMMIT_HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 
 const RECORD_SEPARATOR = "\u001e";
@@ -122,7 +122,7 @@ export class ProjectHistory {
     const result = await this.sources.git(["show", `${hash}:${gitPath}`], { tolerateFailure: true });
     if (result.exitCode !== 0) {
       throw new Error(
-        `${relativePath} did not exist at revision ${revision}. list_history with this path shows when it did.`,
+        `${relativePath} did not exist at revision ${revision}. read_history with this path shows when it did.`,
       );
     }
     if (result.stdout.slice(0, 8192).includes("\0")) {
@@ -155,7 +155,7 @@ export class ProjectHistory {
   private async resolveCommit(revision: string): Promise<string> {
     if (!COMMIT_HASH_PATTERN.test(revision)) {
       throw new UnknownRevisionError(
-        `"${revision}" is not a commit hash. Use a hash as list_history prints it, for example a1b2c3d.`,
+        `"${revision}" is not a commit hash. Use a hash as read_history prints it, for example a1b2c3d.`,
       );
     }
     const result = await this.sources.git(["rev-parse", "--verify", "--quiet", `${revision}^{commit}`], {
@@ -164,7 +164,7 @@ export class ProjectHistory {
     const hash = result.stdout.trim();
     if (result.exitCode !== 0 || !hash) {
       throw new UnknownRevisionError(
-        `No commit ${revision} in this project's history. list_history shows the revisions that exist.`,
+        `No commit ${revision} in this project's history. read_history shows the revisions that exist.`,
       );
     }
     return hash;

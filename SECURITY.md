@@ -17,7 +17,7 @@ as part of the first-release setup in [the release guide](docs/releasing.md).
 
 - The server runs with the permissions of the operating-system account that starts it.
   MCP clients can read project contents and request edits; use client approval controls
-  for writes and review `show_diff` before authorizing `push_changes`.
+  for writes and review `read_project` with view `changes` before authorizing `push_changes`.
 - Keep the Overleaf token in a private file or the client's protected environment. Do not
   include it in command-line arguments, bug reports, screenshots, or source control.
 - HTTP requires a bearer token and binds to loopback by default. Use a trusted tunnel or

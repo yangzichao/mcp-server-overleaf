@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { useEditorTestHarness } from "../support/editorTestHarness.js";
+import { expectInstructionsToNameOnlyWhatIsListed } from "../support/instructionNames.js";
 
 describe("a server configured with only a session cookie", () => {
   const harness = useEditorTestHarness();
@@ -18,19 +19,25 @@ describe("a server configured with only a session cookie", () => {
   it("offers the editor tools, list_projects and editor-backed file tools, and none of the Git-only tools", async () => {
     const client = await harness.startClient(cookieOnlyEnvironment());
     const names = await client.listToolNames();
-    expect(names).toContain("list_projects");
-    expect(names).toContain("list_tracked_changes");
-    expect(names).toContain("download_project_zip");
-    expect(names).toContain("read_file");
-    expect(names).toContain("replace_text");
-    expect(names).not.toContain("push_changes");
-    expect(names).not.toContain("write_file");
-    expect(names).toHaveLength(17);
+    expect(names.sort()).toEqual(
+      [
+        "list_projects",
+        "read_project",
+        "read_file",
+        "edit_file",
+        "compile_project",
+        "read_review",
+        "manage_tracked_changes",
+        "manage_comments",
+        "manage_project",
+      ].sort(),
+    );
   });
 
   it("reaches a project named by its address", async () => {
     const client = await harness.startClient(cookieOnlyEnvironment());
-    const answer = await client.call("list_tracked_changes", {
+    const answer = await client.call("read_review", {
+      view: "tracked_changes",
       project: `https://www.overleaf.com/project/${harness.gitRemote.projectId}`,
       path: "main.tex",
     });
@@ -42,7 +49,7 @@ describe("a server configured with only a session cookie", () => {
       cookieOnlyEnvironment({ OVERLEAF_PROJECTS: `paper=${harness.gitRemote.projectId}` }),
     );
     expect(await client.call("list_projects")).toContain("paper  (default)");
-    const answer = await client.call("list_tracked_changes", { path: "main.tex" });
+    const answer = await client.call("read_review", { view: "tracked_changes", path: "main.tex" });
     expect(answer).toContain("No tracked changes in main.tex.");
   });
 
@@ -51,9 +58,6 @@ describe("a server configured with only a session cookie", () => {
     const instructions = client.serverInstructions ?? "";
     expect(instructions).toContain("No Git credential is configured");
     expect(instructions).not.toContain("push_changes");
-    const toolNames = new Set(await client.listToolNames());
-    for (const named of instructions.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? []) {
-      expect(toolNames, `instructions name ${named}`).toContain(named);
-    }
+    expectInstructionsToNameOnlyWhatIsListed(instructions, await client.listTools());
   });
 });

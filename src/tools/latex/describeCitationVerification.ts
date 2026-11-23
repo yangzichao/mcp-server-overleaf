@@ -3,7 +3,7 @@ import type { CitationVerdict, ClosestSearchResult } from "../../citations/verif
 import { describeLocation } from "../../latex/source/scannedSource.js";
 
 /**
- * The reply `verify_citations` gives: a verdict line, then entries whose DOI or arXiv id
+ * The reply `look_up_citations` gives: a verdict line, then entries whose DOI or arXiv id
  * points somewhere wrong, then entries no search could confirm, then the confirmed ones.
  */
 

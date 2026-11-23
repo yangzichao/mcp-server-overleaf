@@ -1,7 +1,7 @@
 import { ConfigurationError } from "./configurationError.js";
 
 /**
- * Where `verify_citations` looks bibliography entries up. The defaults are the public
+ * Where `look_up_citations` looks bibliography entries up. The defaults are the public
  * services; each can be pointed at a mirror or a proxy, and the tests point them at a fake.
  */
 

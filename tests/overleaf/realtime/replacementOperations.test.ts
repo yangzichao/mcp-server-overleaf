@@ -43,7 +43,7 @@ describe("buildReplacementOperations", () => {
     ["0", "00", true],
     [" not 50000.", "$$x$$", false],
   ] as const) {
-    it(`gives the same text as replace_text over Git for "${findText}" → "${replaceWith}"`, () => {
+    it(`gives the same text as edit_file's replace_text over Git for "${findText}" → "${replaceWith}"`, () => {
       const built = buildReplacementOperations(paper, findText, replaceWith, replaceAll);
       const expected = replaceTextOccurrences(paper, findText, replaceWith, replaceAll);
       if (built.status !== "replaced" || expected.status !== "replaced") throw new Error("expected a match");

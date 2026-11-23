@@ -27,7 +27,7 @@ export interface ServerConfiguration {
   readonly gitCommitAuthorName: string;
   readonly gitCommitAuthorEmail: string;
   readonly reviewCredentials?: OverleafReviewCredentials;
-  /** Where verify_citations looks entries up; the public services when absent. */
+  /** Where look_up_citations looks entries up; the public services when absent. */
   readonly citationLookup?: CitationLookupEndpoints;
 }
 

@@ -3,7 +3,7 @@ import type { OverleafGitRepository } from "../../overleaf/overleafGitRepository
 
 /**
  * The project as the LaTeX checks read it: every committed file plus files created locally,
- * since a figure added with upload_file counts as present before it is pushed.
+ * since a figure added with manage_files (action upload) counts as present before it is pushed.
  */
 export async function createProjectSourceReader(
   repository: OverleafGitRepository,

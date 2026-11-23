@@ -220,6 +220,12 @@ export class OverleafGitRepository {
     await materializeFullCheckout((args, options) => this.git(args, options));
   }
 
+  /** True while sparse checkout keeps binary files such as figures off disk. */
+  async hasTextOnlyCheckout(): Promise<boolean> {
+    const { stdout } = await this.git(["config", "--bool", "core.sparseCheckout"], { tolerateFailure: true });
+    return stdout.trim() === "true";
+  }
+
   /**
    * True when Git has this path in the index, whatever the working tree looks like. A
    * sparse checkout leaves skipped files tracked, so this is what separates "hidden by

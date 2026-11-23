@@ -1,41 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 
-import { containsDocumentEnvironment, guessMainTexFile } from "../../latex/latexProjectFiles.js";
 import { checkProjectReferences } from "../../latex/references/checkProjectReferences.js";
-import type { OverleafGitRepository } from "../../overleaf/overleafGitRepository.js";
 import { requireSynchronizedWithOverleaf } from "../../workflow/synchronizeWithOverleaf.js";
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+import { chooseRootDocument, mainTexFileArgument } from "./chooseRootDocument.js";
 import { describeReferenceCheck } from "./describeReferenceCheck.js";
 import { createProjectSourceReader } from "./projectSourceReader.js";
-
-export const mainTexFileArgument = z
-  .string()
-  .optional()
-  .describe(
-    "Root document to start from, as a path in the project, e.g. main.tex. Omit to use the likely main document, the same guess project_summary makes.",
-  );
-
-/** The named root document, or the guessed one; an error names the .tex files that exist. */
-export async function chooseRootDocument(
-  repository: OverleafGitRepository,
-  projectFiles: ReadonlySet<string>,
-  requested: string | undefined,
-): Promise<{ path: string; warning: string | undefined }> {
-  const texFiles = [...projectFiles].filter((path) => /\.(tex|ltx)$/i.test(path)).sort();
-  if (requested !== undefined) {
-    if (projectFiles.has(requested)) return { path: requested, warning: undefined };
-    throw new Error(`No file at "${requested}". The .tex files are: ${texFiles.join(", ") || "none"}.`);
-  }
-  const guessed = guessMainTexFile(texFiles);
-  if (guessed === null) throw new Error("The project has no .tex file to check.");
-  const warning = containsDocumentEnvironment(await repository.readTextFile(guessed))
-    ? undefined
-    : `${guessed} has no \\begin{document}, so it may not be the main document; pass mainTexFile to choose another.`;
-  return { path: guessed, warning };
-}
 
 export function registerCheckReferencesTool(server: McpServer, context: ToolContext): void {
   server.registerTool(

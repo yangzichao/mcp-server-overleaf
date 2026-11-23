@@ -2,8 +2,8 @@ import { collectLatexDiagnostics } from "../../latex/collectLatexDiagnostics.js"
 import { explainCompileStatus, type OverleafCompileResult } from "../../overleaf/web/overleafCompile.js";
 
 /**
- * The report `compile_on_overleaf` returns: a verdict first, then errors and warnings from
- * the log, in the same shape `compile_project` uses for a local compile.
+ * The report compile_project gives for a compile on Overleaf's servers: a verdict first, then
+ * errors and warnings from the log, in the same shape it uses for a local compile.
  */
 
 const MAXIMUM_REPORTED_WARNINGS = 15;
@@ -15,6 +15,8 @@ export interface OverleafCompileReport {
   /** output.blg, which BibTeX or biber leave when they ran. */
   readonly bibliographyLog?: string | undefined;
   readonly savedPdf: { readonly path: string; readonly size: string } | undefined;
+  /** Where output.log was saved, when the compile produced one. */
+  readonly savedLogPath?: string | undefined;
 }
 
 function describeVerdict(result: OverleafCompileResult, errorCount: number): string {
@@ -53,7 +55,10 @@ export function describeOverleafCompile(report: OverleafCompileReport): string {
   if (failed && report.log && diagnostics.errorLines.length === 0) {
     lines.push("", "end of log:", report.log.split("\n").slice(-LOG_TAIL_LINES).join("\n"));
   }
-  if (report.savedPdf) lines.push("", `Saved the PDF (${report.savedPdf.size}) to ${report.savedPdf.path}.`);
+  const saved: string[] = [];
+  if (report.savedPdf) saved.push(`Saved the PDF (${report.savedPdf.size}) to ${report.savedPdf.path}.`);
+  if (report.savedLogPath) saved.push(`Saved the log to ${report.savedLogPath}.`);
+  if (saved.length > 0) lines.push("", ...saved);
   if (report.result.outputFiles.length > 0) {
     lines.push("", `Output files: ${report.result.outputFiles.map((file) => file.path).join(", ")}`);
   }

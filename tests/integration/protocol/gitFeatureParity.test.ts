@@ -51,7 +51,8 @@ describe.each(["stdio", "http"] as const)("Git feature parity over %s", (transpo
       await client.call("read_file", { path: "main.tex", mode: "smart", previousRevision: middle.revision }),
     ) as RevisionReadResult;
     expect(reconstruct(reconstruct(paper, middle), secondCaller)).toBe(latest);
-    await client.call("replace_text", {
+    await client.call("edit_file", {
+      action: "replace_text",
       path: "main.tex",
       findText: "Line 60\n",
       replaceWith: "Local change\n",
@@ -87,12 +88,12 @@ describe.each(["stdio", "http"] as const)("Git feature parity over %s", (transpo
     const first = JSON.parse(await client.call("read_file", { path: "main.tex", mode: "full" }));
     const latest = `${paper}Collaborator addition\n`;
     await remote.collaboratorPushes("main.tex", latest, "Collaborator edit");
-    for (const [name, argumentsValue] of [
-      ["write_file", { content: "Must not overwrite" }],
-      ["replace_text", { findText: "Line 20", replaceWith: "Must not replace" }],
-      ["edit_section", { sectionTitle: "Introduction", newContent: "Must not replace section" }],
-    ] as const) {
-      const response = await client.callRaw(name, {
+    for (const argumentsValue of [
+      { action: "write", content: "Must not overwrite" },
+      { action: "replace_text", findText: "Line 20", replaceWith: "Must not replace" },
+      { action: "replace_section", sectionTitle: "Introduction", content: "Must not replace section" },
+    ]) {
+      const response = await client.callRaw("edit_file", {
         ...argumentsValue,
         path: "main.tex",
         expectedRevision: first.revision,
@@ -100,27 +101,23 @@ describe.each(["stdio", "http"] as const)("Git feature parity over %s", (transpo
       expect(response.result?.isError).toBe(true);
     }
     expect(await client.call("read_file", { path: "main.tex" })).toBe(latest);
-    expect(await client.call("show_diff")).toBe("No local changes pending.");
+    expect(await client.call("read_project", { view: "changes" })).toBe("No local changes pending.");
   });
 
-  it("filters extensions, includes local new files on request, and reports a structured summary", async () => {
+  it("filters extensions, includes local new files on request, and counts them in the overview", async () => {
     await remote.collaboratorPushes("refs.BIB", "@article{key}\n", "Bibliography");
-    await client.call("write_file", { path: "notes.tex", content: "New notes" });
-    expect(await client.call("list_files", { extension: ".bib" })).toContain("refs.BIB");
-    expect(await client.call("list_files", { extension: "tex" })).not.toContain("refs.BIB");
-    expect(await client.call("list_files", { extension: "tex" })).not.toContain("notes.tex");
-    expect(await client.call("list_files", { extension: "tex", includeUntracked: true })).toContain(
-      "notes.tex (untracked)",
-    );
-    const summary = JSON.parse(await client.call("project_summary"));
-    expect(summary).toMatchObject({
-      totalFiles: 3,
-      trackedFiles: 2,
-      mainFile: "main.tex",
-      totalSections: 1,
-      untrackedFiles: ["notes.tex"],
-    });
-    expect(summary.categories).toEqual({ tex: 2, bibliography: 1 });
+    await client.call("edit_file", { action: "write", path: "notes.tex", content: "New notes" });
+    expect(await client.call("read_project", { view: "files", extension: ".bib" })).toContain("refs.BIB");
+    expect(await client.call("read_project", { view: "files", extension: "tex" })).not.toContain("refs.BIB");
+    expect(await client.call("read_project", { view: "files", extension: "tex" })).not.toContain("notes.tex");
+    expect(
+      await client.call("read_project", { view: "files", extension: "tex", includeUntracked: true }),
+    ).toContain("notes.tex (untracked)");
+    const overview = await client.call("read_project");
+    expect(overview).toContain(`Local clone: ${join(remote.workspaceDirectory, remote.projectId)}`);
+    expect(overview).toContain("Likely main document: main.tex, with 1 sectioning command in that file.");
+    expect(overview).toContain("Files: 3 (tex 2, bibliography 1), 2 of them already in Overleaf.");
+    expect(overview).toContain("New files not yet pushed: notes.tex");
   });
 
   it("uses project token files without a global token, including selection by raw id", async () => {

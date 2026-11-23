@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 
 /**
- * doi.org, Crossref and arXiv as verify_citations calls them, on one local port. Each answers
+ * doi.org, Crossref and arXiv as look_up_citations calls them, on one local port. Each answers
  * in its documented form: CSL JSON or 404 for a DOI, Crossref's `message.items` for a search,
  * and an Atom feed for an arXiv id.
  */

@@ -25,7 +25,8 @@ describe("the comment thread tools", () => {
 
   it("starts a thread with its first message, anchored to the quoted passage", async () => {
     const client = await harness.startClient();
-    const answer = await client.call("add_comment", {
+    const answer = await client.call("manage_comments", {
+      action: "add",
       path: "main.tex",
       quoteText: "Hello world.",
       message: "Is this the right greeting?",
@@ -41,16 +42,17 @@ describe("the comment thread tools", () => {
       harness.editor.web.threads.get(threadId ?? "")?.messages.map((message) => message.content),
     ).toEqual(["Is this the right greeting?"]);
 
-    const listed = await client.call("list_tracked_changes", { path: "main.tex" });
+    const listed = await client.call("read_review", { view: "tracked_changes", path: "main.tex" });
     expect(listed).toContain("1 comment thread:");
     expect(listed).toContain('line 3, on "Hello world."');
-    expect(listed).toContain("list_comments reads the messages in each thread.");
+    expect(listed).toContain("read_review (view comments) reads the messages in each thread.");
   });
 
   it("removes the message again when anchoring the thread fails", async () => {
     harness.editor.rejectNextUpdateWith = "doc version mismatch";
     const client = await harness.startClient();
-    const answer = await client.call("add_comment", {
+    const answer = await client.call("manage_comments", {
+      action: "add",
       path: "main.tex",
       quoteText: "Hello world.",
       message: "Is this the right greeting?",
@@ -62,7 +64,7 @@ describe("the comment thread tools", () => {
   it("lists a thread's messages with author, under its document and line", async () => {
     seedCollaboratorThread();
     const client = await harness.startClient();
-    const listed = await client.call("list_comments", {});
+    const listed = await client.call("read_review", { view: "comments" });
     expect(listed).toContain("main.tex:");
     expect(listed).toContain(`[thread ${THREAD_ID}] line 3, on "Hello world." (open)`);
     expect(listed).toContain("Ada");
@@ -73,18 +75,22 @@ describe("the comment thread tools", () => {
   it("hides resolved threads unless asked, and says how many it hid", async () => {
     seedCollaboratorThread(true);
     const client = await harness.startClient();
-    const defaultListing = await client.call("list_comments", { path: "main.tex" });
+    const defaultListing = await client.call("read_review", { view: "comments", path: "main.tex" });
     expect(defaultListing).toContain("No open comment threads.");
     expect(defaultListing).toContain("1 resolved thread is hidden");
 
-    const fullListing = await client.call("list_comments", { path: "main.tex", includeResolved: true });
+    const fullListing = await client.call("read_review", {
+      view: "comments",
+      path: "main.tex",
+      includeResolved: true,
+    });
     expect(fullListing).toContain("(resolved by You on 2026-11-02T09:00:00.000Z)");
   });
 
   it("reports a thread whose anchor text was deleted", async () => {
     harness.editor.web.addThread(THREAD_ID, [{ author: "Ada", content: "This paragraph is gone now." }]);
     const client = await harness.startClient();
-    const listed = await client.call("list_comments", {});
+    const listed = await client.call("read_review", { view: "comments" });
     expect(listed).toContain("No comment threads.");
     expect(listed).toContain("1 thread has messages but no anchor in any document");
   });
@@ -92,7 +98,8 @@ describe("the comment thread tools", () => {
   it("replies in an existing thread", async () => {
     seedCollaboratorThread();
     const client = await harness.startClient();
-    const answer = await client.call("reply_to_comment", {
+    const answer = await client.call("manage_comments", {
+      action: "reply",
       threadId: THREAD_ID,
       message: "Yes, changed it.",
     });
@@ -105,7 +112,11 @@ describe("the comment thread tools", () => {
 
   it("refuses to reply to a thread that does not exist rather than creating one", async () => {
     const client = await harness.startClient();
-    const answer = await client.call("reply_to_comment", { threadId: THREAD_ID, message: "Hello?" });
+    const answer = await client.call("manage_comments", {
+      action: "reply",
+      threadId: THREAD_ID,
+      message: "Hello?",
+    });
     expect(answer).toContain(`No comment thread ${THREAD_ID}`);
     expect(harness.editor.web.threads.size).toBe(0);
   });
@@ -113,13 +124,13 @@ describe("the comment thread tools", () => {
   it("resolves a thread and reopens it", async () => {
     seedCollaboratorThread();
     const client = await harness.startClient();
-    const resolved = await client.call("resolve_comment", { threadId: THREAD_ID });
+    const resolved = await client.call("manage_comments", { action: "resolve", threadId: THREAD_ID });
     expect(resolved).toContain(`Resolved thread ${THREAD_ID} on "Hello world." in main.tex.`);
     expect(harness.editor.web.threads.get(THREAD_ID)?.resolved).toBe(true);
 
-    const reopened = await client.call("resolve_comment", {
+    const reopened = await client.call("manage_comments", {
+      action: "reopen",
       threadId: THREAD_ID,
-      reopen: true,
       path: "main.tex",
     });
     expect(reopened).toContain(`Reopened thread ${THREAD_ID}`);
@@ -129,23 +140,23 @@ describe("the comment thread tools", () => {
   it("deletes a thread's anchor and its messages", async () => {
     seedCollaboratorThread();
     const client = await harness.startClient();
-    const answer = await client.call("delete_comment", { threadId: THREAD_ID });
+    const answer = await client.call("manage_comments", { action: "delete", threadId: THREAD_ID });
     expect(answer).toContain(`Deleted thread ${THREAD_ID}`);
     expect(harness.editor.web.threads.has(THREAD_ID)).toBe(false);
     expect(harness.editor.commentAnchors(harness.mainDocumentId)).toHaveLength(0);
   });
 
-  it("names list_comments when a thread id is not anchored anywhere", async () => {
+  it("names read_review when a thread id is not anchored anywhere", async () => {
     const client = await harness.startClient();
-    const answer = await client.call("resolve_comment", { threadId: THREAD_ID });
+    const answer = await client.call("manage_comments", { action: "resolve", threadId: THREAD_ID });
     expect(answer).toContain(`No comment thread ${THREAD_ID} is anchored`);
-    expect(answer).toContain("list_comments");
+    expect(answer).toContain("read_review (view comments) shows the thread ids that exist.");
   });
 
   it("sends the page's CSRF token with every change", async () => {
     seedCollaboratorThread();
     const client = await harness.startClient();
-    await client.call("resolve_comment", { threadId: THREAD_ID });
+    await client.call("manage_comments", { action: "resolve", threadId: THREAD_ID });
     const mutations = harness.editor.web.requests.filter((request) => request.method !== "GET");
     expect(mutations.length).toBeGreaterThan(0);
     for (const mutation of mutations) expect(mutation.csrfToken).toBe(harness.editor.web.csrfToken);
@@ -155,7 +166,11 @@ describe("the comment thread tools", () => {
     seedCollaboratorThread();
     harness.editor.web.sessionExpired = true;
     const client = await harness.startClient();
-    const answer = await client.call("reply_to_comment", { threadId: THREAD_ID, message: "Hello?" });
+    const answer = await client.call("manage_comments", {
+      action: "reply",
+      threadId: THREAD_ID,
+      message: "Hello?",
+    });
     expect(answer).toContain("did not accept the session cookie");
     expect(answer).toContain("fresh overleaf_session2 cookie");
   });

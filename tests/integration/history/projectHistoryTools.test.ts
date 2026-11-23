@@ -38,7 +38,7 @@ describe("the project history tools", () => {
   }
 
   it("lists commits newest first with the files each changed", async () => {
-    const listed = await (await startClient()).call("list_history", {});
+    const listed = await (await startClient()).call("read_history", {});
     expect(listed).toContain("3 commits for the project, newest first:");
     const rewrite = listed.indexOf("Rewrite the intro");
     const plot = listed.indexOf("Add the plot");
@@ -54,16 +54,16 @@ describe("the project history tools", () => {
 
   it("narrows the history to one file, a date range and a limit", async () => {
     const mcp = await startClient();
-    const forMain = await mcp.call("list_history", { path: "main.tex" });
+    const forMain = await mcp.call("read_history", { path: "main.tex" });
     expect(forMain).toContain("2 commits for main.tex");
     expect(forMain).not.toContain("Add the plot");
 
-    expect(await mcp.call("list_history", { since: "2090-01-01" })).toContain(
+    expect(await mcp.call("read_history", { since: "2090-01-01" })).toContain(
       "No commits found for the project.",
     );
-    expect(await mcp.call("list_history", { until: "2000-01-01" })).toContain("No commits found");
+    expect(await mcp.call("read_history", { until: "2000-01-01" })).toContain("No commits found");
 
-    const newest = await mcp.call("list_history", { limit: 1 });
+    const newest = await mcp.call("read_history", { limit: 1 });
     expect(newest).toContain("1 commit for the project");
     expect(newest).toContain("Showing the newest 1");
   });
@@ -76,14 +76,14 @@ describe("the project history tools", () => {
       .map((part) => String(part).padStart(2, "0"))
       .join("-");
     const mcp = await startClient();
-    expect(await mcp.call("list_history", { since: today })).toContain("3 commits for the project");
-    expect(await mcp.call("list_history", { until: today })).toContain("3 commits for the project");
+    expect(await mcp.call("read_history", { since: today })).toContain("3 commits for the project");
+    expect(await mcp.call("read_history", { until: today })).toContain("3 commits for the project");
   });
 
   it("refuses a date Git would silently ignore, or one that could be read as an option", async () => {
     const mcp = await startClient();
     for (const since of ["--all", "2999-01-01", "2026-02-31", "last tuesday-ish"]) {
-      expect(await mcp.call("list_history", { since })).toContain("Input validation error");
+      expect(await mcp.call("read_history", { since })).toContain("Input validation error");
     }
   });
 
@@ -99,7 +99,7 @@ describe("the project history tools", () => {
     expect(numbered).toBe("2\tFirst draft.\n3\t");
   });
 
-  it("names list_history when a revision does not exist or the file did not", async () => {
+  it("names read_history when a revision does not exist or the file did not", async () => {
     const mcp = await startClient();
     expect(await mcp.call("read_file", { path: "main.tex", revision: "deadbeef" })).toContain(
       "No commit deadbeef in this project's history",
@@ -111,25 +111,43 @@ describe("the project history tools", () => {
 
   it("compares two revisions, or a revision with Overleaf's latest", async () => {
     const mcp = await startClient();
-    const sinceFirst = await mcp.call("show_diff", { fromRevision: firstDraftHash });
+    const sinceFirst = await mcp.call("read_history", { view: "diff", fromRevision: firstDraftHash });
     expect(sinceFirst).toContain("-First draft.");
     expect(sinceFirst).toContain("+Second draft, much better.");
     expect(sinceFirst).toContain("figures/plot.png");
 
-    const onlyMain = await mcp.call("show_diff", { fromRevision: firstDraftHash, path: "main.tex" });
+    const onlyMain = await mcp.call("read_history", {
+      view: "diff",
+      fromRevision: firstDraftHash,
+      path: "main.tex",
+    });
     expect(onlyMain).not.toContain("plot.png");
 
-    const nothing = await mcp.call("show_diff", { fromRevision: firstDraftHash, toRevision: firstDraftHash });
+    const nothing = await mcp.call("read_history", {
+      view: "diff",
+      fromRevision: firstDraftHash,
+      toRevision: firstDraftHash,
+    });
     expect(nothing).toContain("No differences in the project");
+  });
 
-    expect(await mcp.call("show_diff", { toRevision: firstDraftHash })).toContain(
-      "toRevision needs fromRevision",
+  it("says which argument a view needs and which view an argument belongs to", async () => {
+    const mcp = await startClient();
+    expect(await mcp.call("read_history", { view: "diff", toRevision: firstDraftHash })).toBe(
+      "diff needs fromRevision.",
+    );
+    expect(await mcp.call("read_history", { toRevision: firstDraftHash })).toBe(
+      "toRevision does not apply to commits; diff uses it.",
+    );
+    expect(await mcp.call("read_history", { view: "diff", fromRevision: firstDraftHash, limit: 3 })).toBe(
+      "limit does not apply to diff; commits uses it.",
     );
   });
 
   it("restores a text file from an earlier revision, locally until pushed", async () => {
     const mcp = await startClient();
-    const restored = await mcp.call("restore_file", {
+    const restored = await mcp.call("manage_files", {
+      action: "restore",
       path: "main.tex",
       revision: firstDraftHash.slice(0, 7),
     });
@@ -137,7 +155,7 @@ describe("the project history tools", () => {
     expect(await mcp.call("read_file", { path: "main.tex" })).toBe(FIRST_DRAFT);
     expect(await remote.readPublishedFile("main.tex")).toBe(SECOND_DRAFT);
 
-    const pending = await mcp.call("show_diff", { path: "main.tex" });
+    const pending = await mcp.call("read_project", { view: "changes", path: "main.tex" });
     expect(pending).toContain("+First draft.");
   });
 
@@ -145,17 +163,18 @@ describe("the project history tools", () => {
     const withPlotHash = await remote.publishedHeadHash();
     await remote.collaboratorDeletes("figures/plot.png", "Drop the plot");
     const mcp = await startClient();
-    await mcp.call("restore_file", { path: "figures/plot.png", revision: withPlotHash });
+    await mcp.call("manage_files", { action: "restore", path: "figures/plot.png", revision: withPlotHash });
     await mcp.call("push_changes", { commitMessage: "Bring the plot back" });
     expect(await remote.readPublishedBytes("figures/plot.png")).toEqual(PNG_BYTES);
   });
 
   it("refuses to restore a file that did not exist at that revision", async () => {
-    const answer = await (await startClient()).call("restore_file", {
+    const answer = await (await startClient()).call("manage_files", {
+      action: "restore",
       path: "figures/plot.png",
       revision: firstDraftHash,
     });
     expect(answer).toContain("did not exist at revision");
-    expect(answer).toContain("delete_file");
+    expect(answer).toContain("use manage_files with action delete");
   });
 });

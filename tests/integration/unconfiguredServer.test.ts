@@ -35,7 +35,7 @@ it("starts with no credentials, lists every tool, and names the missing token wh
     OVERLEAF_MCP_WORKSPACE_DIR: join(isolatedHome, "projects"),
   });
 
-  expect(await client.listToolNames()).toHaveLength(23);
+  expect(await client.listToolNames()).toHaveLength(15);
   expect(client.stderr).toContain(MISSING_TOKEN);
   expect(await client.call("list_projects")).toContain(MISSING_TOKEN);
 
@@ -44,6 +44,10 @@ it("starts with no credentials, lists every tool, and names the missing token wh
     expect(response.result?.isError).toBe(true);
     expect(response.result?.content?.[0]?.text).toContain(MISSING_TOKEN);
   }
+  // A tool that needs the session cookie names the cookie, since a Git token would not help it.
+  const review = await client.callRaw("read_review", { view: "comments" });
+  expect(review.result?.isError).toBe(true);
+  expect(review.result?.content?.[0]?.text).toContain("OVERLEAF_SESSION_COOKIE_FILE");
 });
 
 /**
@@ -70,7 +74,7 @@ it.each([
       OVERLEAF_GIT_TOKEN: unfilledToken,
       OVERLEAF_SESSION_COOKIE: unfilledCookie,
     });
-    expect(await client.listToolNames()).toHaveLength(23);
+    expect(await client.listToolNames()).toHaveLength(15);
     expect(await client.call("read_file", { path: "main.tex" })).toContain(MISSING_TOKEN);
   },
 );

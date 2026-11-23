@@ -45,6 +45,6 @@ export async function locateCommentThread(
   if (found) return found;
   const where = path ? `in ${path}` : "in any document of this project";
   throw new Error(
-    `No comment thread ${threadId} is anchored ${where}. list_comments shows the thread ids that exist.`,
+    `No comment thread ${threadId} is anchored ${where}. read_review (view comments) shows the thread ids that exist.`,
   );
 }

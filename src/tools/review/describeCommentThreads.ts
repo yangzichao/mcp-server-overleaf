@@ -2,7 +2,7 @@ import type { CommentThread } from "../../overleaf/web/commentThreads.js";
 import type { AnchoredCommentThread } from "./locateCommentThreads.js";
 
 /**
- * The text `list_comments` returns: each thread under its document, with its anchor, its
+ * The text read_review returns for its comments view: each thread under its document, with its anchor, its
  * status and its messages in order.
  *
  * Comment text is written by collaborators, not by the person running this server, so the

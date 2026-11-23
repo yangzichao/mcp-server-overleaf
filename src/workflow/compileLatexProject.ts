@@ -72,7 +72,7 @@ export async function compileLatexProject(options: {
     };
     if (failure.code === "ENOENT") {
       throw new Error(
-        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live), or compile on Overleaf's servers with compile_on_overleaf, which needs OVERLEAF_SESSION_COOKIE and compiles only what has been pushed.",
+        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live), or compile on Overleaf's servers with compile_project (where overleaf), which needs OVERLEAF_SESSION_COOKIE and compiles only what has been pushed.",
       );
     }
     const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;

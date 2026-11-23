@@ -197,7 +197,7 @@ function explainHistoryOtRefusal(error: unknown): unknown {
   if (!(error instanceof RealtimeCallError) || !/history-ot/i.test(error.message)) return error;
   return new RealtimeCallError(
     "This document is stored in Overleaf's newer history-OT format, which the review tools do not support yet. " +
-      "Reading and editing it through the Git-bridge tools (read_file, replace_text, push_changes) still works; " +
+      "Reading and editing it through the Git-bridge tools (read_file, edit_file, push_changes) still works; " +
       "suggestions, comments and decisions on it have to be made in the Overleaf editor for now.",
     "joinDoc",
   );

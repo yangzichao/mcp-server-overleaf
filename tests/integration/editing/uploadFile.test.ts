@@ -36,7 +36,11 @@ describe("uploading a file into the project", () => {
     const source = join(sourceDirectory, "plot.png");
     writeFileSync(source, PNG_BYTES);
     const mcp = await startClient();
-    const answer = await mcp.call("upload_file", { path: "figures/plot.png", sourcePath: source });
+    const answer = await mcp.call("manage_files", {
+      action: "upload",
+      path: "figures/plot.png",
+      sourcePath: source,
+    });
     expect(answer).toContain(`Added figures/plot.png (${PNG_BYTES.length} bytes) in the local clone.`);
     expect(await remote.listPublishedFiles()).not.toContain("figures/plot.png");
 
@@ -46,7 +50,8 @@ describe("uploading a file into the project", () => {
 
   it("decodes base64 content and replaces an existing file", async () => {
     const mcp = await startClient();
-    const answer = await mcp.call("upload_file", {
+    const answer = await mcp.call("manage_files", {
+      action: "upload",
       path: "main.tex",
       contentBase64: Buffer.from("\\documentclass{book}\n").toString("base64"),
     });
@@ -60,25 +65,32 @@ describe("uploading a file into the project", () => {
     writeFileSync(join(hiddenDirectory, "id_ed25519"), "not really a key");
     const mcp = await startClient();
 
-    const hidden = await mcp.call("upload_file", {
+    const hidden = await mcp.call("manage_files", {
+      action: "upload",
       path: "key.txt",
       sourcePath: join(hiddenDirectory, "id_ed25519"),
     });
     expect(hidden).toContain("Refusing to upload from a hidden path (.ssh)");
-    expect(await mcp.call("upload_file", { path: "a.png", sourcePath: "plot.png" })).toContain(
-      "absolute path",
-    );
     expect(
-      await mcp.call("upload_file", { path: "a.png", sourcePath: "/x.png", contentBase64: "AA==" }),
+      await mcp.call("manage_files", { action: "upload", path: "a.png", sourcePath: "plot.png" }),
+    ).toContain("absolute path");
+    expect(
+      await mcp.call("manage_files", {
+        action: "upload",
+        path: "a.png",
+        sourcePath: "/x.png",
+        contentBase64: "AA==",
+      }),
     ).toContain("exactly one of sourcePath and contentBase64");
-    expect(await mcp.call("upload_file", { path: "a.png", contentBase64: "not base64!" })).toContain(
-      "not valid base64",
-    );
+    expect(
+      await mcp.call("manage_files", { action: "upload", path: "a.png", contentBase64: "not base64!" }),
+    ).toContain("not valid base64");
   });
 
   it("keeps the upload inside the project", async () => {
     writeFileSync(join(sourceDirectory, "plot.png"), PNG_BYTES);
-    const answer = await (await startClient()).call("upload_file", {
+    const answer = await (await startClient()).call("manage_files", {
+      action: "upload",
       path: "../outside.png",
       sourcePath: join(sourceDirectory, "plot.png"),
     });

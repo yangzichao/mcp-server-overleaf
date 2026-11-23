@@ -33,18 +33,11 @@ describe("the server as a client sees it", () => {
     expect(names).toEqual(
       expect.arrayContaining([
         "list_projects",
-        "list_files",
+        "read_project",
         "read_file",
-        "list_sections",
-        "read_section",
         "search_project",
-        "replace_text",
-        "edit_section",
-        "write_file",
-        "show_diff",
-        "discard_local_changes",
-        "project_status",
-        "sync_project",
+        "edit_file",
+        "manage_files",
         "compile_project",
         "push_changes",
       ]),
@@ -52,26 +45,32 @@ describe("the server as a client sees it", () => {
   });
 
   it("clones on first use and reads the project", async () => {
-    expect(await client.call("list_files")).toContain("main.tex");
+    expect(await client.call("read_project", { view: "files" })).toContain("main.tex");
     expect(await client.call("read_file", { path: "main.tex" })).toContain("The sample size is 5000.");
   });
 });
 
 describe("edits stay local until they are pushed", () => {
   it("does not touch Overleaf when a file is edited", async () => {
-    await client.call("replace_text", {
+    await client.call("edit_file", {
+      action: "replace_text",
       path: "main.tex",
       findText: "5000",
       replaceWith: "8000",
     });
 
-    expect(await client.call("show_diff")).toContain("8000");
+    expect(await client.call("read_project", { view: "changes" })).toContain("8000");
     expect(await remote.readPublishedFile("main.tex")).toContain("5000");
     expect(await remote.readPublishedFile("main.tex")).not.toContain("8000");
   });
 
   it("publishes only once push_changes is called", async () => {
-    await client.call("replace_text", { path: "main.tex", findText: "5000", replaceWith: "8000" });
+    await client.call("edit_file", {
+      action: "replace_text",
+      path: "main.tex",
+      findText: "5000",
+      replaceWith: "8000",
+    });
     const report = await client.call("push_changes", { commitMessage: "Correct the sample size" });
 
     expect(report).toContain("Pushed to Overleaf");
@@ -80,10 +79,15 @@ describe("edits stay local until they are pushed", () => {
   });
 
   it("throws local edits away on request", async () => {
-    await client.call("replace_text", { path: "main.tex", findText: "5000", replaceWith: "8000" });
-    await client.call("discard_local_changes");
+    await client.call("edit_file", {
+      action: "replace_text",
+      path: "main.tex",
+      findText: "5000",
+      replaceWith: "8000",
+    });
+    await client.call("manage_files", { action: "discard_local_changes" });
 
-    expect(await client.call("show_diff")).not.toContain("8000");
+    expect(await client.call("read_project", { view: "changes" })).not.toContain("8000");
     expect(await client.call("read_file", { path: "main.tex" })).toContain("5000");
   });
 
@@ -104,10 +108,11 @@ describe("a co-author editing at the same time", () => {
   });
 
   it("rebases a non-conflicting edit on top of theirs", async () => {
-    await client.call("edit_section", {
+    await client.call("edit_file", {
+      action: "replace_section",
       path: "main.tex",
       sectionTitle: "Conclusion",
-      newContent: "\\section{Conclusion}\nOur own ending.",
+      content: "\\section{Conclusion}\nOur own ending.",
     });
     await remote.collaboratorPushes(
       "notes.tex",
@@ -124,7 +129,12 @@ describe("a co-author editing at the same time", () => {
 
   // The property the whole project exists for.
   it("refuses the push when both changed the same line, and loses nothing", async () => {
-    await client.call("replace_text", { path: "main.tex", findText: "5000", replaceWith: "8000" });
+    await client.call("edit_file", {
+      action: "replace_text",
+      path: "main.tex",
+      findText: "5000",
+      replaceWith: "8000",
+    });
     await remote.collaboratorPushes(
       "main.tex",
       originalPaper.replace("5000", "20000"),
@@ -133,6 +143,7 @@ describe("a co-author editing at the same time", () => {
 
     const report = await client.call("push_changes", { commitMessage: "Our own correction" });
     expect(report).toContain("Push refused");
+    expect(report).toContain("call manage_files with action discard_local_changes");
 
     const published = await remote.readPublishedFile("main.tex");
     expect(published).toContain("20000");
@@ -141,7 +152,12 @@ describe("a co-author editing at the same time", () => {
   });
 
   it("leaves the clone usable after a refused push", async () => {
-    await client.call("replace_text", { path: "main.tex", findText: "5000", replaceWith: "8000" });
+    await client.call("edit_file", {
+      action: "replace_text",
+      path: "main.tex",
+      findText: "5000",
+      replaceWith: "8000",
+    });
     await remote.collaboratorPushes(
       "main.tex",
       originalPaper.replace("5000", "20000"),
@@ -149,10 +165,10 @@ describe("a co-author editing at the same time", () => {
     );
     await client.call("push_changes", { commitMessage: "Our own correction" });
 
-    expect(await client.call("project_status")).toContain("branch:");
-    expect((await client.callRaw("list_files")).result?.isError).toBe(true);
-    await client.call("discard_local_changes");
-    expect(await client.call("list_files")).toContain("main.tex");
+    expect(await client.call("read_project", { view: "status" })).toContain("branch:");
+    expect((await client.callRaw("read_project", { view: "files" })).result?.isError).toBe(true);
+    await client.call("manage_files", { action: "discard_local_changes" });
+    expect(await client.call("read_project", { view: "files" })).toContain("main.tex");
   });
 });
 
@@ -164,13 +180,13 @@ describe("paths the model must not reach", () => {
   });
 
   it("refuses an absolute path", async () => {
-    expect(await client.call("write_file", { path: "/tmp/pwned.tex", content: "x" })).toContain(
-      "must be relative",
-    );
+    expect(
+      await client.call("edit_file", { action: "write", path: "/tmp/pwned.tex", content: "x" }),
+    ).toContain("must be relative");
   });
 
   it("refuses to write into .git", async () => {
-    expect(await client.call("write_file", { path: ".git/config", content: "x" })).toContain(
+    expect(await client.call("edit_file", { action: "write", path: ".git/config", content: "x" })).toContain(
       ".git directory",
     );
   });
@@ -181,8 +197,8 @@ describe("secret handling", () => {
     const token = remote.environment().OVERLEAF_GIT_TOKEN ?? "";
     const outputs = [
       await client.call("read_file", { path: "does-not-exist.tex" }),
-      await client.call("project_status"),
-      await client.call("list_files"),
+      await client.call("read_project", { view: "status" }),
+      await client.call("read_project", { view: "files" }),
       client.stderr,
     ];
     for (const output of outputs) expect(output).not.toContain(token);
