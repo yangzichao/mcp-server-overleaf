@@ -14,18 +14,20 @@ const DOI_PREFIX_PATTERN = /^(?:doi:\s*|(?:https?:\/\/)?(?:dx\.)?doi\.org\/)/i;
 /** arXiv's own DOIs, registered with DataCite, name the same paper as the id inside them. */
 const ARXIV_DOI_PATTERN = /^10\.48550\/arxiv\.(.+)$/i;
 
-const NEW_ARXIV_ID = /^\d{4}\.\d{4,5}(?:v\d+)?$/;
-const OLD_ARXIV_ID = /^[a-z-]+(?:\.[A-Z]{2})?\/\d{7}(?:v\d+)?$/;
+const NEW_ARXIV_ID = /^\d{4}\.\d{4,5}(?:v\d+)?$/i;
+/** An archive, as `hep-th`, a subject class after some, as in `math.GT`, then the number. */
+const OLD_ARXIV_ID = /^([a-z-]+)(\.[a-z]{2})?(\/\d{7}(?:v\d+)?)$/i;
 const ARXIV_PREFIX_PATTERN = /^arxiv\s*:?\s*/i;
 const ARXIV_LINK_PATTERN =
   /^(?:https?:\/\/)?(?:www\.|export\.)?arxiv\.org\/(?:abs|pdf)\/([^\s?#]+?)(?:\.pdf)?\/?(?:[?#].*)?$/i;
 
-/** The id as written, or lower-cased for a pasted `V2` or `HEP-TH/...`; old ids keep a subject class like `math.GT`. */
+/** The id as arXiv writes it, whatever case it was pasted in: `V2`, `HEP-TH/...` or `math.gt/...`. */
 function asArxivId(candidate: string): string | undefined {
-  for (const form of [candidate, candidate.toLowerCase()]) {
-    if (NEW_ARXIV_ID.test(form) || OLD_ARXIV_ID.test(form)) return form;
-  }
-  return undefined;
+  if (NEW_ARXIV_ID.test(candidate)) return candidate.toLowerCase();
+  const old = OLD_ARXIV_ID.exec(candidate);
+  if (!old) return undefined;
+  const [, archive = "", subjectClass = "", number = ""] = old;
+  return `${archive.toLowerCase()}${subjectClass.toUpperCase()}${number.toLowerCase()}`;
 }
 
 function classifyArxiv(query: string): string | undefined {
