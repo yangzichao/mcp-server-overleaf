@@ -8,11 +8,8 @@ export function directoryOf(projectPath: string): string {
   return lastSlash === -1 ? "" : projectPath.slice(0, lastSlash);
 }
 
-/**
- * Joins a directory and a path written in the source, collapsing `.` and `..`. Null when
- * the result is not inside the project: an absolute path, or one that climbs above the root.
- */
-export function joinProjectPath(directory: string, writtenPath: string): string | null {
+/** The segments of a path written in the source, joined onto a directory; null when they leave the project. */
+function joinedSegments(directory: string, writtenPath: string): string[] | null {
   if (writtenPath.startsWith("/") || /^[A-Za-z]:/.test(writtenPath)) return null;
   const segments: string[] = [];
   for (const segment of `${directory}/${writtenPath}`.split("/")) {
@@ -24,7 +21,22 @@ export function joinProjectPath(directory: string, writtenPath: string): string 
     }
     segments.push(segment);
   }
-  return segments.length === 0 ? null : segments.join("/");
+  return segments;
+}
+
+/**
+ * Joins a directory and a path written in the source, collapsing `.` and `..`. Null when
+ * the result is not inside the project: an absolute path, or one that climbs above the root.
+ * The root itself is no file, so it is null too.
+ */
+export function joinProjectPath(directory: string, writtenPath: string): string | null {
+  const segments = joinedSegments(directory, writtenPath);
+  return segments === null || segments.length === 0 ? null : segments.join("/");
+}
+
+/** Like joinProjectPath, for a directory: the project root itself is "". */
+export function joinProjectDirectory(directory: string, writtenPath: string): string | null {
+  return joinedSegments(directory, writtenPath)?.join("/") ?? null;
 }
 
 /** Tries each directory and file name in order, returning the first that exists, or every candidate. */
