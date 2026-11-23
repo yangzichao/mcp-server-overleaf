@@ -22,6 +22,11 @@ describe("reading the editor page's meta tags", () => {
     expect(readMetaTag(page, "ol-languag")).toBeUndefined();
   });
 
+  it("leaves a character reference past U+10FFFF as written", () => {
+    const page = '<meta name="ol-x" content="&#x110000; &#99999999; &#65;">';
+    expect(readMetaTag(page, "ol-x")).toEqual({ content: "&#x110000; &#99999999; A" });
+  });
+
   it("reads a page of meta tags that never close at once", () => {
     const openTags = `${"<meta\t".repeat(1000)}${'name="ol-x"'.repeat(1000)}`;
     const oneOpenTag = `<meta\t${'name="ol-x"'.repeat(20_000)}`;

@@ -10,11 +10,17 @@ export interface MetaTag {
 
 const HTML_ENTITIES: Record<string, string> = { quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" };
 
+/** A reference past U+10FFFF names no character, so it stays as written rather than throw. */
+function codePointText(code: number, entity: string): string {
+  return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+}
+
 function decodeHtmlEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
-    if (code.startsWith("#x") || code.startsWith("#X"))
-      return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
-    if (code.startsWith("#")) return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
+    if (code.startsWith("#x") || code.startsWith("#X")) {
+      return codePointText(Number.parseInt(code.slice(2), 16), entity);
+    }
+    if (code.startsWith("#")) return codePointText(Number.parseInt(code.slice(1), 10), entity);
     return HTML_ENTITIES[code.toLowerCase()] ?? entity;
   });
 }
