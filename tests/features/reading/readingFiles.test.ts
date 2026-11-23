@@ -45,6 +45,10 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
       );
     });
 
+    Step("I create an empty {string} in the local clone", async (_context: unknown, path: string) => {
+      await project.client.call("edit_file", { action: "write", path, content: "" });
+    });
+
     Step("I read {string}", async (_context: unknown, path: string) => {
       await read(path);
     });
@@ -136,6 +140,8 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
   });
 
   Scenario("Line numbers match the file's own lines", () => {});
+  Scenario("A start line past the end of the file is refused", () => {});
+  Scenario("An empty file is said to be empty", () => {});
   Scenario("A file that does not exist is reported, not invented", () => {});
 
   ScenarioOutline("A path outside the project is refused", ({ When, Then }, variables) => {

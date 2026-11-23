@@ -106,4 +106,5 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   );
   Scenario("A wrong path is answered with the documents that do exist", () => {});
   Scenario("A start line after the end line is refused", () => {});
+  Scenario("A start line past the end of the document is refused", () => {});
 });

@@ -34,6 +34,15 @@ Feature: Reading a file shows Overleaf's latest version and nothing outside the 
     When I read lines 4 to 4 of "main.tex"
     Then line 4 reads "The sample size is 5000."
 
+  Scenario: A start line past the end of the file is refused
+    When I read lines 9 to 12 of "main.tex"
+    Then the read fails and names "main.tex has only 7 lines, so line 9 is past the end."
+
+  Scenario: An empty file is said to be empty
+    When I create an empty "blank.tex" in the local clone
+    And I read "blank.tex"
+    Then the reply says "blank.tex is empty."
+
   Scenario: A file that does not exist is reported, not invented
     When I read "missing.tex"
     Then the read fails and names "missing.tex"

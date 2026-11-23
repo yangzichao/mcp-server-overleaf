@@ -8,9 +8,14 @@ export interface PlainTextRead {
   readonly endLine: number | undefined;
 }
 
-/** A file's text as a plain read returns it: one section, a numbered line range, or all of it. */
+/**
+ * A file's text as a plain read returns it: one section, a numbered line range, or all of it.
+ * An empty file is said to be empty, since an empty reply reads as a read that returned nothing.
+ */
 export function presentFileText(path: string, content: string, read: PlainTextRead): string {
   if (read.sectionTitle !== undefined) return readSectionByTitle(path, content, read.sectionTitle);
-  if (read.startLine === undefined && read.endLine === undefined) return truncateForModel(content);
-  return truncateForModel(numberLines(content, read.startLine, read.endLine));
+  if (read.startLine === undefined && read.endLine === undefined) {
+    return content === "" ? `${path} is empty.` : truncateForModel(content);
+  }
+  return truncateForModel(numberLines(path, content, read.startLine, read.endLine));
 }

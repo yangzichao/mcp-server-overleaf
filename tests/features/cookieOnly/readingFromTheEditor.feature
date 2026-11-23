@@ -60,3 +60,8 @@ Feature: Without Git integration, files are read from Overleaf's editor as it st
     When I read lines 4 to 2 of "main.tex"
     Then the read is refused
     And the reply says "startLine must not exceed endLine."
+
+  Scenario: A start line past the end of the document is refused
+    When I read lines 5 to 6 of "main.tex"
+    Then the read is refused
+    And the reply says "main.tex has only 4 lines, so line 5 is past the end."

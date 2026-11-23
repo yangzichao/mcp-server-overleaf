@@ -30,7 +30,7 @@ export function registerReadFileTool(server: McpServer, context: ToolContext): v
         "With revision, reads the file as it was at that commit from read_history instead, as plain text; line ranges and sectionTitle work, mode does not. " +
         "followIncludes returns a .tex file with the files it includes inlined, to read a paper split across files in one call. " +
         `${IMAGE_READ_DESCRIPTION} A figure a text-only checkout keeps off disk is read from Git without changing the checkout. ` +
-        "Fails without reading for a missing file, any other binary file (a PDF or EPS figure is refused with the command that renders it to PNG), a path outside the project, a line range or sectionTitle combined with mode, sectionTitle combined with a line range, followIncludes combined with any other read argument or on a file that is not .tex, or startLine after endLine.",
+        "Fails without reading for a missing file, any other binary file (a PDF or EPS figure is refused with the command that renders it to PNG), a path outside the project, a line range or sectionTitle combined with mode, sectionTitle combined with a line range, followIncludes combined with any other read argument or on a file that is not .tex, startLine after endLine, or startLine past the last line.",
       inputSchema: z.object({
         project: projectArgument,
         path: z.string().describe("Path to the file relative to the project root, e.g. sections/intro.tex."),
