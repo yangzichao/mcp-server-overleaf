@@ -28,6 +28,13 @@ describe("protectTitleCapitals", () => {
     );
   });
 
+  it("reads a word with a long run of punctuation inside at once", () => {
+    const title = `a 0${"\u0000".repeat(100_000)}0`;
+    const started = performance.now();
+    expect(protectTitleCapitals(title)).toBe(title);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("leaves a title in capitals throughout as it is", () => {
     expect(protectTitleCapitals("DEEP LEARNING FOR NLP")).toBe("DEEP LEARNING FOR NLP");
   });

@@ -128,21 +128,18 @@ function isBracedWhole(name: string): boolean {
 }
 
 /**
- * BibTeX's "Last" part of a name: in `von Last, First` the words after the lower-case particles,
- * and in `First von Last` the words after the last particle, or else the last word. So
- * `van der Maaten, Laurens` and `Laurens van der Maaten` both give `Maaten`.
+ * BibTeX's "Last" part of a name: the words after the last lower-case particle, which is never
+ * the final word. Without a particle it is, in `Last, First`, all the words before the comma,
+ * and in `First Last` only the final word. So `van der Maaten, Laurens` and `Laurens van der
+ * Maaten` both give `Maaten`, and `de los Angeles Garcia y Perez, Maria` gives `Perez`.
  */
 function lastNamePart(name: string): string {
   const commaParts = splitOutsideBraces(name, /,/y);
-  if (commaParts.length > 1) {
-    const words = splitOutsideBraces(commaParts[0] ?? "", /\s+/y);
-    const firstCapitalised = words.findIndex((word) => !startsLowerCase(word));
-    return words.slice(firstCapitalised === -1 ? -1 : firstCapitalised).join(" ");
+  const words = splitOutsideBraces(commaParts[0] ?? "", /\s+/y);
+  for (let index = words.length - 2; index >= 0; index -= 1) {
+    if (startsLowerCase(words[index] ?? "")) return words.slice(index + 1).join(" ");
   }
-  const words = splitOutsideBraces(name, /\s+/y);
-  const particles = words.slice(1, -1).map((word, offset) => (startsLowerCase(word) ? offset + 1 : -1));
-  const lastParticle = Math.max(-1, ...particles);
-  return words.slice(lastParticle === -1 ? -1 : lastParticle + 1).join(" ");
+  return (commaParts.length > 1 ? words : words.slice(-1)).join(" ");
 }
 
 function firstFamilyName(names: string | undefined): string {

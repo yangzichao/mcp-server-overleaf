@@ -92,6 +92,16 @@ describe("prepareImageForModel", () => {
     expect(performance.now() - started).toBeLessThan(1000);
   });
 
+  it("tells an SVG after a comment that follows the doctype, a stylesheet, or a doctype with entities", () => {
+    for (const prolog of [
+      "<!DOCTYPE svg>\n<!-- Created with Inkscape (http://www.inkscape.org/) -->",
+      '<?xml version="1.0"?>\n<?xml-stylesheet href="style.css" type="text/css"?>\n',
+      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "svg11.dtd" [\n\t<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">\n]>\n',
+    ]) {
+      expect(refusal(`${prolog}<svg>`, "drawing")).toMatch(/is an SVG drawing/);
+    }
+  });
+
   it("asks for a PNG when the format is one the model cannot see", () => {
     expect(refusal(new Uint8Array([0x49, 0x49, 0x2a, 0, 8, 0, 0, 0]), "scan.tiff")).toBe(
       "scan.tiff is not a PNG, JPEG, GIF or WebP image, the formats the model can see. Convert it to PNG first.",

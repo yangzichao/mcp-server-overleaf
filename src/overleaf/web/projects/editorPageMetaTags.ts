@@ -10,26 +10,58 @@ export interface MetaTag {
 
 const HTML_ENTITIES: Record<string, string> = { quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" };
 
+/** A reference past U+10FFFF names no character, so it stays as written rather than throw. */
+function codePointText(code: number, entity: string): string {
+  return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+}
+
 function decodeHtmlEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
-    if (code.startsWith("#x") || code.startsWith("#X"))
-      return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
-    if (code.startsWith("#")) return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
+    if (code.startsWith("#x") || code.startsWith("#X")) {
+      return codePointText(Number.parseInt(code.slice(2), 16), entity);
+    }
+    if (code.startsWith("#")) return codePointText(Number.parseInt(code.slice(1), 10), entity);
     return HTML_ENTITIES[code.toLowerCase()] ?? entity;
   });
 }
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** A tag ends at the next `<` or `>`, so one left open does not run into the next. */
+const META_TAG = /<meta\s[^<>]*>/gi;
+
+/** An attribute's name, then a value in double quotes, in single quotes, bare, or none. */
+const ATTRIBUTE = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>=`]+)))?/y;
+
+/**
+ * The tag's attributes, read one after another, so a quoted value is never taken for an
+ * attribute: Pug leaves `'` unescaped, so a value can hold `name='ol-…'`.
+ * A bare attribute, as a true boolean's `content`, is there with an undefined value.
+ */
+function readAttributes(tag: string): Map<string, string | undefined> {
+  const attributes = new Map<string, string | undefined>();
+  const attribute = new RegExp(ATTRIBUTE);
+  attribute.lastIndex = "<meta".length;
+  for (let match = attribute.exec(tag); match !== null; match = attribute.exec(tag)) {
+    const name = (match[1] ?? "").toLowerCase();
+    if (!attributes.has(name)) attributes.set(name, match[2] ?? match[3] ?? match[4]);
+  }
+  return attributes;
 }
 
-/** Undefined when the page has no such tag. */
+/**
+ * Undefined when the page has no such tag. Each tag is found first and its attributes read
+ * after: one pattern for both backtracks quadratically on a tag that repeats `name="…"` and
+ * never closes.
+ */
 export function readMetaTag(html: string, name: string): MetaTag | undefined {
-  const tag = new RegExp(`<meta\\s[^>]*name=["']${escapeForPattern(name)}["'][^>]*>`, "i").exec(html)?.[0];
-  if (!tag) return undefined;
-  const quoted = /\scontent=(?:"([^"]*)"|'([^']*)')/i.exec(tag);
-  if (quoted) return { content: decodeHtmlEntities(quoted[1] ?? quoted[2] ?? "") };
-  return { content: /\scontent(?=[\s/>])/i.test(tag) ? "" : undefined };
+  const wanted = name.toLowerCase();
+  for (const [tag] of html.matchAll(META_TAG)) {
+    const attributes = readAttributes(tag);
+    if (attributes.get("name")?.toLowerCase() !== wanted) continue;
+    const content = attributes.get("content");
+    if (content !== undefined) return { content: decodeHtmlEntities(content) };
+    return { content: attributes.has("content") ? "" : undefined };
+  }
+  return undefined;
 }
 
 export function readJsonMetaTag(html: string, name: string): unknown {

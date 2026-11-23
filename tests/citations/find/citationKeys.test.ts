@@ -28,6 +28,10 @@ describe("citation key stems", () => {
     expect(stem("Jean de La Fontaine", "1668", "Fables")).toBe("lafontaine1668fables");
     expect(stem("Smith-Jones, A. and Other, B.", "2001", "Results")).toBe("smithjones2001results");
     expect(stem("O'Brien, Flann", "1939", "At Swim-Two-Birds")).toBe("obrien1939swim");
+    // BibTeX 0.99d reads Perez as the Last part of both.
+    expect(stem("de los Angeles Garcia y Perez, Maria", "2020", "Datos")).toBe("perez2020datos");
+    expect(stem("Maria de los Angeles Garcia y Perez", "2020", "Datos")).toBe("perez2020datos");
+    expect(stem("de La Fontaine", "1668", "Fables")).toBe("lafontaine1668fables");
   });
 
   it("drops accents written in LaTeX or Unicode", () => {

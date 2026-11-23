@@ -6,15 +6,18 @@
  * compound like `Self-Attention` is left for the style to lower-case.
  */
 
-const LEADING_AND_TRAILING_PUNCTUATION = /^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u;
+/** From a word's first letter or digit to its last, leaving the punctuation around it. */
+const WORD_CORE = /[\p{L}\p{N}](?:[\s\S]*[\p{L}\p{N}])?/u;
 
 function hasInnerCapital(word: string): boolean {
   return word.split(/[-/]/).some((part) => /\p{Lu}/u.test([...part].slice(1).join("")));
 }
 
 function protectWord(word: string): string {
-  const [, leading = "", core = "", trailing = ""] = LEADING_AND_TRAILING_PUNCTUATION.exec(word) ?? [];
-  return core !== "" && hasInnerCapital(core) ? `${leading}{${core}}${trailing}` : word;
+  const core = WORD_CORE.exec(word);
+  if (!core || !hasInnerCapital(core[0])) return word;
+  const coreEnd = core.index + core[0].length;
+  return `${word.slice(0, core.index)}{${core[0]}}${word.slice(coreEnd)}`;
 }
 
 /** Braces and math carry over from one space-separated word to the next. */

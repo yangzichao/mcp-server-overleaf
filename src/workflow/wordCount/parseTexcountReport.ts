@@ -51,7 +51,6 @@ const FIELD_BY_LABEL = new Map<string, keyof TexcountCounts>([
   ["Number of math displayed", "displayedMath"],
 ]);
 
-const PROBLEM_LINE = /^!!!\s*(.*?)\s*!!!\s*$/;
 const FILE_BLOCK_START = /^(?:File|Included file): (.+)$/;
 const TOTALS_BLOCK_START = /^Sum of files: /;
 const COUNT_LINE = /^(.+): (\d+)$/;
@@ -98,6 +97,13 @@ function readSubcount(match: RegExpExecArray): TexcountSectionCount {
   };
 }
 
+/** Not a regular expression: `^!!!\s*(.*?)\s*!!!\s*$` takes cubic time on a line of many spaces. */
+function readProblem(line: string): string | undefined {
+  const trimmed = line.trimEnd();
+  const isProblem = trimmed.length >= 6 && trimmed.startsWith("!!!") && trimmed.endsWith("!!!");
+  return isProblem ? trimmed.slice(3, -3).trim() : undefined;
+}
+
 function readBlockLine(block: OpenBlock, line: string): void {
   const count = COUNT_LINE.exec(line);
   const field = count ? FIELD_BY_LABEL.get(count[1] ?? "") : undefined;
@@ -116,9 +122,9 @@ export function parseTexcountReport(output: string): TexcountReport {
   let block: OpenBlock | undefined;
 
   for (const line of output.split(/\r?\n/)) {
-    const problem = PROBLEM_LINE.exec(line);
-    if (problem) {
-      problems.push(problem[1] ?? "");
+    const problem = readProblem(line);
+    if (problem !== undefined) {
+      problems.push(problem);
       continue;
     }
     const fileStart = FILE_BLOCK_START.exec(line);

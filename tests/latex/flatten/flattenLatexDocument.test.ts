@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { flattenLatexDocument } from "../../../src/latex/flatten/flattenLatexDocument.js";
+import {
+  FlattenedDocumentTooLongError,
+  flattenLatexDocument,
+} from "../../../src/latex/flatten/flattenLatexDocument.js";
 import { inMemoryProject } from "../support/inMemoryProject.js";
 
 const begin = (path: string, written: string) => `% ---- begin ${path}, from ${written} ----\n`;
@@ -160,5 +163,45 @@ describe("flattenLatexDocument", () => {
     const flattened = await flattenLatexDocument(project, "main.tex");
     expect(flattened.text.match(/^A$/gm)).toHaveLength(2);
     expect(project.reads).toEqual(["main.tex", "a.tex"]);
+  });
+
+  it("refuses a document that includes one large file many times before building it", async () => {
+    const project = inMemoryProject({
+      "main.tex": "\\input{chapter}\n".repeat(60),
+      "chapter.tex": "\\input{table}\n".repeat(90),
+      "table.tex": "x".repeat(100_000),
+    });
+    const started = performance.now();
+    await expect(flattenLatexDocument(project, "main.tex")).rejects.toThrow(FlattenedDocumentTooLongError);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it("flattens a file of many includes at once", async () => {
+    const project = inMemoryProject({ "main.tex": "\\input{b}\n".repeat(40_000), "b.tex": "x\n" });
+    const started = performance.now();
+    const { inlinedFiles } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(inlinedFiles).toEqual(["b.tex"]);
+  });
+
+  it("flattens many includes on one long line at once", async () => {
+    const line = `${"\\input{b}".repeat(50_000)}${"x".repeat(5_000_000)}\n`;
+    const project = inMemoryProject({ "main.tex": line, "b.tex": "x\n" });
+    const started = performance.now();
+    const { text } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(text.endsWith(`${end("b.tex")}\n${"x".repeat(5_000_000)}\n`)).toBe(true);
+  });
+
+  it("flattens a long file included many times at once when little of it is inlined", async () => {
+    const preamble = "\\usepackage{x}\n".repeat(30_000);
+    const project = inMemoryProject({
+      "main.tex": "\\subfile{chapter}\n".repeat(2000),
+      "chapter.tex": `\\documentclass[main]{subfiles}\n${preamble}\\begin{document}\nBody.\n\\end{document}\n`,
+    });
+    const started = performance.now();
+    const { text } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(text.split("Body.").length - 1).toBe(2000);
   });
 });
