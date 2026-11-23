@@ -1,7 +1,6 @@
 import * as z from "zod/v4";
-
+import type { ProjectSourceReader } from "../../latex/includes/walkIncludedFiles.js";
 import { containsDocumentEnvironment, guessMainTexFile } from "../../latex/latexProjectFiles.js";
-import type { OverleafGitRepository } from "../../overleaf/overleafGitRepository.js";
 
 export const mainTexFileArgument = z
   .string()
@@ -21,7 +20,7 @@ export interface ChosenRootDocument {
  * argumentName is the parameter the caller's tool takes to choose a different root.
  */
 export async function chooseRootDocument(
-  repository: OverleafGitRepository,
+  source: Pick<ProjectSourceReader, "readTextFile">,
   projectFiles: ReadonlySet<string>,
   requested: string | undefined,
   argumentName = "mainTexFile",
@@ -33,7 +32,7 @@ export async function chooseRootDocument(
   }
   const guessed = guessMainTexFile(texFiles);
   if (guessed === null) throw new Error("The project has no .tex file to start from.");
-  const warning = containsDocumentEnvironment(await repository.readTextFile(guessed))
+  const warning = containsDocumentEnvironment(await source.readTextFile(guessed))
     ? undefined
     : `${guessed} has no \\begin{document}, so it may not be the main document; pass ${argumentName} to choose another.`;
   return { path: guessed, warning };
