@@ -38,6 +38,7 @@ const AWKWARD_PROJECT_PATHS = [
   "sections/",
   "./main.tex",
   "main.tex/",
+  "main.tex/inside.tex",
   ".git/config",
   "C:\\paper.tex",
   "a\\b.tex",
