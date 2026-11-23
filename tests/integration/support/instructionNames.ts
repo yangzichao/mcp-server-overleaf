@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import type { McpToolDescription } from "./mcpProtocol.js";
 
 /** Tool names, plus every action, view and place a listed tool accepts, such as replace_section. */
-function namesTheModelCanUse(tools: readonly McpToolDescription[]): Set<string> {
+export function namesTheModelCanUse(tools: readonly McpToolDescription[]): Set<string> {
   const names = new Set<string>();
   for (const tool of tools) {
     names.add(tool.name);
