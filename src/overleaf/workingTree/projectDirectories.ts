@@ -4,6 +4,7 @@ import { basename, dirname, join, relative, sep } from "node:path";
 import type { GitCommandResult } from "../gitCommandRunner.js";
 import { resolvePathInsideRepository } from "../repositoryPaths.js";
 import { moveIndexEntries } from "./diskSpelling/moveIndexEntries.js";
+import { pathAsStoredOnDisk } from "./diskSpelling/pathAsStoredOnDisk.js";
 import { isAtOrInsideDirectory } from "./isAtOrInsideDirectory.js";
 import { isNothingAtPathError } from "./isNothingAtPathError.js";
 import { requireFileShapedPath } from "./requireFileShapedPath.js";
@@ -81,7 +82,7 @@ export class ProjectDirectories {
   ): Promise<ExistingPathRelation> {
     const firstAbsolutePath = await this.access.resolveClientPath(firstRelativePath);
     const secondAbsolutePath = await this.access.resolveClientPath(secondRelativePath);
-    return (await isOneEntry(firstAbsolutePath, secondAbsolutePath))
+    return (await this.areOneEntryUnderTwoSpellings(firstAbsolutePath, secondAbsolutePath))
       ? "two names of one entry"
       : "two entries";
   }
@@ -98,7 +99,7 @@ export class ProjectDirectories {
     const toAbsolutePath = resolvePathInsideRepository(this.access.repositoryDirectory, toRelativePath);
     if (fromAbsolutePath === toAbsolutePath) return "the source itself";
     if (dirname(fromAbsolutePath) !== dirname(toAbsolutePath)) return "elsewhere";
-    if (!(await isOneEntry(fromAbsolutePath, toAbsolutePath))) return "elsewhere";
+    if (!(await this.areOneEntryUnderTwoSpellings(fromAbsolutePath, toAbsolutePath))) return "elsewhere";
     const sameNameOnceNormalized =
       basename(fromAbsolutePath).normalize("NFC") === basename(toAbsolutePath).normalize("NFC");
     if (sameNameOnceNormalized) return "the source itself";
@@ -143,6 +144,18 @@ export class ProjectDirectories {
     const fromGitPath = this.toGitPath(fromAbsolutePath);
     const toGitPath = this.toGitPath(toAbsolutePath);
     return files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`);
+  }
+
+  private async areOneEntryUnderTwoSpellings(
+    firstAbsolutePath: string,
+    secondAbsolutePath: string,
+  ): Promise<boolean> {
+    if (!(await isOneEntry(firstAbsolutePath, secondAbsolutePath))) return false;
+    const [firstAsStored, secondAsStored] = await Promise.all([
+      pathAsStoredOnDisk(this.access.repositoryDirectory, this.toGitPath(firstAbsolutePath)),
+      pathAsStoredOnDisk(this.access.repositoryDirectory, this.toGitPath(secondAbsolutePath)),
+    ]);
+    return firstAsStored !== undefined && firstAsStored.normalize("NFC") === secondAsStored?.normalize("NFC");
   }
 
   private async requireDirectory(relativePath: string): Promise<string> {
