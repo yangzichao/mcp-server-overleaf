@@ -10,6 +10,7 @@ import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import { ProjectDirectories } from "./workingTree/projectDirectories.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -307,6 +308,17 @@ export class OverleafGitRepository {
   async restoreFileFromCommit(commitHash: string, relativePath: string): Promise<void> {
     const gitPath = await this.toGitPath(relativePath);
     await this.git(["restore", `--source=${commitHash}`, "--worktree", "--", `:(literal)${gitPath}`]);
+  }
+
+  /** Deleting and moving whole directories, behind the same path guards as single files. */
+  directories(): ProjectDirectories {
+    return new ProjectDirectories({
+      repositoryDirectory: this.options.repositoryDirectory,
+      git: (args) => this.git(args),
+      resolveClientPath: (relativePath) => this.resolveClientPath(relativePath),
+      materializePathIfNeeded: (relativePath) => this.materializePathIfNeeded(relativePath),
+      materializeAllFiles: () => this.materializeAllFiles(),
+    });
   }
 
   /** History queries, kept in src/overleaf/history so this class stays about the working copy. */

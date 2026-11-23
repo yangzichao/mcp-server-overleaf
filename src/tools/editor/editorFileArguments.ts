@@ -6,3 +6,6 @@ export const editorPathArgument = z
 
 export const NO_GIT_BRIDGE_NOTE =
   "This server has no Git credential, so this works on the live Overleaf editor through the session cookie rather than on a local clone.";
+
+/** Ends every reply that changed the paper through the editor, where there is no push step. */
+export const EDITOR_CHANGE_IS_LIVE = "It is in Overleaf now; co-authors see it already.";

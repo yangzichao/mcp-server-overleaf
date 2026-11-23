@@ -6,6 +6,12 @@ import { requireSynchronizedWithOverleaf } from "../../workflow/synchronizeWithO
 import { projectArgument } from "../projectArgument.js";
 import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
+import {
+  CHECK_REFERENCES_FINDS,
+  CHECK_REFERENCES_RETURNS,
+  CHECK_REFERENCES_SCOPE,
+  CHECK_REFERENCES_TITLE,
+} from "./checkReferencesDescription.js";
 import { chooseRootDocument, mainTexFileArgument } from "./chooseRootDocument.js";
 import { describeReferenceCheck } from "./describeReferenceCheck.js";
 import { createProjectSourceReader } from "./projectSourceReader.js";
@@ -14,12 +20,13 @@ export function registerCheckReferencesTool(server: McpServer, context: ToolCont
   server.registerTool(
     "check_references",
     {
-      title: "Check references, citations and included files",
+      title: CHECK_REFERENCES_TITLE,
       description:
-        "Check a LaTeX document's cross-references and citations from its source, without compiling: \\ref, \\eqref, \\cref and similar with no matching \\label; \\cite keys found in no .bib file or \\bibitem; labels and bibliography keys defined twice; and \\input, \\include, \\includegraphics and bibliography files that do not exist. " +
+        CHECK_REFERENCES_FINDS +
         "Use it before push_changes or a compile, and after renaming a label, a citation key or a figure. " +
-        "It starts at the main document and follows \\input, \\include, \\subfile and \\import, so a .tex file the document never includes is listed, not checked. Comments and verbatim blocks are ignored, and a path or key built from a macro is counted rather than guessed. " +
-        "Pulls from Overleaf first. Returns a verdict line with the number of problems, each problem with its file and line, then labels never referenced and bibliography entries never cited, which are worth a look but are not errors.",
+        CHECK_REFERENCES_SCOPE +
+        "Pulls from Overleaf first. " +
+        CHECK_REFERENCES_RETURNS,
       inputSchema: z.object({ project: projectArgument, mainTexFile: mainTexFileArgument }),
       annotations: READS_OVERLEAF,
     },

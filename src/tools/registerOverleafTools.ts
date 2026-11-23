@@ -3,9 +3,12 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { registerCompileProjectTool } from "./compiling/compileProjectTool.js";
 import { registerEditFileTool } from "./editing/editFileTool.js";
 import { registerManageFilesTool } from "./editing/manageFilesTool.js";
+import { registerEditorCheckReferencesTool } from "./editor/editorCheckReferencesTool.js";
 import { registerEditorEditFileTool } from "./editor/editorEditFileTool.js";
+import { registerEditorManageFilesTool } from "./editor/editorFiles/editorManageFilesTool.js";
 import { registerEditorReadFileTool } from "./editor/editorReadFileTool.js";
 import { registerEditorReadProjectTool } from "./editor/editorReadProjectTool.js";
+import { registerEditorSearchProjectTool } from "./editor/editorSearchProjectTool.js";
 import { registerReadHistoryTool } from "./history/readHistoryTool.js";
 import { registerCheckReferencesTool } from "./latex/checkReferencesTool.js";
 import { registerLookUpCitationsTool } from "./latex/lookUpCitationsTool.js";
@@ -24,7 +27,7 @@ import { registerManageProjectTool } from "./web/manageProjectTool.js";
 /**
  * Every tool this server lists, read tools first. The Git-bridge group works on a local clone and
  * the session-cookie group on Overleaf's editor and web application; without a Git credential,
- * read_project, read_file and edit_file come in editor versions that need no clone.
+ * the file tools come in editor versions that need no clone.
  */
 export function registerOverleafTools(
   server: McpServer,
@@ -42,16 +45,19 @@ export function registerOverleafTools(
   } else {
     registerEditorReadProjectTool(server, context);
     registerEditorReadFileTool(server, context);
+    registerEditorSearchProjectTool(server, context);
+    registerEditorCheckReferencesTool(server, context);
   }
   registerCompileProjectTool(server, context, offered);
   if (offered.sessionCookieToolsOffered) registerReadReviewTool(server, context);
 
   if (offered.gitBridgeToolsOffered) {
     registerEditFileTool(server, context);
-    registerManageFilesTool(server, context);
+    registerManageFilesTool(server, context, offered);
     registerPushChangesTool(server, context);
   } else {
     registerEditorEditFileTool(server, context);
+    registerEditorManageFilesTool(server, context);
   }
   if (offered.sessionCookieToolsOffered) {
     registerManageTrackedChangesTool(server, context);
