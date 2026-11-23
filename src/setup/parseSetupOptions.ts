@@ -79,8 +79,7 @@ export function parseSetupOptions(argv: readonly string[]): SetupOptions {
       case "--help":
       case "-h":
         process.stdout.write(SETUP_USAGE);
-        process.exit(0);
-        break;
+        return process.exit(0);
       default:
         throw new SetupError(`Unknown setup argument "${argument}".\n\n${SETUP_USAGE}`);
     }

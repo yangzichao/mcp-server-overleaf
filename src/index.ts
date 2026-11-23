@@ -67,8 +67,7 @@ function parseCommandLine(argv: readonly string[]): CommandLineOptions {
       case "--version":
       case "-v":
         process.stdout.write(`${PACKAGE_VERSION}\n`);
-        process.exit(0);
-        break;
+        return process.exit(0);
       case "--stdio":
         transport = "stdio";
         break;
@@ -89,8 +88,7 @@ function parseCommandLine(argv: readonly string[]): CommandLineOptions {
       case "--help":
       case "-h":
         process.stdout.write(USAGE);
-        process.exit(0);
-        break;
+        return process.exit(0);
       default:
         throw new Error(`Unknown argument "${argument}".\n\n${USAGE}`);
     }
