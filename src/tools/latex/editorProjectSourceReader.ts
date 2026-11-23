@@ -22,7 +22,7 @@ export function createEditorProjectSourceReader(
     projectFiles,
     readTextFile(path) {
       const cached = joinedTexts.get(path);
-      if (cached) return cached;
+      if (cached !== undefined) return cached;
       const document = findDocument(tree, path);
       if (!document) {
         return Promise.reject(
