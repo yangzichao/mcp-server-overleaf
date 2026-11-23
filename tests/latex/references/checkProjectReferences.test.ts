@@ -130,6 +130,15 @@ describe("checkProjectReferences", () => {
     expect(report.undefinedCitations.map((citation) => citation.key)).toEqual(["lamport94"]);
   });
 
+  it("reports a citation whose key is written only inside another entry's field", async () => {
+    const project = inMemoryProject({
+      "main.tex": "\\cite{a,b}\n\\bibliography{refs}\n",
+      "refs.bib": "@article{a,\n  note = {see @misc{b, title = {B}}}\n}\n",
+    });
+    const report = await checkProjectReferences(project, "main.tex");
+    expect(report.undefinedCitations.map((citation) => citation.key)).toEqual(["b"]);
+  });
+
   it("treats \\nocite{*} as citing every entry", async () => {
     const project = inMemoryProject({
       "main.tex": "\\nocite{*}\n\\bibliography{refs}\n",

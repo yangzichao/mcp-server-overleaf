@@ -12,8 +12,8 @@ import { entryType, rawCitationFields } from "./rawCitationMetadata.js";
 
 /**
  * True when the braces balance as BibTeX counts them, every brace, `\{` and `\}` included, or,
- * with `skippingEscaped`, as the .bib readers here count them, which skip the character after a
- * backslash. A value must balance both ways for both to see its end at the same brace.
+ * with `skippingEscaped`, as TeX counts them, where `\{` and `\}` are braces to print. A value
+ * must balance both ways: BibTeX ends it at its closing brace, and TeX then reads it.
  */
 function bracesBalance(value: string, skippingEscaped: boolean): boolean {
   let depth = 0;

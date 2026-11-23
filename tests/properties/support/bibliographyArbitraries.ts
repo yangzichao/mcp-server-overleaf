@@ -29,6 +29,8 @@ const valueToken = fc.constantFrom(
   "北京",
   "𝔸",
   "10.1000/xyz",
+  // An entry written inside a value is text: BibTeX looks for `@` only between entries.
+  "@misc{inner, title = {x}}",
 );
 const delimitedInside = fc.array(valueToken, { minLength: 1, maxLength: 6 }).map((tokens) => tokens.join(""));
 

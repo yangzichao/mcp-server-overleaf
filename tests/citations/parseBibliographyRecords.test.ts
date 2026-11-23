@@ -50,6 +50,21 @@ describe("parseBibliographyRecords", () => {
     );
     expect(records.map((record) => record.key)).toEqual(["fine"]);
   });
+
+  it("reads no entry inside a field value, and leaves out one whose value a backslash cannot keep open", () => {
+    const records = parseBibliographyRecords(
+      "refs.bib",
+      [
+        "@article{outer, note = {see @misc{inner, title = {Inner}}}}",
+        "@article{sale, title = {50\\% \\} off}}",
+        "@book{fine, title = {Fine}}",
+      ].join("\n"),
+    );
+    expect(records.map((record) => [record.key, Object.fromEntries(record.fields)])).toEqual([
+      ["outer", { note: "see @misc{inner, title = {Inner}}" }],
+      ["fine", { title: "Fine" }],
+    ]);
+  });
 });
 
 describe("citation identifiers", () => {
