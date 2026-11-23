@@ -4,6 +4,7 @@ import { registerCompileProjectTool } from "./compiling/compileProjectTool.js";
 import { registerEditFileTool } from "./editing/editFileTool.js";
 import { registerManageFilesTool } from "./editing/manageFilesTool.js";
 import { registerEditorEditFileTool } from "./editor/editorEditFileTool.js";
+import { registerEditorLookUpCitationsTool } from "./editor/editorLookUpCitationsTool.js";
 import { registerEditorReadFileTool } from "./editor/editorReadFileTool.js";
 import { registerEditorReadProjectTool } from "./editor/editorReadProjectTool.js";
 import { registerReadHistoryTool } from "./history/readHistoryTool.js";
@@ -42,6 +43,7 @@ export function registerOverleafTools(
   } else {
     registerEditorReadProjectTool(server, context);
     registerEditorReadFileTool(server, context);
+    registerEditorLookUpCitationsTool(server, context);
   }
   registerCompileProjectTool(server, context, offered);
   if (offered.sessionCookieToolsOffered) registerReadReviewTool(server, context);

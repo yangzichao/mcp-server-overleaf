@@ -67,6 +67,7 @@ const CONFIGURATIONS = [
       "list_projects",
       "read_project",
       "read_file",
+      "look_up_citations",
       "edit_file",
       "compile_project",
       "read_review",
