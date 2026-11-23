@@ -1,12 +1,8 @@
-import {
-  findSectionByTitle,
-  parseLatexSections,
-  replaceSectionText,
-} from "../../../latex/parseLatexSections.js";
+import { replaceSectionText } from "../../../latex/parseLatexSections.js";
 import { requireEditorSafeText } from "../../../overleaf/realtime/editorSafeText.js";
 import { generateTrackedChangeIdSeed } from "../../../overleaf/realtime/overleafRealtimeSession.js";
 import { buildTextChangeOperations } from "../../../overleaf/realtime/textChanges/textChangeOperations.js";
-import { describeMissingSection } from "../../reading/readSectionByTitle.js";
+import { requireSectionByTitle } from "../../reading/readSectionByTitle.js";
 import { type ToolContext, type ToolTextResult, textResult } from "../../toolContext.js";
 import { requireDocument, requireReviewCapableProject, withReviewSession } from "../openReviewSession.js";
 
@@ -40,17 +36,7 @@ export function suggestRewrite(context: ToolContext, rewrite: SuggestedRewrite):
     let newText = rewrite.content;
     let scope = `the whole of ${document.path}`;
     if (rewrite.sectionTitle !== undefined) {
-      const sections = parseLatexSections(text);
-      const section = findSectionByTitle(sections, rewrite.sectionTitle);
-      if (!section) {
-        return textResult(
-          describeMissingSection(
-            document.path,
-            rewrite.sectionTitle,
-            sections.map((entry) => entry.title),
-          ),
-        );
-      }
+      const section = requireSectionByTitle(document.path, text, rewrite.sectionTitle);
       newText = replaceSectionText(text, section, rewrite.content);
       scope = `\\${section.level}{${section.title}} (lines ${section.startLine}-${section.endLine}) in ${document.path}`;
     }

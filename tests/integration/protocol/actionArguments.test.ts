@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
 import { McpStdioClient } from "../mcpStdioClient.js";
+import { responseText } from "../support/mcpProtocol.js";
 
 /**
  * A tool with several actions or views checks the arguments against the one chosen. A model
@@ -92,6 +93,23 @@ it("reads one section by title, now or at a recorded revision", async () => {
     revision: await remote.publishedHeadHash(),
   });
   expect(atRevision).toBe(section);
-  const missing = await client.call("read_file", { path: "main.tex", sectionTitle: "Results" });
-  expect(missing).toBe('No section matching "Results" in main.tex. Available: Introduction');
+  const missing = await client.callRaw("read_file", { path: "main.tex", sectionTitle: "Results" });
+  expect(missing.result?.isError).toBe(true);
+  expect(responseText(missing)).toBe('No section matching "Results" in main.tex. Available: Introduction');
+});
+
+it("refuses to replace a section in a file that has none, and writes nothing", async () => {
+  await client.call("edit_file", { action: "write", path: "notes.txt", content: "Plain notes.\n" });
+  const response = await client.callRaw("edit_file", {
+    action: "replace_section",
+    path: "notes.txt",
+    sectionTitle: "Introduction",
+    content: "\\section{Introduction}\nNew.\n",
+  });
+  expect(response.result?.isError).toBe(true);
+  expect(responseText(response)).toBe(
+    'No section matching "Introduction" in notes.txt, which has no section headings.',
+  );
+  expect(await client.call("read_file", { path: "notes.txt" })).toBe("Plain notes.\n");
+  await client.call("manage_files", { action: "discard_local_changes" });
 });

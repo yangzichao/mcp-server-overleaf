@@ -16,7 +16,7 @@ Feature: A section or a whole file can be rewritten, locally until pushed
 
   Scenario: Rewriting a section that does not exist changes nothing
     When I rewrite the "Results" section to say "Nothing."
-    Then the reply says "Available: Introduction, Conclusion"
+    Then the rewrite is refused with "Available: Introduction, Conclusion"
     And there is nothing pending
 
   Scenario: Writing a new file creates it and its folder in the local clone only

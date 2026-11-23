@@ -5,6 +5,7 @@ import { expect } from "vitest";
 
 import { ConnectedOverleafProject } from "../support/connectedOverleafProject.js";
 import { paperSplitAcrossFiles } from "../support/paperSplitAcrossFiles.js";
+import { callTool } from "../support/toolReply.js";
 
 interface OutlineRow {
   readonly heading: string;
@@ -17,6 +18,7 @@ const feature = await loadFeature(fileURLToPath(new URL("navigatingSections.feat
 describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps }) => {
   let project: ConnectedOverleafProject;
   let lastReply = "";
+  let lastReplyWasRefused = false;
 
   AfterEachScenario(async () => {
     await project.close();
@@ -41,7 +43,9 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     Step(
       "I read the section {string} of {string}",
       async (_context: unknown, sectionTitle: string, path: string) => {
-        lastReply = await project.client.call("read_file", { path, sectionTitle });
+        const reply = await callTool(project.client, "read_file", { path, sectionTitle });
+        lastReply = reply.text;
+        lastReplyWasRefused = reply.isError;
       },
     );
 
@@ -73,6 +77,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     Step(
       "the reply says no section matches {string} and lists {string}",
       (_context: unknown, sectionTitle: string, availableTitles: string) => {
+        expect(lastReplyWasRefused).toBe(true);
         expect(lastReply).toBe(
           `No section matching "${sectionTitle}" in main.tex. Available: ${availableTitles}`,
         );

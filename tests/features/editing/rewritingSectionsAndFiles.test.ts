@@ -48,7 +48,13 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
     });
 
     Step("the reply says {string}", (_context: unknown, expected: string) => {
+      expect(lastReply.isError).toBe(false);
       expect(lastReply.text).toContain(expected);
+    });
+
+    Step("the rewrite is refused with {string}", (_context: unknown, reason: string) => {
+      expect(lastReply.isError).toBe(true);
+      expect(lastReply.text).toContain(reason);
     });
 
     Step("{string} contains {string}", async (_context: unknown, path: string, text: string) => {
