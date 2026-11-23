@@ -280,7 +280,14 @@ export class OverleafGitRepository {
 
   async readTextFile(relativePath: string): Promise<string> {
     await this.materializePathIfNeeded(relativePath);
-    const contents = await readFile(await this.resolveClientPath(relativePath));
+    const absolutePath = await this.resolveClientPath(relativePath);
+    let contents: Buffer;
+    try {
+      contents = await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      throw await this.missingFileError(relativePath, absolutePath);
+    }
 
     // Figures and PDFs decode to pages of mojibake that would go straight into the
     // model's context and tell it nothing. A NUL byte early on is the usual tell.
@@ -304,16 +311,21 @@ export class OverleafGitRepository {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    const indexEntry = await this.describeIndexEntry(absolutePath);
-    if (indexEntry === "untracked") throw new Error(`No file ${relativePath} in the project.`);
-    if (indexEntry === "tracked") {
-      throw new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`);
+    if ((await this.describeIndexEntry(absolutePath)) !== "skipped") {
+      throw await this.missingFileError(relativePath, absolutePath);
     }
     return await runGitCommandForBytes({
       workingDirectory: this.options.repositoryDirectory,
       args: ["cat-file", "blob", `:${await this.toGitPath(relativePath)}`],
       overleafGitToken: this.options.overleafGitToken,
     });
+  }
+
+  /** Why a path the client named is not on disk, said as the project sees it, not as Node's ENOENT. */
+  private async missingFileError(relativePath: string, absolutePath: string): Promise<Error> {
+    return (await this.describeIndexEntry(absolutePath)) === "tracked"
+      ? new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`)
+      : new Error(`No file ${relativePath} in the project.`);
   }
 
   /**
