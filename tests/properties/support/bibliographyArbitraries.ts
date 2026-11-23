@@ -59,7 +59,7 @@ const bibliographyField: fc.Arbitrary<WrittenBibliographyField> = fc
       .trim(),
   }));
 
-export const bibliographyEntry: fc.Arbitrary<WrittenBibliographyEntry> = fc.record({
+const bibliographyEntry: fc.Arbitrary<WrittenBibliographyEntry> = fc.record({
   entryType: fc.constantFrom("article", "Article", "inproceedings", "book", "misc", "ONLINE"),
   key: fc.stringMatching(/^[A-Za-z0-9:_.\-+/]{1,12}$/),
   opener: fc.constantFrom("{" as const, "(" as const),
@@ -70,7 +70,7 @@ export const bibliographyEntry: fc.Arbitrary<WrittenBibliographyEntry> = fc.reco
 });
 
 /** Text between entries that holds no `@`, or a directive BibTeX reads but that defines no key. */
-export const bibliographyFiller = fc.oneof(
+const bibliographyFiller = fc.oneof(
   fc.stringMatching(/^[^@]{0,20}$/),
   fc.constantFrom(
     "@string{acl = {Association for Computational Linguistics}}",
@@ -80,7 +80,7 @@ export const bibliographyFiller = fc.oneof(
   ),
 );
 
-export function renderBibliographyEntry(entry: WrittenBibliographyEntry): string {
+function renderBibliographyEntry(entry: WrittenBibliographyEntry): string {
   const closer = entry.opener === "{" ? "}" : ")";
   const fields = entry.fields.map((field) => `  ${field.name} = ${field.writtenParts.join(" # ")},\n`);
   return `@${entry.entryType}${entry.opener}${entry.key},\n${fields.join("")}${closer}`;

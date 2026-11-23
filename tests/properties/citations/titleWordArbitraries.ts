@@ -49,7 +49,7 @@ export function decoratedWord(word: string): fc.Arbitrary<string> {
     });
 }
 
-export const wordSeparator = fc.constantFrom(" ", "  ", ": ", ", ", " -- ", "\n", "~");
+const wordSeparator = fc.constantFrom(" ", "  ", ": ", ", ", " -- ", "\n", "~");
 
 export function decoratedTitle(words: readonly string[]): fc.Arbitrary<string> {
   return fc

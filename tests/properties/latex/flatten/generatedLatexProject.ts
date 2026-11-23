@@ -56,7 +56,7 @@ export interface GeneratedProject {
 
 export const ROOT_PATH = "main.tex";
 const OTHER_TEXT_FILES = ["a.tex", "b.tex", "c.tex", "sub/d.tex", "sub/e.tex"] as const;
-export const BINARY_FILE = "binary.tex";
+const BINARY_FILE = "binary.tex";
 
 /** Names that resolve, miss, climb out of the project, start at the root, or name the root itself. */
 const SIMPLE_FILE_NAMES = [
@@ -194,7 +194,7 @@ export function renderOpaqueBlock(
   return [`\\begin{${block.environment}}`, ...block.body, `\\end{${block.environment}}`].join(lineEnd);
 }
 
-export function renderLine(line: GeneratedLine, lineEnd: GeneratedFile["lineEnd"]): string {
+function renderLine(line: GeneratedLine, lineEnd: GeneratedFile["lineEnd"]): string {
   if (line.kind === "opaque") return renderOpaqueBlock(line, lineEnd);
   const pieces = line.pieces.map((piece) =>
     piece.kind === "text" ? piece.text : renderDirective(piece.directive),

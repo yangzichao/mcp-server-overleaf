@@ -72,7 +72,7 @@ export const arxivIdentifier: fc.Arbitrary<ArxivIdentifier> = fc
   }));
 
 /** The text with each letter in either case, as an id typed by hand or lower-cased by a tool may be. */
-export function inAnyCase(text: string): fc.Arbitrary<string> {
+function inAnyCase(text: string): fc.Arbitrary<string> {
   const characters = [...text];
   return fc
     .array(fc.boolean(), { minLength: characters.length, maxLength: characters.length })

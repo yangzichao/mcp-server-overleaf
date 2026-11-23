@@ -90,7 +90,7 @@ export function asciiWords(text: string): string[] {
 }
 
 /** Splits where `separator` (a sticky pattern) matches outside braces, so `{Barnes and Noble}` stays one name. */
-export function splitOutsideBraces(text: string, separator: RegExp): string[] {
+function splitOutsideBraces(text: string, separator: RegExp): string[] {
   const parts: string[] = [];
   let depth = 0;
   let partStart = 0;

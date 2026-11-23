@@ -69,7 +69,7 @@ export function markupToLatex(text: string): string {
  * `&`, `%` and `#` start alignment, comments and parameters in LaTeX; one already escaped is
  * left. Escaped means after an odd run of backslashes: after `\\`, a line break, it is not.
  */
-export function escapeLatexSpecials(text: string): string {
+function escapeLatexSpecials(text: string): string {
   return text.replace(/(?<!\\)(\\*)([&%#])/g, (whole, backslashes: string, special: string) =>
     backslashes.length % 2 === 1 ? whole : `${backslashes}\\${special}`,
   );

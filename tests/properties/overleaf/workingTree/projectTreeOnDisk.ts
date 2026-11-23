@@ -12,7 +12,7 @@ import type { ProjectDirectoryAccess } from "../../../../src/overleaf/workingTre
  */
 
 /** Writes each file with its own path as its text, so a moved file shows where it came from. */
-export async function writeProjectTree(root: string, files: readonly string[]): Promise<void> {
+async function writeProjectTree(root: string, files: readonly string[]): Promise<void> {
   for (const file of files) {
     await mkdir(dirname(join(root, file)), { recursive: true });
     await writeFile(join(root, file), file);

@@ -11,7 +11,7 @@ import type { ToolTextResult } from "../../../../src/tools/toolContext.js";
  * those few fields are there.
  */
 
-export const FAKE_CONTEXT_USED = "FAKE_CONTEXT_USED";
+const FAKE_CONTEXT_USED = "FAKE_CONTEXT_USED";
 
 export interface RegisteredTool {
   readonly name: string;

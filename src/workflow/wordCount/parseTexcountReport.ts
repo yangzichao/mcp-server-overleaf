@@ -24,7 +24,7 @@ export interface TexcountSectionCount {
   readonly counts: TexcountCounts;
 }
 
-export interface TexcountFileCount {
+interface TexcountFileCount {
   /** Relative to the directory texcount ran in, without a leading "./". */
   readonly path: string;
   readonly counts: TexcountCounts;

@@ -6,7 +6,7 @@ import fc from "fast-check";
  * object as JSON, a true boolean as a bare `content` and a false one as none.
  */
 
-export type MetaValue =
+type MetaValue =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "json"; readonly value: unknown }
   | { readonly kind: "boolean"; readonly value: boolean };
@@ -49,7 +49,7 @@ const metaValue: fc.Arbitrary<MetaValue> = fc.oneof(
   fc.boolean().map((value) => ({ kind: "boolean" as const, value })),
 );
 
-export const metaTags: fc.Arbitrary<GeneratedMetaTag[]> = fc.uniqueArray(
+const metaTags: fc.Arbitrary<GeneratedMetaTag[]> = fc.uniqueArray(
   fc.record({
     name: fc.constantFrom("ol-a", "ol-b", "ol-c", "ol-languages", "ol-imageNames"),
     value: metaValue,
