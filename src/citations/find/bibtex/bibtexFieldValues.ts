@@ -38,6 +38,18 @@ const MARKUP_COMMANDS: Record<string, string> = {
 };
 
 const MARKUP_PATTERN = /<(?:\w+:)?(i|italic|em|b|bold|strong|sub|sup|sc)\b[^>]*>([^<]*)<\/(?:\w+:)?\1>/gi;
+const TAG_PATTERN = /<\/?[A-Za-z][\w:.-]*(?:\s[^<>]*)?\/?>/g;
+
+/** Removing a tag can join the text on either side into a new one, so remove until none is left. */
+function removeTags(text: string): string {
+  let previous: string;
+  let current = text;
+  do {
+    previous = current;
+    current = current.replace(TAG_PATTERN, "");
+  } while (current !== previous);
+  return current;
+}
 
 /** JATS and HTML emphasis to LaTeX, innermost first; any other tag (MathML and so on) is dropped. */
 export function markupToLatex(text: string): string {
@@ -50,7 +62,7 @@ export function markupToLatex(text: string): string {
     if (next === current) break;
     current = next;
   }
-  return current.replace(/<\/?[A-Za-z][\w:.-]*(?:\s[^<>]*)?\/?>/g, "");
+  return removeTags(current);
 }
 
 /** `&`, `%` and `#` start alignment, comments and parameters in LaTeX; one already escaped is left. */

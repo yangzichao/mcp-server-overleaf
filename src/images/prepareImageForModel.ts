@@ -47,6 +47,18 @@ function textStart(bytes: Uint8Array): string {
 
 const RENDER_FIRST = "Render it to PNG first, then read the PNG";
 
+/** True when the text opens an SVG file, after any XML declaration, comments and doctype. */
+function startsAsSvg(start: string): boolean {
+  let rest = start.replace(/^<\?xml[^>]*>\s*/i, "");
+  while (rest.startsWith("<!--")) {
+    const commentEnd = rest.indexOf("-->", 4);
+    if (commentEnd === -1) return false;
+    rest = rest.slice(commentEnd + 3).trimStart();
+  }
+  rest = rest.replace(/^<!DOCTYPE svg[^>]*>\s*/i, "");
+  return /^<svg[\s>]/i.test(rest);
+}
+
 /**
  * How to make a PDF, PostScript or SVG figure visible, told by its first bytes or its name; an
  * empty `bytes` decides by name alone. Undefined for any other file.
@@ -61,10 +73,7 @@ export function suggestImageConversion(bytes: Uint8Array, path: string): string 
   if (start.startsWith("%!PS") || isBinaryEps || extension === "eps" || extension === "ps") {
     return `${path} is PostScript (EPS), which is not sent as an image. ${RENDER_FIRST}, for example with Ghostscript or \`epstopdf\` and then \`pdftoppm -png\`.`;
   }
-  if (
-    /^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(start) ||
-    extension === "svg"
-  ) {
+  if (startsAsSvg(start) || extension === "svg") {
     return `${path} is an SVG drawing, which is not sent as an image. ${RENDER_FIRST}, for example with \`rsvg-convert\` or Inkscape. Its source is text, so it can also be read as a file.`;
   }
   return undefined;

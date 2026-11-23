@@ -81,6 +81,17 @@ describe("prepareImageForModel", () => {
     expect(refusal("plain text", "notes.svg")).toMatch(/SVG/);
   });
 
+  it("tells an SVG from other text at once, however many comments the text opens with", () => {
+    const started = performance.now();
+    expect(refusal(`<!--${"--><!--".repeat(70)}x`, "drawing")).toMatch(
+      /is not a PNG, JPEG, GIF or WebP image/,
+    );
+    expect(
+      refusal('<!-- a --> <!-- b -->\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN">\n<svg>', "drawing"),
+    ).toMatch(/is an SVG drawing/);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("asks for a PNG when the format is one the model cannot see", () => {
     expect(refusal(new Uint8Array([0x49, 0x49, 0x2a, 0, 8, 0, 0, 0]), "scan.tiff")).toBe(
       "scan.tiff is not a PNG, JPEG, GIF or WebP image, the formats the model can see. Convert it to PNG first.",

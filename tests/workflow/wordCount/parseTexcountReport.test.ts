@@ -160,6 +160,16 @@ describe("parseTexcountReport", () => {
     expect(report.problems).toEqual([]);
   });
 
+  it("passes over a line that only starts like a subcount, however long", () => {
+    const lookalike = ` 0+0+0${"+00".repeat(4000)}x`;
+    const started = performance.now();
+    const report = parseTexcountReport(
+      ONE_FILE_WITH_COUNTER.replace("Subcounts:\n", `Subcounts:\n${lookalike}\n`),
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(report.files[0]?.sections.map((section) => section.heading)).toEqual(["_top_", "Section: Next"]);
+  });
+
   it("has no totals when texcount could not read the main file", () => {
     expect(parseTexcountReport(UNREADABLE_MAIN_FILE)).toEqual({
       totals: undefined,

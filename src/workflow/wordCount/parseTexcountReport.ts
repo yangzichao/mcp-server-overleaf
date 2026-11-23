@@ -57,9 +57,11 @@ const TOTALS_BLOCK_START = /^Sum of files: /;
 const COUNT_LINE = /^(.+): (\d+)$/;
 /**
  * "  6+1+3 (1/1/1/1) Section: Introduction". A counter the document defines with %TC:newcounter
- * adds "+2cites" after the third number.
+ * adds "+2cites" after the third number. Its name starts with a non-digit and holds no "+", so
+ * the extra counts split one way only and a line that does not match fails fast.
  */
-const SUBCOUNT_LINE = /^\s+(\d+)\+(\d+)\+(\d+)(?:\+\d+\S*)* \((\d+)\/(\d+)\/(\d+)\/(\d+)\) (.*)$/;
+const SUBCOUNT_LINE =
+  /^\s+(\d+)\+(\d+)\+(\d+)(?:\+\d+(?:[^\s+\d][^\s+]*)?)* \((\d+)\/(\d+)\/(\d+)\/(\d+)\) (.*)$/;
 
 type WritableCounts = { -readonly [Field in keyof TexcountCounts]: number };
 

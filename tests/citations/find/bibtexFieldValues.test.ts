@@ -30,6 +30,11 @@ describe("BibTeX field values", () => {
     );
   });
 
+  it("leaves no tag behind when removing one joins the text around it into another", () => {
+    expect(markupToLatex("<scr<b>ipt>alert(1)</script>")).toBe("alert(1)");
+    expect(markupToLatex("a <<i>/i>b")).toBe("a b");
+  });
+
   it("cleans a Crossref title whose markup arrives entity-encoded", () => {
     expect(
       cleanFieldText("Expression of &lt;italic&gt;acrA&lt;/italic&gt; in 50%   of\n cells & more #1"),
