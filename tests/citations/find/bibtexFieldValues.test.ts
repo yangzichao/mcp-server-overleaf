@@ -35,6 +35,13 @@ describe("BibTeX field values", () => {
     expect(markupToLatex("a <<i>/i>b")).toBe("a b");
   });
 
+  it("reads many emphasis tags that never close at once", () => {
+    const unclosed = `S${"<B\u0000S".repeat(60_000)}`;
+    const started = performance.now();
+    expect(markupToLatex(unclosed)).toBe(unclosed);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("cleans a Crossref title whose markup arrives entity-encoded", () => {
     expect(
       cleanFieldText("Expression of &lt;italic&gt;acrA&lt;/italic&gt; in 50%   of\n cells & more #1"),
@@ -55,6 +62,13 @@ describe("BibTeX field values", () => {
     expect(normalizePages("1 \u2014 9")).toBe("1--9");
     expect(normalizePages("12--20")).toBe("12--20");
     expect(normalizePages("e1002")).toBe("e1002");
+  });
+
+  it("reads a long run of spaces with no dash after it at once", () => {
+    const spaced = `1${"\t".repeat(100_000)}2`;
+    const started = performance.now();
+    expect(normalizePages(spaced)).toBe(spaced);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("reads months as BibTeX's macros", () => {

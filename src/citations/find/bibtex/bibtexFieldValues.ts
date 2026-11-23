@@ -37,7 +37,7 @@ const MARKUP_COMMANDS: Record<string, string> = {
   sc: "textsc",
 };
 
-const MARKUP_PATTERN = /<(?:\w+:)?(i|italic|em|b|bold|strong|sub|sup|sc)\b[^>]*>([^<]*)<\/(?:\w+:)?\1>/gi;
+const MARKUP_PATTERN = /<(?:\w+:)?(i|italic|em|b|bold|strong|sub|sup|sc)\b[^<>]*>([^<]*)<\/(?:\w+:)?\1>/gi;
 const TAG_PATTERN = /<\/?[A-Za-z][\w:.-]*(?:\s[^<>]*)?\/?>/g;
 
 /** Removing a tag can join the text on either side into a new one, so remove until none is left. */
@@ -89,9 +89,13 @@ export function cleanFieldText(text: string): string {
     .trim();
 }
 
-/** Page ranges with BibTeX's double hyphen, whatever dash the source used. */
+/**
+ * Page ranges with BibTeX's double hyphen, whatever dash the source used. Spaces before a dash
+ * are matched only from the start of their run, so a long run with no dash after it is read
+ * once rather than once from each of its characters.
+ */
 export function normalizePages(pages: string): string {
-  return pages.replace(/\s*(?:-{1,3}|[\u2010-\u2015\u2212])\s*/g, "--").trim();
+  return pages.replace(/(?:(?<!\s)\s+)?(?:-{1,3}|[\u2010-\u2015\u2212])\s*/g, "--").trim();
 }
 
 const MONTH_MACROS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
