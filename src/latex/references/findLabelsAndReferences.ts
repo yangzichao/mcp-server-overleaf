@@ -6,13 +6,13 @@ import { type KeyOccurrence, splitKeys } from "./keyOccurrence.js";
  * varioref, fancyref, cleveref and zref.
  */
 
-const LABEL_PATTERN = /\\(label|zlabel)\s*(?:\[[^\]]*\])?\s*\{([^{}]*)\}/g;
+const LABEL_PATTERN = /\\(label|zlabel)\s*(?:\[[^[\]]*\]\s*)?\{([^{}]*)\}/g;
 /**
  * `label=` in the options of a code listing or a tcolorbox, which is a cross-reference
  * label there. Elsewhere, TikZ above all, `label=` is a node caption and labels nothing.
  */
 const LABELLED_OPTIONS_PATTERN =
-  /\\(?:begin\s*\{(?:lstlisting|minted|tcolorbox)\}|lstinputlisting|inputminted)\s*\[([^\]]*)\]/g;
+  /\\(?:begin\s*\{(?:lstlisting|minted|tcolorbox)\}|lstinputlisting|inputminted)\s*\[((?:[^[\]{}]|\{[^{}]*\})*)\]/g;
 const OPTION_LABEL_PATTERN = /(?:^|,)\s*label\s*=\s*(?:\{([^{}]*)\}|([^,\s{}]+))/;
 
 const SINGLE_KEY_REFERENCE_COMMANDS = [
@@ -50,14 +50,14 @@ const RANGE_REFERENCE_COMMANDS = ["crefrange", "Crefrange", "cpagerefrange", "Cp
 export const PACKAGE_DEFINED_LABELS: ReadonlySet<string> = new Set(["LastPage", "VeryLastPage"]);
 
 const REFERENCE_PATTERN = new RegExp(
-  `\\\\(${[...SINGLE_KEY_REFERENCE_COMMANDS, ...KEY_LIST_REFERENCE_COMMANDS].join("|")})(?![A-Za-z])\\*?\\s*(?:\\[[^\\]]*\\])?\\s*\\{([^{}]*)\\}`,
+  `\\\\(${[...SINGLE_KEY_REFERENCE_COMMANDS, ...KEY_LIST_REFERENCE_COMMANDS].join("|")})(?![A-Za-z])\\*?\\s*(?:\\[[^[\\]]*\\]\\s*){0,2}\\{([^{}]*)\\}`,
   "g",
 );
 const RANGE_REFERENCE_PATTERN = new RegExp(
   `\\\\(${RANGE_REFERENCE_COMMANDS.join("|")})(?![A-Za-z])\\*?\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}`,
   "g",
 );
-const HYPERREF_PATTERN = /\\hyperref\s*\[([^\]]*)\]/g;
+const HYPERREF_PATTERN = /\\hyperref\s*\[([^[\]]*)\]/g;
 
 export function findLabels(source: ScannedSource): KeyOccurrence[] {
   const labels: KeyOccurrence[] = [];

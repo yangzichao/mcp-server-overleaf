@@ -12,7 +12,7 @@ import {
 import { maskLatexSource } from "../source/prepareLatexSource.js";
 import { locationOf, type ScannedSource, type SourceLocation, scanSource } from "../source/scannedSource.js";
 import { beginInlinedFileMarker, endInlinedFileMarker, notInlinedMarker } from "./flattenMarkers.js";
-import { findInlinedRegion } from "./inlinedRegion.js";
+import { findInlinedRegion, type InlinedRegion } from "./inlinedRegion.js";
 
 /** An include that resolved to a file but stayed as written, with the reason. */
 export interface SkippedInclude {
@@ -49,15 +49,27 @@ interface FileBeingFlattened {
   readonly regionEnd: number;
 }
 
-/** True when only spaces stand between the last line break written so far and the directive. */
-function endsAtLineStart(flattenedSoFar: string): boolean {
-  return flattenedSoFar.slice(flattenedSoFar.lastIndexOf("\n") + 1).trim() === "";
+interface PreparedFile {
+  readonly masked: string;
+  readonly scanned: ScannedSource;
+  readonly region: InlinedRegion;
+  readonly directivesInTheInlinedRegion: readonly IncludeDirective[];
+  readonly pathsBuiltFromMacros: number;
+}
+
+function endsAtLineStart(endedAtLineStart: boolean, appended: string): boolean {
+  const lastLineBreak = appended.lastIndexOf("\n");
+  if (lastLineBreak === -1) return endedAtLineStart && appended.trim() === "";
+  return appended.slice(lastLineBreak + 1).trim() === "";
 }
 
 function isRestOfLineBlank(file: FileBeingFlattened, from: number): boolean {
-  const newline = file.masked.indexOf("\n", from);
-  const lineEnd = Math.min(newline === -1 ? file.masked.length : newline, file.regionEnd);
-  return file.masked.slice(from, lineEnd).trim() === "";
+  for (let index = from; index < file.regionEnd; index += 1) {
+    const character = file.masked.charAt(index);
+    if (character === "\n") return true;
+    if (character.trim() !== "") return false;
+  }
+  return true;
 }
 
 /**
@@ -88,6 +100,7 @@ class DocumentFlattener {
   readonly skippedIncludes: SkippedInclude[] = [];
   pathsBuiltFromMacros = 0;
   private readonly texts = new Map<string, Promise<string>>();
+  private readonly preparedFiles = new Map<string, PreparedFile>();
 
   constructor(private readonly reader: ProjectSourceReader) {}
 
@@ -107,9 +120,11 @@ class DocumentFlattener {
     includeChain: readonly string[],
     isSubfile: boolean,
   ): Promise<string> {
-    const masked = maskLatexSource(original);
-    const region = findInlinedRegion(masked, isSubfile);
-    const scanned = scanSource(path, masked);
+    const { masked, scanned, region, directivesInTheInlinedRegion, pathsBuiltFromMacros } = this.prepareFile(
+      path,
+      original,
+      isSubfile,
+    );
     const file: FileBeingFlattened = {
       path,
       baseDirectory,
@@ -119,18 +134,49 @@ class DocumentFlattener {
       scanned,
       regionEnd: region.end,
     };
-    const scan = findIncludeDirectives(scanned);
-    this.pathsBuiltFromMacros += scan.pathsBuiltFromMacros;
+    this.pathsBuiltFromMacros += pathsBuiltFromMacros;
 
     let flattened = "";
+    let atLineStart = true;
     let cursor = region.start;
-    for (const directive of scan.directives) {
-      if (directive.index < cursor || directive.index + directive.length > region.end) continue;
-      flattened += original.slice(cursor, directive.index);
-      flattened += await this.replaceDirective(directive, file, endsAtLineStart(flattened));
+    for (const directive of directivesInTheInlinedRegion) {
+      if (directive.index < cursor) continue;
+      const before = original.slice(cursor, directive.index);
+      atLineStart = endsAtLineStart(atLineStart, before);
+      const replacement = await this.replaceDirective(directive, file, atLineStart);
+      atLineStart = endsAtLineStart(atLineStart, replacement);
+      flattened += before + replacement;
       cursor = directive.index + directive.length;
+      // Checked as the text grows: a file that includes another large one many times would
+      // otherwise build a string past what JavaScript can hold before any check ran.
+      if (flattened.length > MAXIMUM_FLATTENED_LENGTH) {
+        throw new FlattenedDocumentTooLongError(
+          `The flattened document would pass ${MAXIMUM_FLATTENED_LENGTH} characters; the files ${path} includes add up to more than that.`,
+        );
+      }
     }
     return flattened + original.slice(cursor, region.end) + original.slice(region.tailStart, region.tailEnd);
+  }
+
+  private prepareFile(path: string, original: string, isSubfile: boolean): PreparedFile {
+    const key = `${isSubfile ? "subfile" : "input"} ${path}`;
+    const known = this.preparedFiles.get(key);
+    if (known) return known;
+    const masked = maskLatexSource(original);
+    const region = findInlinedRegion(masked, isSubfile);
+    const scanned = scanSource(path, masked);
+    const scan = findIncludeDirectives(scanned);
+    const prepared: PreparedFile = {
+      masked,
+      scanned,
+      region,
+      directivesInTheInlinedRegion: scan.directives.filter(
+        (directive) => directive.index >= region.start && directive.index + directive.length <= region.end,
+      ),
+      pathsBuiltFromMacros: scan.pathsBuiltFromMacros,
+    };
+    this.preparedFiles.set(key, prepared);
+    return prepared;
   }
 
   private leaveAsWritten(

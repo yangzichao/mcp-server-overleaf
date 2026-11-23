@@ -38,7 +38,7 @@ import {
 
 const BIBTEX = "application/x-bibtex";
 const BIBTEX_ENTRY_START = /^\s*@\s*[A-Za-z]+\s*[{(]/;
-export const TOO_MANY_REQUESTS_PAUSE_MS = 1_100;
+const TOO_MANY_REQUESTS_PAUSE_MS = 1_100;
 
 type MetadataRequest = (url: string, accept: string) => Promise<MetadataResponse>;
 

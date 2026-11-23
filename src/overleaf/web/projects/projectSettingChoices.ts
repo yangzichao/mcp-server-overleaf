@@ -11,7 +11,7 @@ import { readBooleanMetaTag, readJsonMetaTag } from "./editorPageMetaTags.js";
  * project's plan includes it is in the real-time project details instead.
  */
 
-export interface TexLiveImageChoice {
+interface TexLiveImageChoice {
   /** The value the settings route takes, such as "texlive-full:2025.1". */
   readonly imageName: string;
   readonly description: string;
@@ -19,7 +19,7 @@ export interface TexLiveImageChoice {
   readonly allowed: boolean;
 }
 
-export interface SpellCheckLanguageChoice {
+interface SpellCheckLanguageChoice {
   readonly code: string;
   readonly name: string;
 }

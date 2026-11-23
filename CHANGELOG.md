@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.5.1
+
+Fixes for what new property tests, a protocol fuzz, recheck and stricter compiler checks found.
+No tool changes its name or arguments.
+
+- On a disk that ignores case, as macOS does by default, a path that differs from a file's
+  name only in case is refused, and the reply names the file as stored. `manage_files`
+  (`delete`) with `Main.tex` used to delete `main.tex`, and `edit_file` (`write`) used to
+  overwrite it. A rename that changes only case, such as `main.tex` to `Main.tex`, is now made
+  in the clone and published by `push_changes` instead of refused.
+- `manage_files` (`restore`) with a folder and an older revision is refused. It used to put
+  every file in the folder back to that revision and delete the files added since.
+- Replies that read as success when nothing changed are now tool errors: a missing or repeated
+  snippet in `edit_file` (`replace_text`), a section title that matches nothing, a move whose
+  source is missing or whose destination is taken, a `startLine` past the last line, and a
+  rename of a project to the name it has.
+- A folder where a file was expected, a path inside a file and a missing file are described in
+  words, without Node's error codes or the clone's absolute path. A blank commit message is
+  refused before anything is staged, and a failed Git command reports its error once instead
+  of the whole command line.
+- `check_references` and `look_up_citations` follow BibTeX 0.99d in two places they used to
+  differ: an entry written inside another entry's field defines nothing, and a backslash
+  escapes no brace. `check_references` also counts `key` as defined in `@misc{key}` and
+  `@misc{key title = {T}}`, where no comma follows it, as BibTeX does.
+  natbib's `\Citet`, `\Citep` and `\Citeauthor`, biblatex's `\Cite` and `\Cites`,
+  `\vpageref[here][there]{key}` and a listing label after `caption={[short]long}` are read.
+  `\import{../}{a}` no longer finds the project root's `a.tex`.
+- `look_up_citations` (`find`) writes entries BibTeX reads as meant: an author with only a
+  family name stays one name, a name with "and" in it stays one person, a lone brace no longer
+  runs past the value, and a key for a name with particles starts with BibTeX's last part.
+- An edit sent to Overleaf's editor changes only what differs at each place it touches. An
+  edit that joined lines next to an identical line used to rewrite two lines, which dropped
+  what was anchored to them.
+- A Socket.IO frame with a negative length no longer loops forever. Regular expressions in the
+  LaTeX, arXiv, Crossref, texcount and editor page readers run in linear time, and flattening
+  40,000 `\input` lines takes 80 ms instead of 4 seconds. A tracked change dated past what a
+  Date holds, or a character reference past U+10FFFF, no longer throws.
+- Also: a `.env` with Windows line endings loads, overlapping secrets are redacted whole, an
+  SVG with a longer prolog gets the advice to render it to PNG, one null item in a Crossref
+  answer no longer fails the search, and each editor setting is read from its own meta tag.
+
 ## 0.5.0
 
 36 tools become 15. Each one only reads or only writes, and an `action` or `view` argument

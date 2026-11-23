@@ -15,8 +15,8 @@ export interface BibliographyResource {
 }
 
 const BIBTEX_PATTERN = /\\bibliography\s*\{([^{}]*)\}/g;
-const BIBLATEX_PATTERN = /\\(addbibresource|addglobalbib|addsectionbib)\s*(\[[^\]]*\])?\s*\{([^{}]*)\}/g;
-const BIBITEM_PATTERN = /\\bibitem\s*(?:\[[^\]]*\])?\s*\{([^{}]*)\}/g;
+const BIBLATEX_PATTERN = /\\(addbibresource|addglobalbib|addsectionbib)\s*(?:(\[[^[\]]*\])\s*)?\{([^{}]*)\}/g;
+const BIBITEM_PATTERN = /\\bibitem\s*(?:\[[^[\]]*\]\s*)?\{([^{}]*)\}/g;
 
 function isRemote(options: string | undefined, fileName: string): boolean {
   return /location\s*=\s*remote/.test(options ?? "") || /^[a-z]+:\/\//i.test(fileName);

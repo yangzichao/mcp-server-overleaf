@@ -1,10 +1,6 @@
-import {
-  findSectionByTitle,
-  parseLatexSections,
-  replaceSectionText,
-} from "../../../latex/parseLatexSections.js";
+import { replaceSectionText } from "../../../latex/parseLatexSections.js";
 import { requireEditorSafeText } from "../../../overleaf/realtime/editorSafeText.js";
-import { describeMissingSection } from "../../reading/readSectionByTitle.js";
+import { requireSectionByTitle } from "../../reading/readSectionByTitle.js";
 import { requireDocument, withReviewSession } from "../../review/openReviewSession.js";
 import { type ToolContext, type ToolTextResult, textResult } from "../../toolContext.js";
 import { EDITOR_CHANGE_IS_LIVE } from "../editorFileArguments.js";
@@ -31,17 +27,7 @@ export function replaceSectionInEditor(
     const document = requireDocument(session, edit.path);
     const joined = await session.joinDocument(document.documentId);
     const text = joined.lines.join("\n");
-    const sections = parseLatexSections(text);
-    const section = findSectionByTitle(sections, edit.sectionTitle);
-    if (!section) {
-      return textResult(
-        describeMissingSection(
-          document.path,
-          edit.sectionTitle,
-          sections.map((entry) => entry.title),
-        ),
-      );
-    }
+    const section = requireSectionByTitle(document.path, text, edit.sectionTitle);
     requireEditorWriteAccess(session);
     const heading = `\\${section.level}{${section.title}} (lines ${section.startLine}-${section.endLine})`;
     if (!(await sendTextChange(session, joined, replaceSectionText(text, section, edit.content)))) {

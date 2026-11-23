@@ -67,7 +67,13 @@ describe("manage_files on directories of the local clone", () => {
 
   it("refuses a destination that exists, a move into itself, and a path outside the project", async () => {
     const mcp = await start();
-    expect(await mcp.call("manage_files", { action: "move", path: "sections", toPath: "figures" })).toContain(
+    const takenDestination = await mcp.callRaw("manage_files", {
+      action: "move",
+      path: "sections",
+      toPath: "figures",
+    });
+    expect(takenDestination.result?.isError).toBe(true);
+    expect(takenDestination.result?.content?.[0]?.text).toContain(
       "figures already exists. Nothing was moved.",
     );
     const intoItself = await mcp.callRaw("manage_files", {

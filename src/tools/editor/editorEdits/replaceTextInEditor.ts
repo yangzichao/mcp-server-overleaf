@@ -1,5 +1,6 @@
 import { requireEditorSafeText } from "../../../overleaf/realtime/editorSafeText.js";
 import { buildReplacementOperations } from "../../../overleaf/realtime/replacementOperations.js";
+import { requireSnippetReplaced } from "../../editing/edits/requireSnippetReplaced.js";
 import { requireDocument, withReviewSession } from "../../review/openReviewSession.js";
 import { type ToolContext, type ToolTextResult, textResult } from "../../toolContext.js";
 import { EDITOR_CHANGE_IS_LIVE } from "../editorFileArguments.js";
@@ -28,15 +29,7 @@ export function replaceTextInEditor(
       edit.replaceWith,
       edit.replaceAll,
     );
-    if (replacement.status === "not-found") {
-      return textResult(`Text not found in ${document.path}. Nothing was changed.`);
-    }
-    if (replacement.status === "ambiguous") {
-      return textResult(
-        `Text appears ${replacement.occurrenceCount} times in ${document.path}. Nothing was changed. ` +
-          "Include more surrounding context to make the match unique, or set replaceAll.",
-      );
-    }
+    requireSnippetReplaced(document.path, replacement);
     requireEditorWriteAccess(session);
     await session.applyOperations(document.documentId, joined.version, replacement.operations);
     return textResult(

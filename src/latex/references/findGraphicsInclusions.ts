@@ -39,7 +39,7 @@ const EXTENSIONS_BY_COMMAND: Record<string, readonly string[]> = {
   includepdf: [".pdf"],
 };
 
-const GRAPHICS_PATTERN = /\\(includegraphics|includesvg|includepdf)\*?\s*(?:\[[^\]]*\])?\s*\{([^{}]*)\}/g;
+const GRAPHICS_PATTERN = /\\(includegraphics|includesvg|includepdf)\*?\s*(?:\[[^[\]]*\]\s*)?\{([^{}]*)\}/g;
 const GRAPHICSPATH_PATTERN = /\\graphicspath\s*\{((?:\s*\{[^{}]*\})*)\s*\}/g;
 
 export function findGraphicsPaths(file: VisitedSourceFile): string[] {

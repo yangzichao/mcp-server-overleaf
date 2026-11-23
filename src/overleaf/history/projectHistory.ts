@@ -1,5 +1,6 @@
 import type { GitCommandResult } from "../gitCommandRunner.js";
 import { type BlameRange, blameFile, type FileBlame } from "./blame/blameFile.js";
+import { describePathAtCommit, type PathKindAtCommit } from "./describePathAtCommit.js";
 
 /**
  * Read-only questions about a project's past, answered from the clone's Git history: which
@@ -23,7 +24,7 @@ export interface ProjectHistorySources {
   readonly latestOverleafRevision: () => Promise<string>;
 }
 
-export interface ChangedFile {
+interface ChangedFile {
   /** Git's status letter: A added, M modified, D deleted, R renamed, C copied. */
   readonly status: string;
   readonly path: string;
@@ -51,7 +52,7 @@ export const COMMIT_HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 const RECORD_SEPARATOR = "\u001e";
 const FIELD_SEPARATOR = "\u001f";
 
-export class UnknownRevisionError extends Error {}
+class UnknownRevisionError extends Error {}
 
 function parseChangedFiles(lines: readonly string[]): ChangedFile[] {
   const files: ChangedFile[] = [];
@@ -120,8 +121,15 @@ export class ProjectHistory {
   async readTextAt(revision: string, relativePath: string): Promise<string> {
     const hash = await this.resolveCommit(revision);
     const gitPath = await this.sources.toGitPath(relativePath);
-    const result = await this.sources.git(["show", `${hash}:${gitPath}`], { tolerateFailure: true });
-    if (result.exitCode !== 0) {
+    const kind = await describePathAtCommit(this.sources.git, hash, gitPath);
+    // git show prints a folder's listing, which would read as the text of a file.
+    if (kind === "folder")
+      throw new Error(`${relativePath} was a folder at revision ${revision}, not a file.`);
+    const result =
+      kind === "file"
+        ? await this.sources.git(["show", `${hash}:${gitPath}`], { tolerateFailure: true })
+        : undefined;
+    if (result === undefined || result.exitCode !== 0) {
       throw new Error(
         `${relativePath} did not exist at revision ${revision}. read_history with this path shows when it did.`,
       );
@@ -132,13 +140,9 @@ export class ProjectHistory {
     return result.stdout;
   }
 
-  async fileExistedAt(revision: string, relativePath: string): Promise<boolean> {
+  async describePathAt(revision: string, relativePath: string): Promise<PathKindAtCommit> {
     const hash = await this.resolveCommit(revision);
-    const gitPath = await this.sources.toGitPath(relativePath);
-    const result = await this.sources.git(["cat-file", "-e", `${hash}:${gitPath}`], {
-      tolerateFailure: true,
-    });
-    return result.exitCode === 0;
+    return describePathAtCommit(this.sources.git, hash, await this.sources.toGitPath(relativePath));
   }
 
   /** A unified diff; `toRevision` defaults to what Overleaf held when last fetched. */

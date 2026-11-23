@@ -7,10 +7,16 @@ import type { BibliographyRecord } from "./parseBibliographyRecords.js";
 
 const DOI_PATTERN = /^10\.\d{4,9}\/\S+$/;
 const DOI_IN_URL_PATTERN = /^https?:\/\/(?:dx\.)?doi\.org\/(10\.\d{4,9}\/\S+)$/i;
-const NEW_ARXIV_ID = /^\d{4}\.\d{4,5}(?:v\d+)?$/;
-const OLD_ARXIV_ID = /^[a-z-]+(?:\.[A-Z]{2})?\/\d{7}(?:v\d+)?$/;
-const ARXIV_IN_URL_PATTERN = /arxiv\.org\/(?:abs|pdf)\/([^\s?#]+?)(?:\.pdf)?\/?$/i;
-const ARXIV_IN_TEXT_PATTERN = /arXiv:\s*(\d{4}\.\d{4,5}(?:v\d+)?|[a-z-]+(?:\.[A-Z]{2})?\/\d{7}(?:v\d+)?)/i;
+const NEW_ARXIV_ID_SHAPE = String.raw`\d{4}\.\d{4,5}(?:v\d+)?`;
+const OLD_ARXIV_ID_SHAPE = String.raw`[a-z-]+(?:\.[A-Z]{2})?/\d{7}(?:v\d+)?`;
+const ARXIV_ID_SHAPES = `${NEW_ARXIV_ID_SHAPE}|${OLD_ARXIV_ID_SHAPE}`;
+const NEW_ARXIV_ID = new RegExp(`^${NEW_ARXIV_ID_SHAPE}$`);
+const OLD_ARXIV_ID = new RegExp(`^${OLD_ARXIV_ID_SHAPE}$`);
+const ARXIV_IN_URL_PATTERN = new RegExp(
+  String.raw`arxiv\.org/(?:abs|pdf)/(${ARXIV_ID_SHAPES})(?:\.pdf)?/?$`,
+  "i",
+);
+const ARXIV_IN_TEXT_PATTERN = new RegExp(String.raw`arXiv:\s*(${ARXIV_ID_SHAPES})`, "i");
 
 function stripBraces(value: string): string {
   return value.replace(/[{}]/g, "").trim();
@@ -46,7 +52,7 @@ export function findArxivId(record: BibliographyRecord): string | undefined {
 
 /** The first author's family name, which sharpens a title search considerably. */
 export function findFirstAuthorFamilyName(record: BibliographyRecord): string | undefined {
-  const firstAuthor = (record.fields.get("author") ?? "").split(/\s+and\s+/i)[0]?.trim();
+  const firstAuthor = (record.fields.get("author") ?? "").split(/\sand\s/i)[0]?.trim();
   if (!firstAuthor) return undefined;
   const familyName = firstAuthor.includes(",") ? firstAuthor.split(",")[0] : firstAuthor.split(/\s+/).pop();
   const cleaned = stripBraces(familyName ?? "");

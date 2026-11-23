@@ -1,16 +1,27 @@
+import { findXmlElement } from "./findXmlElement.js";
+
 /**
  * The title of the first entry in an arXiv API answer. The API answers in Atom, errors
  * included: a malformed id comes back as an entry titled "Error".
  */
 
 const XML_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+const XML_REFERENCE = /&(?:(amp|lt|gt|quot|apos)|#([0-9]{1,8})|#x([0-9A-Fa-f]{1,8}));/g;
+const LARGEST_CODE_POINT = 0x10ffff;
+
+function decodeXmlReference(
+  written: string,
+  entityName: string | undefined,
+  decimalCode: string | undefined,
+  hexadecimalCode: string | undefined,
+): string {
+  if (entityName !== undefined) return XML_ENTITIES[entityName] ?? written;
+  const code = decimalCode !== undefined ? Number(decimalCode) : Number.parseInt(hexadecimalCode ?? "", 16);
+  return code <= LARGEST_CODE_POINT ? String.fromCodePoint(code) : written;
+}
 
 export function decodeXmlText(text: string): string {
-  return text
-    .replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => XML_ENTITIES[name] ?? "")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/\s+/g, " ")
-    .trim();
+  return text.replace(XML_REFERENCE, decodeXmlReference).replace(/\s+/g, " ").trim();
 }
 
 export type ArxivFeedEntry =
@@ -19,14 +30,11 @@ export type ArxivFeedEntry =
   | { readonly kind: "none" };
 
 export function parseFirstArxivEntry(atomFeed: string): ArxivFeedEntry {
-  const entry = /<entry\b[^>]*>([\s\S]*?)<\/entry>/.exec(atomFeed)?.[1];
+  const entry = findXmlElement(atomFeed, "entry")?.content;
   if (entry === undefined) return { kind: "none" };
-  const title = decodeXmlText(/<title\b[^>]*>([\s\S]*?)<\/title>/.exec(entry)?.[1] ?? "");
+  const title = decodeXmlText(findXmlElement(entry, "title")?.content ?? "");
   if (title === "Error") {
-    return {
-      kind: "error",
-      summary: decodeXmlText(/<summary\b[^>]*>([\s\S]*?)<\/summary>/.exec(entry)?.[1] ?? ""),
-    };
+    return { kind: "error", summary: decodeXmlText(findXmlElement(entry, "summary")?.content ?? "") };
   }
   return title === "" ? { kind: "none" } : { kind: "article", title };
 }

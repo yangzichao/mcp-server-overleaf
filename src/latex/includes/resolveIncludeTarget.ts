@@ -1,4 +1,4 @@
-import { directoryOf, findFirstExistingPath, joinProjectPath } from "../source/projectPaths.js";
+import { directoryOf, findFirstExistingPath, joinProjectDirectory } from "../source/projectPaths.js";
 import type { IncludeDirective } from "./findIncludeDirectives.js";
 
 /**
@@ -30,7 +30,7 @@ function candidateFileNames(directive: IncludeDirective): string[] {
 function importedDirectories(directive: IncludeDirective, includer: IncludingFile): string[] {
   const writtenDirectory = directive.importDirectory ?? "";
   const starts = directive.importIsRelative ? [includer.baseDirectory, directoryOf(includer.path)] : [""];
-  return starts.map((start) => joinProjectPath(start, writtenDirectory) ?? "");
+  return starts.flatMap((start) => joinProjectDirectory(start, writtenDirectory) ?? []);
 }
 
 export function resolveIncludeTarget(

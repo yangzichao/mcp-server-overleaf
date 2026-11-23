@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
-import { ConnectedOverleafProject, publishedPaper } from "./support/connectedOverleafProject.js";
+import { ConnectedOverleafProject, publishedPaper } from "../support/connectedOverleafProject.js";
 
 /**
  * The same promise the README makes, written so a reader who does not know this codebase can

@@ -105,10 +105,6 @@ function outputFilePath(file: CompileOutputFile, result: OverleafCompileResult):
   return search ? `${file.url}?${search}` : file.url;
 }
 
-export function findOutputFile(result: OverleafCompileResult, path: string): CompileOutputFile | undefined {
-  return result.outputFiles.find((file) => file.path === path);
-}
-
 export async function downloadOutputFile(
   client: OverleafWebClient,
   result: OverleafCompileResult,

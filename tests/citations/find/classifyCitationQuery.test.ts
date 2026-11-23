@@ -41,6 +41,17 @@ describe("classifyCitationQuery", () => {
     }
   });
 
+  it("reads an old arXiv id whatever case its archive and subject class are in", () => {
+    const forms: Array<[string, string]> = [
+      ["math.gt/0309136", "math.GT/0309136"],
+      ["arXiv:MATH.GT/0309136V2", "math.GT/0309136v2"],
+      ["https://arxiv.org/abs/Math.Gt/0309136", "math.GT/0309136"],
+    ];
+    for (const [written, arxivId] of forms) {
+      expect(classifyCitationQuery(written), written).toEqual({ kind: "arxiv", arxivId });
+    }
+  });
+
   it("takes anything else as words to search for, with its spacing tidied", () => {
     expect(classifyCitationQuery("  Attention is all\n you need  Vaswani 2017")).toEqual({
       kind: "text",

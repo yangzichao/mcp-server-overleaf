@@ -147,7 +147,7 @@ export class OverleafProjectRegistry {
     const { overleafProjectId, overleafGitToken } = this.resolveGitProject(requestedProject);
 
     const cached = this.repositoryCache.get(overleafProjectId);
-    if (cached) {
+    if (cached !== undefined) {
       const repository = await cached;
       await repository.ensureCloned();
       return repository;

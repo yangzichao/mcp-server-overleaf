@@ -89,11 +89,11 @@ describe("manage_tracked_changes suggesting a whole section or document", () => 
     expect(trackedTexts(documentId)).toEqual(["+, revised"]);
   });
 
-  it("lists the section titles when the section is missing", async () => {
+  it("refuses a missing section, listing the titles there are", async () => {
     const documentId = addChapterWithComment();
     const client = await startCookieOnlyClient(harness);
     expect(
-      await client.call("manage_tracked_changes", {
+      await callExpectingError(client, "manage_tracked_changes", {
         action: "suggest",
         path: "chapter.tex",
         sectionTitle: "Results",

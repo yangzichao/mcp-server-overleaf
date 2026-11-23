@@ -1,3 +1,4 @@
+import { findAllXmlElements, findXmlElement } from "../../metadataServices/findXmlElement.js";
 import { decodeXmlText } from "../../metadataServices/parseArxivFeed.js";
 
 /**
@@ -27,33 +28,38 @@ export type ArxivFeedPaper =
   | { readonly kind: "none" };
 
 function elementText(xml: string, elementName: string): string | undefined {
-  const pattern = new RegExp(`<${elementName}\\b[^>]*>([\\s\\S]*?)</${elementName}>`);
-  const text = pattern.exec(xml)?.[1];
-  const decoded = text === undefined ? "" : decodeXmlText(text);
+  const content = findXmlElement(xml, elementName)?.content;
+  const decoded = content === undefined ? "" : decodeXmlText(content);
   return decoded === "" ? undefined : decoded;
 }
 
 function categoryTerm(entry: string): string | undefined {
   const term =
-    /<arxiv:primary_category\b[^>]*\bterm="([^"]+)"/.exec(entry)?.[1] ??
-    /<category\b[^>]*\bterm="([^"]+)"/.exec(entry)?.[1];
+    /<arxiv:primary_category\b[^<>]*\bterm="([^"]+)"/.exec(entry)?.[1] ??
+    /<category\b[^<>]*\bterm="([^"]+)"/.exec(entry)?.[1];
   return term === undefined ? undefined : decodeXmlText(term);
 }
 
+function versionedIdFrom(abstractPage: string): string {
+  const lastWord = abstractPage.split(/\s/).at(-1) ?? "";
+  const marker = /arxiv\.org\/abs\//i.exec(lastWord);
+  return marker ? lastWord.slice(marker.index + marker[0].length) : "";
+}
+
 export function parseArxivPaper(atomFeed: string): ArxivFeedPaper {
-  const entry = /<entry\b[^>]*>([\s\S]*?)<\/entry>/.exec(atomFeed)?.[1];
+  const entry = findXmlElement(atomFeed, "entry")?.content;
   if (entry === undefined) return { kind: "none" };
   const title = elementText(entry, "title");
   if (title === "Error") return { kind: "error", summary: elementText(entry, "summary") ?? "" };
   if (title === undefined) return { kind: "none" };
-  const authorNames = [...entry.matchAll(/<author\b[^>]*>([\s\S]*?)<\/author>/g)].flatMap((author) => {
-    const name = elementText(author[1] ?? "", "name");
+  const authorNames = findAllXmlElements(entry, "author").flatMap((author) => {
+    const name = elementText(author, "name");
     return name === undefined ? [] : [name];
   });
   return {
     kind: "paper",
     paper: {
-      versionedId: /arxiv\.org\/abs\/(\S+)$/i.exec(elementText(entry, "id") ?? "")?.[1] ?? "",
+      versionedId: versionedIdFrom(elementText(entry, "id") ?? ""),
       title,
       authorNames,
       published: elementText(entry, "published"),

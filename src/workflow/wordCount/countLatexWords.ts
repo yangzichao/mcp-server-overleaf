@@ -9,7 +9,7 @@ import { parseTexcountReport, type TexcountCounts, type TexcountReport } from ".
 const execFileAsync = promisify(execFile);
 
 /** Overleaf gives texcount a minute for its Word Count menu. */
-export const DEFAULT_WORD_COUNT_TIMEOUT_MS = 60_000;
+const DEFAULT_WORD_COUNT_TIMEOUT_MS = 60_000;
 
 /** texcount is not installed, failed, ran out of time, or could not read the main file. */
 export class WordCountFailedError extends Error {}

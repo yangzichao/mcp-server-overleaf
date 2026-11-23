@@ -19,7 +19,7 @@ export interface OverleafBinaryFileEntry {
 }
 
 /** A folder below the root; the root folder itself has no path and is `rootFolderId`. */
-export interface OverleafFolderEntry {
+interface OverleafFolderEntry {
   readonly path: string;
   readonly folderId: string;
 }

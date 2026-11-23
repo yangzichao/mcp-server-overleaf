@@ -94,6 +94,14 @@ describe("managing projects in the account", () => {
     expect(accountProject(harness.editor.projectId)?.name).toBe("Final Paper");
   });
 
+  it("says nothing changed when the project already has the name, without asking Overleaf", async () => {
+    const client = await harness.startClient();
+    expect(await client.call("manage_project", { action: "rename", name: "Fake paper" })).toBe(
+      '"Fake paper" already has that name; nothing changed.',
+    );
+    expect(requestsTo(/\/rename$/)).toEqual([]);
+  });
+
   it("refuses to rename a project someone else owns, before asking Overleaf", async () => {
     const client = await harness.startClient();
     const answer = await client.call("manage_project", {

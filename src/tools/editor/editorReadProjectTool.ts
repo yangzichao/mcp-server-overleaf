@@ -91,7 +91,7 @@ export function registerEditorReadProjectTool(server: McpServer, context: ToolCo
       description:
         "Read one project as Overleaf's editor holds it now; view picks what. " +
         "overview, the default, orients at the start of a task: the project's name, the main document set in Overleaf's menu, how many editable documents and binary uploads it has, the compiler, TeX Live image and spell-check language, whether track changes is on and for whom, and this account's access level. " +
-        "files lists every file, grouped by kind (LaTeX sources, bibliographies, figures, other), marking uploads such as images (binary); read_file cannot read those, and manage_project (action download_zip) saves them with the rest of the project. " +
+        "files lists every file, grouped by kind (LaTeX sources, bibliographies, figures, other), marking uploads such as images (binary); read_file shows a PNG, JPEG, GIF or WebP upload as an image, and manage_project (action download_zip) saves any other upload with the rest of the project. " +
         "outline lists the sectioning commands of path, or of the main document, with nesting and line ranges, following \\input and \\include into the files it includes unless followIncludes is false; commented-out headings are skipped, and pending suggestions are read as if accepted. " +
         `${MEMBERS_VIEW_SENTENCE} ` +
         `${WORD_COUNT_VIEW_SENTENCE} ` +

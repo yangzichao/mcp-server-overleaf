@@ -34,7 +34,7 @@ export function registerEditorReadFileTool(server: McpServer, context: ToolConte
         "followIncludes returns a .tex file with the files it includes inlined, to read a paper split across files in one call. " +
         "Text is cut off after 60,000 characters, so use a line range or a section to sample a large file. " +
         `${IMAGE_READ_DESCRIPTION} ` +
-        "Fails for a path that is neither a document nor an upload, naming the documents that exist; for any other upload, which manage_project (action download_zip) can fetch, and a PDF or EPS figure is refused with the command that renders it to PNG; for sectionTitle combined with a line range; for followIncludes combined with any other read argument or on a file that is not .tex; and for startLine after endLine.",
+        "Fails for a path that is neither a document nor an upload, naming the documents that exist; for any other upload, which manage_project (action download_zip) can fetch, and a PDF or EPS figure is refused with the command that renders it to PNG; for sectionTitle combined with a line range; for followIncludes combined with any other read argument or on a file that is not .tex; and for startLine after endLine or past the last line.",
       inputSchema: z.object({
         project: projectArgument,
         path: editorPathArgument,

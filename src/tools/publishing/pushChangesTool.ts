@@ -33,6 +33,8 @@ export function registerPushChangesTool(server: McpServer, context: ToolContext)
         project: projectArgument,
         commitMessage: z
           .string()
+          .trim()
+          .min(1, "Write one line saying what the change does; an empty message cannot be pushed.")
           .describe(
             'Message describing the change, shown in the project\'s Overleaf history. One line, written for a co-author, e.g. "Rewrite Section 4 discussion".',
           ),

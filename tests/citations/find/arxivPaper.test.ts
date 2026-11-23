@@ -80,6 +80,36 @@ describe("parseArxivPaper", () => {
   });
 });
 
+describe("parseArxivPaper on a feed built to make a backtracking search slow", () => {
+  const titled = (rest: string) => `<feed><entry><title>T</title>${rest}</entry></feed>`;
+
+  it.each([
+    ["entries that never close", `${"ntry><entry>".repeat(60_000)}ntry>`, { kind: "none" }],
+    ["titles that never close", `<entry>${"<title>0".repeat(150_000)}</entry>`, { kind: "none" }],
+    ["authors that never close", titled("<author/0".repeat(40_000)), { paper: { authorNames: [] } }],
+    [
+      "primary categories that never close",
+      titled("<arxiv:primary_category<a".repeat(25_000)),
+      { paper: { primaryCategory: undefined } },
+    ],
+    [
+      "categories that never close",
+      titled("<category\u0000m".repeat(40_000)),
+      { paper: { primaryCategory: undefined } },
+    ],
+    [
+      "an id holding many abstract-page addresses",
+      titled(`<id>${"ARXIV.ORG/ABS/O".repeat(30_000)}\tARXIV.ORG/ABS/S</id>`),
+      { paper: { versionedId: "S" } },
+    ],
+  ])("reads %s at once", (_, feed, expected) => {
+    const started = performance.now();
+    const answer = parseArxivPaper(feed);
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(answer).toMatchObject(expected);
+  });
+});
+
 describe("arxivPaperEntry", () => {
   function written(feed: string, requestedId: string): string {
     const answer = parseArxivPaper(feed);

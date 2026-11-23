@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -68,13 +68,37 @@ assert.equal(
 );
 assert.ok(publishedMetadata.dist.attestations?.url, "npm did not record provenance attestations");
 
+// Even after the checks above pass, npm's own request for the packument can reach a CDN copy
+// that still lacks the version: 0.5.0's install failed with ETARGET right after they passed.
+// So an install that fails that way is retried while the copies catch up, and --prefer-online
+// keeps npm from answering a retry out of its own cache.
+const installRetryTimeoutMilliseconds = 5 * 60_000;
+const staleRegistryAnswer = /\b(ETARGET|E404)\b/;
+
+async function installPublishedPackage(directory) {
+  const retryDeadline = Date.now() + installRetryTimeoutMilliseconds;
+  for (;;) {
+    const install = spawnSync(
+      "npm",
+      ["install", "--ignore-scripts", "--no-fund", "--prefer-online", manifest.id],
+      {
+        cwd: directory,
+        stdio: ["ignore", "inherit", "pipe"],
+        encoding: "utf8",
+        timeout: 180_000,
+      },
+    );
+    process.stderr.write(install.stderr ?? "");
+    if (install.status === 0) return;
+    const registryWasStale = staleRegistryAnswer.test(install.stderr ?? "");
+    assert.ok(registryWasStale && Date.now() < retryDeadline, `npm install ${manifest.id} failed`);
+    await setTimeout(registryPollIntervalMilliseconds);
+  }
+}
+
 const consumerDirectory = mkdtempSync(join(tmpdir(), "overleaf-published-check-"));
 try {
-  execFileSync("npm", ["install", "--ignore-scripts", "--no-fund", manifest.id], {
-    cwd: consumerDirectory,
-    stdio: "inherit",
-    timeout: 180_000,
-  });
+  await installPublishedPackage(consumerDirectory);
   execFileSync("npm", ["audit", "signatures"], {
     cwd: consumerDirectory,
     stdio: "inherit",

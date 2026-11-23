@@ -40,10 +40,10 @@ describe("edit_file over the editor, with only a session cookie", () => {
     expect(harness.editor.trackedChanges(documentId)).toHaveLength(0);
   });
 
-  it("lists the section titles when the section is missing, and changes nothing", async () => {
+  it("refuses a missing section, listing the titles there are, and changes nothing", async () => {
     const documentId = addChapterWithComment();
     const client = await startCookieOnlyClient(harness);
-    const answer = await client.call("edit_file", {
+    const answer = await callExpectingError(client, "edit_file", {
       action: "replace_section",
       path: "chapter.tex",
       sectionTitle: "Results",

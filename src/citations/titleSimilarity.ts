@@ -6,7 +6,7 @@
 
 export function normalizeTitleWords(title: string): string[] {
   return title
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<[^<>]+>/g, " ")
     .replace(/\\[a-zA-Z]+\*?/g, " ")
     .replace(/\\./g, "")
     .replace(/[{}$]/g, "")

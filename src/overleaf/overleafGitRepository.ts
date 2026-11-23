@@ -10,7 +10,13 @@ import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./g
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import {
+  NameSpelledOtherwiseOnDiskError,
+  refuseNameSpelledOtherwiseOnDisk,
+} from "./workingTree/diskSpelling/refuseNameSpelledOtherwiseOnDisk.js";
+import { isNothingAtPathError } from "./workingTree/isNothingAtPathError.js";
 import { ProjectDirectories } from "./workingTree/projectDirectories.js";
+import { requireFileShapedPath } from "./workingTree/requireFileShapedPath.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -43,7 +49,7 @@ export interface OverleafGitRepositoryOptions {
   readonly checkoutMode?: CheckoutMode;
 }
 
-export class DetachedHeadError extends Error {}
+class DetachedHeadError extends Error {}
 
 export class BinaryFileError extends Error {}
 
@@ -237,9 +243,15 @@ export class OverleafGitRepository {
    * files are all skipped.
    */
   private async isTrackedInIndex(absolutePath: string): Promise<boolean> {
-    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
-    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPath}`]);
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${this.gitPathOf(absolutePath)}`]);
     return stdout.split("\0").some((entry) => entry !== "");
+  }
+
+  private async isTrackedUnderThatSpelling(gitPathPrefix: string): Promise<boolean> {
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPathPrefix}`]);
+    return stdout
+      .split("\0")
+      .some((entry) => entry === gitPathPrefix || entry.startsWith(`${gitPathPrefix}/`));
   }
 
   private async materializePathIfNeeded(relativePath: string): Promise<void> {
@@ -248,7 +260,7 @@ export class OverleafGitRepository {
       await stat(absolutePath);
       return;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (!isNothingAtPathError(error)) throw error;
     }
 
     // Absent from the working tree means one of two different things, and expanding for
@@ -261,26 +273,41 @@ export class OverleafGitRepository {
     await this.materializeAllFiles();
   }
 
-  /**
-   * The single place a client-supplied path becomes an absolute one. Both halves of the
-   * guard run here: path arithmetic first, then the symlink check, which needs the disk.
-   */
   private async resolveClientPath(relativePath: string): Promise<string> {
+    const absolutePath = await this.resolveContainedPathInAnySpelling(relativePath);
+    await refuseNameSpelledOtherwiseOnDisk(
+      this.options.repositoryDirectory,
+      this.gitPathOf(absolutePath),
+      (gitPathPrefix) => this.isTrackedUnderThatSpelling(gitPathPrefix),
+    );
+    return absolutePath;
+  }
+
+  private async resolveContainedPathInAnySpelling(relativePath: string): Promise<string> {
     const absolutePath = resolvePathInsideRepository(this.options.repositoryDirectory, relativePath);
     await assertRealPathInsideRepository(this.options.repositoryDirectory, absolutePath);
     return absolutePath;
   }
 
-  /** A validated client path in the form Git prints and takes: relative, with forward slashes. */
+  private gitPathOf(absolutePath: string): string {
+    return relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+  }
+
   private async toGitPath(relativePath: string): Promise<string> {
-    return relative(this.options.repositoryDirectory, await this.resolveClientPath(relativePath))
-      .split(sep)
-      .join("/");
+    return this.gitPathOf(await this.resolveClientPath(relativePath));
   }
 
   async readTextFile(relativePath: string): Promise<string> {
     await this.materializePathIfNeeded(relativePath);
-    const contents = await readFile(await this.resolveClientPath(relativePath));
+    const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
+    let contents: Buffer;
+    try {
+      contents = await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      throw await this.missingFileError(relativePath, absolutePath);
+    }
 
     // Figures and PDFs decode to pages of mojibake that would go straight into the
     // model's context and tell it nothing. A NUL byte early on is the usual tell.
@@ -299,15 +326,14 @@ export class OverleafGitRepository {
    */
   async readFileBytes(relativePath: string): Promise<Buffer> {
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     try {
       return await readFile(absolutePath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    const indexEntry = await this.describeIndexEntry(absolutePath);
-    if (indexEntry === "untracked") throw new Error(`No file ${relativePath} in the project.`);
-    if (indexEntry === "tracked") {
-      throw new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`);
+    if ((await this.describeIndexEntry(absolutePath)) !== "skipped") {
+      throw await this.missingFileError(relativePath, absolutePath);
     }
     return await runGitCommandForBytes({
       workingDirectory: this.options.repositoryDirectory,
@@ -316,12 +342,18 @@ export class OverleafGitRepository {
     });
   }
 
+  private async missingFileError(relativePath: string, absolutePath: string): Promise<Error> {
+    return (await this.describeIndexEntry(absolutePath)) === "tracked"
+      ? new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`)
+      : new Error(`No file ${relativePath} in the project.`);
+  }
+
   /**
    * Whether Git tracks a path absent from disk, and why it is absent: `ls-files -t` marks a file
    * sparse checkout skipped with S, while one deleted in the clone keeps the plain H.
    */
   private async describeIndexEntry(absolutePath: string): Promise<"untracked" | "tracked" | "skipped"> {
-    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+    const gitPath = this.gitPathOf(absolutePath);
     const { stdout } = await this.git(["ls-files", "-t", "-z", "--", `:(literal)${gitPath}`]);
     const entries = stdout.split("\0").filter((entry) => entry !== "");
     if (entries.length === 0) return "untracked";
@@ -332,6 +364,7 @@ export class OverleafGitRepository {
   async writeFileBytes(relativePath: string, content: Buffer): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content);
   }
@@ -361,7 +394,8 @@ export class OverleafGitRepository {
   history(): ProjectHistory {
     return new ProjectHistory({
       git: (args, options) => this.git(args, options),
-      toGitPath: (relativePath) => this.toGitPath(relativePath),
+      toGitPath: async (relativePath) =>
+        this.gitPathOf(await this.resolveContainedPathInAnySpelling(relativePath)),
       latestOverleafRevision: async () => `origin/${await this.getBranchName()}`,
     });
   }
@@ -369,6 +403,7 @@ export class OverleafGitRepository {
   async writeTextFile(relativePath: string, content: string): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content, "utf8");
   }
@@ -403,6 +438,7 @@ export class OverleafGitRepository {
     // resolveClientPath contains a path that does not exist yet by checking its nearest
     // existing ancestor, so a symlinked directory cannot be used to move a file out.
     const toAbsolutePath = await this.resolveClientPath(toRelativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, toRelativePath, toAbsolutePath);
     await mkdir(dirname(toAbsolutePath), { recursive: true });
     await rename(fromAbsolutePath, toAbsolutePath);
   }
@@ -413,8 +449,13 @@ export class OverleafGitRepository {
       const entry = await stat(await this.resolveClientPath(relativePath));
       return entry.isFile();
     } catch (error) {
-      if (error instanceof UnsafeRepositoryPathError || (error as NodeJS.ErrnoException).code === "ENOENT")
+      if (
+        error instanceof UnsafeRepositoryPathError ||
+        error instanceof NameSpelledOtherwiseOnDiskError ||
+        isNothingAtPathError(error)
+      ) {
         return false;
+      }
       throw error;
     }
   }

@@ -11,8 +11,8 @@ import { registerOverleafTools } from "../tools/registerOverleafTools.js";
 import type { ToolContext } from "../tools/toolContext.js";
 import { describeServerInstructions } from "./serverInstructions.js";
 
-export const SERVER_NAME = PACKAGE_NAME;
-export const SERVER_VERSION = PACKAGE_VERSION;
+const SERVER_NAME = PACKAGE_NAME;
+const SERVER_VERSION = PACKAGE_VERSION;
 
 /**
  * Built once per process and shared by every transport, because it owns the clone

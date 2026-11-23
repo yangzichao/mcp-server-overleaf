@@ -170,6 +170,14 @@ describe("parseTexcountReport", () => {
     expect(report.files[0]?.sections.map((section) => section.heading)).toEqual(["_top_", "Section: Next"]);
   });
 
+  it("passes over a long line that opens like a problem and never closes, at once", () => {
+    const tabs = "\t".repeat(2000);
+    const started = performance.now();
+    const report = parseTexcountReport(`!!!${tabs}\u0000${tabs}\n\u0000!!!`);
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(report.problems).toEqual([]);
+  });
+
   it("has no totals when texcount could not read the main file", () => {
     expect(parseTexcountReport(UNREADABLE_MAIN_FILE)).toEqual({
       totals: undefined,

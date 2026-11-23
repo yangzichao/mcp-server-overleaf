@@ -50,6 +50,21 @@ describe("parseBibliographyRecords", () => {
     );
     expect(records.map((record) => record.key)).toEqual(["fine"]);
   });
+
+  it("reads no entry inside a field value, and leaves out one whose value a backslash cannot keep open", () => {
+    const records = parseBibliographyRecords(
+      "refs.bib",
+      [
+        "@article{outer, note = {see @misc{inner, title = {Inner}}}}",
+        "@article{sale, title = {50\\% \\} off}}",
+        "@book{fine, title = {Fine}}",
+      ].join("\n"),
+    );
+    expect(records.map((record) => [record.key, Object.fromEntries(record.fields)])).toEqual([
+      ["outer", { note: "see @misc{inner, title = {Inner}}" }],
+      ["fine", { title: "Fine" }],
+    ]);
+  });
 });
 
 describe("citation identifiers", () => {
@@ -114,5 +129,17 @@ describe("parseFirstArxivEntry", () => {
       ),
     ).toEqual({ kind: "error", summary: "incorrect id format for 1234.1" });
     expect(parseFirstArxivEntry("<feed><title>empty</title></feed>")).toEqual({ kind: "none" });
+  });
+  it("decodes each reference once, and keeps one past U+10FFFF as written", () => {
+    expect(
+      parseFirstArxivEntry("<feed><entry><title>R&amp;#65; &#x3B1; &#65;</title></entry></feed>"),
+    ).toEqual({
+      kind: "article",
+      title: "R&#65; \u03b1 A",
+    });
+    expect(parseFirstArxivEntry("<feed><entry><title>Bad &#99999999;</title></entry></feed>")).toEqual({
+      kind: "article",
+      title: "Bad &#99999999;",
+    });
   });
 });

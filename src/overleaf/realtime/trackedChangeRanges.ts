@@ -10,7 +10,7 @@
  * read from ranges alone carries its anchor and thread but no text.
  */
 
-export type TrackedChangeKind = "insertion" | "deletion";
+type TrackedChangeKind = "insertion" | "deletion";
 
 export interface TrackedChange {
   readonly changeId: string;
@@ -40,11 +40,16 @@ function readString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function toIsoDate(milliseconds: number): string | undefined {
+  const date = new Date(milliseconds);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 function readTimestamp(value: unknown): string | undefined {
-  if (typeof value === "number") return new Date(value).toISOString();
+  if (typeof value === "number") return toIsoDate(value);
   if (typeof value === "string") {
     const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? value : new Date(parsed).toISOString();
+    return Number.isNaN(parsed) ? value : toIsoDate(parsed);
   }
   return undefined;
 }

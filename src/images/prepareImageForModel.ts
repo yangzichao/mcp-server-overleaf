@@ -47,16 +47,34 @@ function textStart(bytes: Uint8Array): string {
 
 const RENDER_FIRST = "Render it to PNG first, then read the PNG";
 
-/** True when the text opens an SVG file, after any XML declaration, comments and doctype. */
+function endOf(text: string, closing: string, from: number): number {
+  const closingAt = text.indexOf(closing, from);
+  return closingAt === -1 ? -1 : closingAt + closing.length;
+}
+
+/** A doctype ends at its first `>`, unless an internal subset in brackets, which holds `>` too, comes first. */
+function endOfDoctype(text: string): number {
+  const firstClose = text.indexOf(">");
+  const subsetStart = text.indexOf("[");
+  if (subsetStart === -1 || subsetStart > firstClose) return firstClose === -1 ? -1 : firstClose + 1;
+  const subsetEnd = /\]\s*>/g;
+  subsetEnd.lastIndex = subsetStart;
+  const close = subsetEnd.exec(text);
+  return close ? close.index + close[0].length : -1;
+}
+
 function startsAsSvg(start: string): boolean {
-  let rest = start.replace(/^<\?xml[^>]*>\s*/i, "");
-  while (rest.startsWith("<!--")) {
-    const commentEnd = rest.indexOf("-->", 4);
-    if (commentEnd === -1) return false;
-    rest = rest.slice(commentEnd + 3).trimStart();
+  let rest = start;
+  for (;;) {
+    rest = rest.trimStart();
+    let end: number;
+    if (rest.startsWith("<!--")) end = endOf(rest, "-->", 4);
+    else if (rest.startsWith("<?")) end = endOf(rest, "?>", 2);
+    else if (/^<!DOCTYPE svg[\s>[]/i.test(rest)) end = endOfDoctype(rest);
+    else return /^<svg[\s>]/i.test(rest);
+    if (end === -1) return false;
+    rest = rest.slice(end);
   }
-  rest = rest.replace(/^<!DOCTYPE svg[^>]*>\s*/i, "");
-  return /^<svg[\s>]/i.test(rest);
 }
 
 /**

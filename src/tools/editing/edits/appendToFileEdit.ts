@@ -11,7 +11,13 @@ export interface FileAppend {
 
 /** Adds content at the end of a file that already exists, leaving every line above it alone. */
 export async function appendToFileEdit(repository: OverleafGitRepository, edit: FileAppend): Promise<string> {
-  if (!(await repository.fileExists(edit.path))) throw new Error(describeMissingAppendTarget(edit.path));
+  const kind = await repository.directories().describePathKind(edit.path);
+  if (kind === "missing") throw new Error(describeMissingAppendTarget(edit.path));
+  if (kind === "directory") {
+    throw new Error(
+      `${edit.path} is a folder, not a file, so text cannot be appended to it. Nothing was changed.`,
+    );
+  }
   const originalContent = await repository.readTextFile(edit.path);
   requireFileRevision(originalContent, edit.expectedRevision);
   if (edit.content === "") return `content is empty, so nothing was appended to ${edit.path}.`;

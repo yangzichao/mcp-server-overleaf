@@ -18,13 +18,13 @@ import { type FakeWebRequest, type FakeWebRoutes, matchPath, readJsonBody } from
  * keeping `__guests__` is this fake's assumption.
  */
 
-export const FAKE_TEX_LIVE_IMAGES = [
+const FAKE_TEX_LIVE_IMAGES = [
   { imageName: "texlive-full:2025.1", imageDesc: "TeX Live 2025", allowed: true },
   { imageName: "texlive-full:2024.1", imageDesc: "TeX Live 2024", allowed: true },
   { imageName: "texlive-full:2017.1", imageDesc: "TeX Live 2017 (legacy)", allowed: false },
 ];
 
-export const FAKE_SPELL_CHECK_LANGUAGES = [
+const FAKE_SPELL_CHECK_LANGUAGES = [
   { code: "en", name: "English" },
   { code: "en_GB", name: "English (British)" },
   { code: "de", name: "German" },

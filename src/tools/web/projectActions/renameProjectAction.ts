@@ -19,6 +19,8 @@ export async function renameProjectAction(
     );
   }
   const newName = checkProjectName(name);
+  if (target.listed?.name === newName)
+    return textResult(`${target.label} already has that name; nothing changed.`);
   await renameProject(webClient, target.projectId, newName);
   return textResult(`Renamed ${target.label} to "${newName}"; its address stays ${target.address}.`);
 }

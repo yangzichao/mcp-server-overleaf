@@ -94,8 +94,9 @@ export async function tagProjectByName(
   projectId: string,
   tagName: string,
 ): Promise<ProjectTag> {
+  const checkedProjectId = requireOverleafId(projectId, "Project id");
   const tag = await createTag(client, tagName);
-  await addProjectToTag(client, tag.tagId, projectId);
+  await addProjectToTag(client, tag.tagId, checkedProjectId);
   return tag;
 }
 

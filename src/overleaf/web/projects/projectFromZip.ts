@@ -16,7 +16,7 @@ export const MAXIMUM_PROJECT_UPLOAD_BYTES = 50 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 300_000;
 const ZIP_LOCAL_FILE_SIGNATURE = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
-export function looksLikeZipArchive(bytes: Buffer): boolean {
+function looksLikeZipArchive(bytes: Buffer): boolean {
   return bytes.subarray(0, ZIP_LOCAL_FILE_SIGNATURE.length).equals(ZIP_LOCAL_FILE_SIGNATURE);
 }
 

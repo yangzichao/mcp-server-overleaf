@@ -31,7 +31,7 @@ const SIMPLE_INCLUDE_PATTERN = /\\(input|include|subfile)\s*\{([^{}]*)\}/g;
 const IMPORT_PATTERN =
   /\\(import|subimport|inputfrom|subinputfrom|includefrom|subincludefrom)\*?\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g;
 
-export function isBuiltFromMacros(writtenPath: string): boolean {
+function isBuiltFromMacros(writtenPath: string): boolean {
   return writtenPath.includes("\\") || writtenPath.includes("#");
 }
 

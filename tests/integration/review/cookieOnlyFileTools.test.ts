@@ -28,6 +28,18 @@ describe("file tools over the editor, with only a session cookie", () => {
     );
   });
 
+  it("describes the uploads in the files view the way read_file treats them", async () => {
+    const client = await startCookieOnlyClient();
+    const tools = await client.listTools();
+    const descriptionOf = (toolName: string) =>
+      tools.find((tool) => tool.name === toolName)?.description ?? "";
+    expect(descriptionOf("read_file")).toContain("A PNG, JPEG, GIF or WebP file comes back as an image");
+    expect(descriptionOf("read_project")).toContain(
+      "read_file shows a PNG, JPEG, GIF or WebP upload as an image",
+    );
+    expect(descriptionOf("read_project")).not.toContain("read_file cannot read those");
+  });
+
   it("reads a document whole and as a numbered line range", async () => {
     const client = await startCookieOnlyClient();
     expect(await client.call("read_file", { path: "main.tex" })).toBe(PAPER);
@@ -76,14 +88,14 @@ describe("file tools over the editor, with only a session cookie", () => {
   it("replaces every occurrence when asked, and only then", async () => {
     const documentId = harness.editor.addDocument("repeats.tex", "x and x and x\n");
     const client = await startCookieOnlyClient();
-    expect(
-      await client.call("edit_file", {
-        action: "replace_text",
-        path: "repeats.tex",
-        findText: "x",
-        replaceWith: "y",
-      }),
-    ).toContain("appears 3 times");
+    const ambiguous = await client.callRaw("edit_file", {
+      action: "replace_text",
+      path: "repeats.tex",
+      findText: "x",
+      replaceWith: "y",
+    });
+    expect(ambiguous.result?.isError).toBe(true);
+    expect(ambiguous.result?.content?.[0]?.text).toContain("appears 3 times");
     expect(harness.editor.documentText(documentId)).toBe("x and x and x\n");
     await client.call("edit_file", {
       action: "replace_text",
@@ -138,7 +150,7 @@ describe("file tools over the editor, with only a session cookie", () => {
       findText: "Not in the paper.",
       replaceWith: "Goodbye.",
     });
-    expect(response.result?.isError).not.toBe(true);
+    expect(response.result?.isError).toBe(true);
     expect(response.result?.content?.[0]?.text).toContain("Text not found in main.tex");
   });
 });
