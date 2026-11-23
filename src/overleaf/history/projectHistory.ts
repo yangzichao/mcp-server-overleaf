@@ -1,4 +1,5 @@
 import type { GitCommandResult } from "../gitCommandRunner.js";
+import { type BlameRange, blameFile, type FileBlame } from "./blame/blameFile.js";
 
 /**
  * Read-only questions about a project's past, answered from the clone's Git history: which
@@ -150,6 +151,11 @@ export class ProjectHistory {
     if (relativePath) args.push(`:(literal)${await this.sources.toGitPath(relativePath)}`);
     const { stdout } = await this.sources.git(args);
     return stdout;
+  }
+
+  /** Who last changed each line of a file in the clone, and in which commit. */
+  blame(relativePath: string, range: BlameRange = {}): Promise<FileBlame> {
+    return blameFile(this.sources, relativePath, range);
   }
 
   private async resolveCommit(revision: string): Promise<string> {

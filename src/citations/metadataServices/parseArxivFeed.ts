@@ -5,7 +5,7 @@
 
 const XML_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
-function decodeXmlText(text: string): string {
+export function decodeXmlText(text: string): string {
   return text
     .replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => XML_ENTITIES[name] ?? "")
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))

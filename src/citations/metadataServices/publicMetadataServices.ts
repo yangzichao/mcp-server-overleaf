@@ -9,6 +9,15 @@ import {
 } from "./metadataServices.js";
 import { parseFirstArxivEntry } from "./parseArxivFeed.js";
 import { parseCrossrefSearchCandidates } from "./parseCrossrefWorks.js";
+import {
+  ARXIV_REQUEST_INTERVAL_MS,
+  CROSSREF_SEARCH_INTERVAL_MS,
+  DOI_RESOLVER_REQUEST_INTERVAL_MS,
+  REAL_CLOCK,
+  realSleep,
+  type Sleep,
+  sharedSpacedRequests,
+} from "./requestSpacing.js";
 
 /**
  * doi.org, arXiv and Crossref as their documentation describes them:
@@ -17,30 +26,15 @@ import { parseCrossrefSearchCandidates } from "./parseCrossrefWorks.js";
  *   Crossref, DataCite and mEDRA DOIs; 404 means the DOI does not exist, and 204 or 406 that
  *   its agency has no metadata in that form.
  * - arXiv's terms allow one request every three seconds over a single connection.
- * - Crossref's public pool allows one concurrent request; requests here are sequential and
- *   spaced, and carry no mailto because there is no address of the user's to give.
+ * - Crossref's public pool allows one search a second and one request at a time; requests
+ *   here are sequential and spaced, and carry no mailto because there is no address of the
+ *   user's to give.
  */
 
 const CSL_JSON = "application/vnd.citationstyles.csl+json";
-const ARXIV_REQUEST_INTERVAL_MS = 3_000;
-const CROSSREF_REQUEST_INTERVAL_MS = 250;
 const CROSSREF_SEARCH_ROWS = 5;
 
-type Sleep = (milliseconds: number) => Promise<void>;
-const realSleep: Sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-/** Keeps calls to one service at least `intervalMs` apart. */
-function spaced(intervalMs: number, sleep: Sleep): <T>(call: () => Promise<T>) => Promise<T> {
-  let lastStartedAt = Number.NEGATIVE_INFINITY;
-  return async (call) => {
-    const wait = lastStartedAt + intervalMs - Date.now();
-    if (wait > 0) await sleep(wait);
-    lastStartedAt = Date.now();
-    return call();
-  };
-}
-
-function encodeIdentifierPath(identifier: string): string {
+export function encodeIdentifierPath(identifier: string): string {
   return identifier.split("/").map(encodeURIComponent).join("/");
 }
 
@@ -107,10 +101,12 @@ export function createPublicMetadataServices(
   endpoints: CitationLookupEndpoints,
   sleep: Sleep = realSleep,
 ): MetadataServices {
-  const nextArxivRequest = spaced(ARXIV_REQUEST_INTERVAL_MS, sleep);
-  const nextCrossrefRequest = spaced(CROSSREF_REQUEST_INTERVAL_MS, sleep);
+  const clock = sleep === realSleep ? REAL_CLOCK : { sleep, now: () => Date.now() };
+  const nextDoiRequest = sharedSpacedRequests("doi.org", DOI_RESOLVER_REQUEST_INTERVAL_MS, clock);
+  const nextArxivRequest = sharedSpacedRequests("arXiv", ARXIV_REQUEST_INTERVAL_MS, clock);
+  const nextCrossrefRequest = sharedSpacedRequests("Crossref search", CROSSREF_SEARCH_INTERVAL_MS, clock);
   return {
-    lookupDoi: (doi) => lookupDoi(endpoints, doi),
+    lookupDoi: (doi) => nextDoiRequest(() => lookupDoi(endpoints, doi)),
     lookupArxiv: (arxivId) => nextArxivRequest(() => lookupArxiv(endpoints, arxivId)),
     searchCrossref: (query) => nextCrossrefRequest(() => searchCrossref(endpoints, query)),
   };
