@@ -13,11 +13,13 @@ export async function moveFileAction(
   if (fromPath === toPath) return `path and toPath are the same file (${fromPath}). Nothing was moved.`;
   const directories = repository.directories();
   const kind = await directories.describePathKind(fromPath);
-  if (kind === "missing") return `${fromPath} is not in the project, so there is nothing to move.`;
+  if (kind === "missing") throw new Error(`${fromPath} is not in the project, so there is nothing to move.`);
   // Overwriting here would destroy what the caller never named, and the reply would not
   // mention it. Refusing keeps both and puts the choice back.
   if ((await directories.describePathKind(toPath)) !== "missing") {
-    return `${toPath} already exists. Nothing was moved. Delete it first, or choose another destination.`;
+    throw new Error(
+      `${toPath} already exists. Nothing was moved. Delete it first, or choose another destination.`,
+    );
   }
 
   if (kind === "file") {

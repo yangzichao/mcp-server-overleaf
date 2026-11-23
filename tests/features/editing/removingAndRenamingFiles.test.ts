@@ -4,6 +4,7 @@ import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
 import { ConnectedOverleafProject, publishedNotes } from "../support/connectedOverleafProject.js";
+import { callTool } from "../support/toolReply.js";
 
 const feature = await loadFeature(
   fileURLToPath(new URL("removingAndRenamingFiles.feature", import.meta.url)),
@@ -12,6 +13,7 @@ const feature = await loadFeature(
 describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps }) => {
   let project: ConnectedOverleafProject;
   let lastReply = "";
+  let lastReplyWasRefused = false;
 
   AfterEachScenario(async () => {
     await project.close();
@@ -23,7 +25,9 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
     });
 
     Step("I move {string} to {string}", async (_context: unknown, path: string, toPath: string) => {
-      lastReply = await project.client.call("manage_files", { action: "move", path, toPath });
+      const reply = await callTool(project.client, "manage_files", { action: "move", path, toPath });
+      lastReply = reply.text;
+      lastReplyWasRefused = reply.isError;
     });
 
     Step("I discard the local changes", async () => {
@@ -36,6 +40,11 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
 
     Step("the reply says {string}", (_context: unknown, expected: string) => {
       expect(lastReply).toContain(expected);
+    });
+
+    Step("the move is refused with {string}", (_context: unknown, reason: string) => {
+      expect(lastReplyWasRefused).toBe(true);
+      expect(lastReply).toContain(reason);
     });
 
     Step("there is nothing pending", async () => {
@@ -73,6 +82,6 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   Scenario("The pending diff shows a deletion before it is pushed", () => {});
   Scenario("Discarding local changes brings a deleted file back", () => {});
   Scenario("Moving onto a file that already exists is refused and keeps both", () => {});
-  Scenario("Moving a file that is not in the project moves nothing", () => {});
+  Scenario("Moving a file that is not in the project is refused", () => {});
   Scenario("Pushing a rename publishes the file under its new path only", () => {});
 });

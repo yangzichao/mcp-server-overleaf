@@ -102,12 +102,20 @@ describe.each(["stdio", "http"] as const)("MCP contract over %s", (transport) =>
     await client.call("manage_files", { action: "discard_local_changes" });
     expect(await client.call("read_file", { path: "obsolete.tex" })).toBe("Old draft.\n");
 
-    expect(
-      await client.call("manage_files", { action: "move", path: "absent.tex", toPath: "x.tex" }),
-    ).toContain("nothing to move");
-    expect(
-      await client.call("manage_files", { action: "move", path: "obsolete.tex", toPath: "main.tex" }),
-    ).toContain("already exists");
+    const absentSource = await client.callRaw("manage_files", {
+      action: "move",
+      path: "absent.tex",
+      toPath: "x.tex",
+    });
+    expect(absentSource.result?.isError).toBe(true);
+    expect(absentSource.result?.content?.[0]?.text).toContain("nothing to move");
+    const takenDestination = await client.callRaw("manage_files", {
+      action: "move",
+      path: "obsolete.tex",
+      toPath: "main.tex",
+    });
+    expect(takenDestination.result?.isError).toBe(true);
+    expect(takenDestination.result?.content?.[0]?.text).toContain("already exists");
     expect(
       await client.call("manage_files", { action: "move", path: "obsolete.tex", toPath: "obsolete.tex" }),
     ).toContain("same file");

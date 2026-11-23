@@ -102,9 +102,9 @@ export function moveEditorEntityAction(
   return withReviewSession(context, project, async (session) => {
     const tree = session.project;
     const entity = findTreeEntity(tree, fromPath);
-    if (!entity) return textResult(`${fromPath} is not in the project, so there is nothing to move.`);
+    if (!entity) throw new Error(`${fromPath} is not in the project, so there is nothing to move.`);
     if (findTreeEntity(tree, destinationPath)) {
-      return textResult(
+      throw new Error(
         `${destinationPath} already exists. Nothing was moved. Delete it first, or choose another destination.`,
       );
     }

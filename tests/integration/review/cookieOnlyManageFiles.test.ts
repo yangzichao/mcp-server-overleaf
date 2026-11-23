@@ -98,7 +98,11 @@ describe("manage_files over the web file tree, with only a session cookie", () =
   it("refuses a taken destination, a folder moved into itself, and a move to the same path", async () => {
     const client = await startCookieOnlyClient(harness);
     expect(
-      await client.call("manage_files", { action: "move", path: "main.tex", toPath: "figure.png" }),
+      await callExpectingError(client, "manage_files", {
+        action: "move",
+        path: "main.tex",
+        toPath: "figure.png",
+      }),
     ).toBe("figure.png already exists. Nothing was moved. Delete it first, or choose another destination.");
     expect(
       await callExpectingError(client, "manage_files", {
@@ -110,9 +114,13 @@ describe("manage_files over the web file tree, with only a session cookie", () =
     expect(
       await client.call("manage_files", { action: "move", path: "main.tex", toPath: "./main.tex" }),
     ).toBe("path and toPath are the same (main.tex). Nothing was moved.");
-    expect(await client.call("manage_files", { action: "move", path: "absent.tex", toPath: "x.tex" })).toBe(
-      "absent.tex is not in the project, so there is nothing to move.",
-    );
+    expect(
+      await callExpectingError(client, "manage_files", {
+        action: "move",
+        path: "absent.tex",
+        toPath: "x.tex",
+      }),
+    ).toBe("absent.tex is not in the project, so there is nothing to move.");
     expect(harness.editor.documentPath(harness.mainDocumentId)).toBe("main.tex");
   });
 

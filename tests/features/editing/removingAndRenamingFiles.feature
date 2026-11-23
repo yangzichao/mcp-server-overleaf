@@ -23,13 +23,14 @@ Feature: Removing and renaming files is reversible until it is pushed
 
   Scenario: Moving onto a file that already exists is refused and keeps both
     When I move "notes.tex" to "main.tex"
-    Then the reply says "main.tex already exists. Nothing was moved."
+    Then the move is refused with "main.tex already exists. Nothing was moved."
     And "notes.tex" reads back the co-author's notes
     And there is nothing pending
 
-  Scenario: Moving a file that is not in the project moves nothing
+  Scenario: Moving a file that is not in the project is refused
     When I move "missing.tex" to "sections/missing.tex"
-    Then the reply says "missing.tex is not in the project, so there is nothing to move."
+    Then the move is refused with "missing.tex is not in the project, so there is nothing to move."
+    And there is nothing pending
 
   Scenario: Pushing a rename publishes the file under its new path only
     When I move "notes.tex" to "sections/notes.tex"
