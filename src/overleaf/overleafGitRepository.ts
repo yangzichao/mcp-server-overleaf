@@ -6,7 +6,7 @@ import {
   configureSparseCheckout,
   materializeFullCheckout,
 } from "./checkout/sparseCheckout.js";
-import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
+import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./gitCommandRunner.js";
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
@@ -289,6 +289,42 @@ export class OverleafGitRepository {
       );
     }
     return contents.toString("utf8");
+  }
+
+  /**
+   * A file's bytes, for figures. A file sparse checkout keeps off disk is read from Git's index
+   * rather than materialized, because expansion is permanent and looking at a figure should not
+   * turn a text-only checkout into a full one.
+   */
+  async readFileBytes(relativePath: string): Promise<Buffer> {
+    const absolutePath = await this.resolveClientPath(relativePath);
+    try {
+      return await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    const indexEntry = await this.describeIndexEntry(absolutePath);
+    if (indexEntry === "untracked") throw new Error(`No file ${relativePath} in the project.`);
+    if (indexEntry === "tracked") {
+      throw new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`);
+    }
+    return await runGitCommandForBytes({
+      workingDirectory: this.options.repositoryDirectory,
+      args: ["cat-file", "blob", `:${await this.toGitPath(relativePath)}`],
+      overleafGitToken: this.options.overleafGitToken,
+    });
+  }
+
+  /**
+   * Whether Git tracks a path absent from disk, and why it is absent: `ls-files -t` marks a file
+   * sparse checkout skipped with S, while one deleted in the clone keeps the plain H.
+   */
+  private async describeIndexEntry(absolutePath: string): Promise<"untracked" | "tracked" | "skipped"> {
+    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+    const { stdout } = await this.git(["ls-files", "-t", "-z", "--", `:(literal)${gitPath}`]);
+    const entries = stdout.split("\0").filter((entry) => entry !== "");
+    if (entries.length === 0) return "untracked";
+    return entries.includes(`S ${gitPath}`) ? "skipped" : "tracked";
   }
 
   /** Bytes as they are, for figures and other binary files. */

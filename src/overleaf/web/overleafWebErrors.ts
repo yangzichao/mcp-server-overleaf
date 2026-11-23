@@ -15,6 +15,9 @@ export class OverleafWebRequestError extends Error {
   }
 }
 
+/** A download stopped because the file is larger than the caller allows; nothing more was read. */
+export class DownloadTooLargeError extends OverleafWebRequestError {}
+
 /** A request this server did not send, because Overleaf would refuse it or misread it. Nothing changed. */
 export class RequestNotSentError extends Error {
   constructor(message: string) {
