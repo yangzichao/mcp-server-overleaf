@@ -88,14 +88,18 @@ export async function removeProjectFromTag(
   await client.delete(tagProjectPath(tagId, projectId));
 }
 
-/** Creates the tag if the account has none by that name, then adds the project to it. */
+/**
+ * Creates the tag if the account has none by that name, then adds the project to it. The project
+ * id is checked first, so a bad one fails before the tag exists.
+ */
 export async function tagProjectByName(
   client: OverleafWebClient,
   projectId: string,
   tagName: string,
 ): Promise<ProjectTag> {
+  const checkedProjectId = requireOverleafId(projectId, "Project id");
   const tag = await createTag(client, tagName);
-  await addProjectToTag(client, tag.tagId, projectId);
+  await addProjectToTag(client, tag.tagId, checkedProjectId);
   return tag;
 }
 

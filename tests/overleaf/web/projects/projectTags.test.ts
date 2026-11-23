@@ -45,6 +45,14 @@ describe("the account's project tags", () => {
     expect(connection.changesSentTo(/^\/tag/)).toEqual([]);
   });
 
+  it("refuses a project id that is not an Overleaf id before it creates the tag", async () => {
+    const failure = await failureOf(
+      tagProjectByName(connection.client(), "64b00000000000000000000", "Thesis"),
+    );
+    expect(failure).toBeInstanceOf(RequestNotSentError);
+    expect(connection.changesSentTo(/^\/tag/)).toEqual([]);
+  });
+
   it("refuses names and colours Overleaf would refuse", async () => {
     const attempts = [
       () => createTag(connection.client(), ""),
