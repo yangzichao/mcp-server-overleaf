@@ -7,10 +7,11 @@ const DECODE_DEADLINE_MS = 1_000;
 
 /**
  * A frame that makes the decoder loop forever would also block this thread, so each frame is
- * decoded in a worker that can be abandoned. Node strips the module's types itself.
+ * decoded in a worker that can be abandoned. The worker imports the compiled module, which the
+ * global setup builds, because Node 22.14 cannot strip the types of the source without a flag.
  */
 const PROTOCOL_MODULE_URL = new URL(
-  "../../../../src/overleaf/realtime/socketIoZeroNineProtocol.ts",
+  "../../../../dist/overleaf/realtime/socketIoZeroNineProtocol.js",
   import.meta.url,
 );
 const DECODER_SOURCE = `

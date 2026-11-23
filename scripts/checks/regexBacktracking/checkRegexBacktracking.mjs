@@ -83,7 +83,7 @@ for (const [index, expression] of expressions.entries()) {
 }
 for (const stale of [...reviewed.keys()].filter((key) => !usedReviews.has(key))) {
   failures.push(
-    `${stale.replace("\n", "  ")}\n    reviewed in ${reviewedPath} but no longer found or no longer slow`,
+    `${stale.replaceAll("\n", "  ")}\n    reviewed in ${reviewedPath} but no longer found or no longer slow`,
   );
 }
 

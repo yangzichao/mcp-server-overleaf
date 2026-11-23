@@ -12,7 +12,8 @@ jobs:
   core:
     name: Core / ${{ matrix.os }} / Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # macOS runners vary: the same suite took 7 minutes on one and ran past 15 on another.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

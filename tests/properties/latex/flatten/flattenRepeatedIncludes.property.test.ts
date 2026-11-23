@@ -6,6 +6,7 @@ import {
   flattenLatexDocument,
   MAXIMUM_FLATTENED_LENGTH,
 } from "../../../../src/latex/flatten/flattenLatexDocument.js";
+import { FLATTEN_TIME_BUDGET_MS } from "../../../latex/support/flattenTimeBudget.js";
 import { inMemoryProject } from "../../../latex/support/inMemoryProject.js";
 import { ROOT_PATH } from "./generatedLatexProject.js";
 
@@ -28,7 +29,7 @@ async function timeFlattening(files: Record<string, string>): Promise<TimedFlatt
 function expectFlattenedOrRefusedAtOnce({ outcome, milliseconds }: TimedFlattening): void {
   if (typeof outcome === "number") expect(outcome).toBeLessThanOrEqual(MAXIMUM_FLATTENED_LENGTH);
   else expect(outcome).toBeInstanceOf(FlattenedDocumentTooLongError);
-  expect(milliseconds).toBeLessThan(1000);
+  expect(milliseconds).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
 }
 
 const INCLUDE_COMMANDS = ["input", "include", "subfile"] as const;

@@ -4,6 +4,7 @@ import {
   FlattenedDocumentTooLongError,
   flattenLatexDocument,
 } from "../../../src/latex/flatten/flattenLatexDocument.js";
+import { FLATTEN_TIME_BUDGET_MS } from "../support/flattenTimeBudget.js";
 import { inMemoryProject } from "../support/inMemoryProject.js";
 
 const begin = (path: string, written: string) => `% ---- begin ${path}, from ${written} ----\n`;
@@ -173,14 +174,14 @@ describe("flattenLatexDocument", () => {
     });
     const started = performance.now();
     await expect(flattenLatexDocument(project, "main.tex")).rejects.toThrow(FlattenedDocumentTooLongError);
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
   });
 
   it("flattens a file of many includes at once", async () => {
     const project = inMemoryProject({ "main.tex": "\\input{b}\n".repeat(40_000), "b.tex": "x\n" });
     const started = performance.now();
     const { inlinedFiles } = await flattenLatexDocument(project, "main.tex");
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
     expect(inlinedFiles).toEqual(["b.tex"]);
   });
 
@@ -189,7 +190,7 @@ describe("flattenLatexDocument", () => {
     const project = inMemoryProject({ "main.tex": line, "b.tex": "x\n" });
     const started = performance.now();
     const { text } = await flattenLatexDocument(project, "main.tex");
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
     expect(text.endsWith(`${end("b.tex")}\n${"x".repeat(5_000_000)}\n`)).toBe(true);
   });
 
@@ -201,7 +202,7 @@ describe("flattenLatexDocument", () => {
     });
     const started = performance.now();
     const { text } = await flattenLatexDocument(project, "main.tex");
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(FLATTEN_TIME_BUDGET_MS);
     expect(text.split("Body.").length - 1).toBe(2000);
   });
 });
