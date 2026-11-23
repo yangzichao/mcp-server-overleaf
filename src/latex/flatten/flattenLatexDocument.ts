@@ -129,6 +129,13 @@ class DocumentFlattener {
       flattened += original.slice(cursor, directive.index);
       flattened += await this.replaceDirective(directive, file, endsAtLineStart(flattened));
       cursor = directive.index + directive.length;
+      // Checked as the text grows: a file that includes another large one many times would
+      // otherwise build a string past what JavaScript can hold before any check ran.
+      if (flattened.length > MAXIMUM_FLATTENED_LENGTH) {
+        throw new FlattenedDocumentTooLongError(
+          `The flattened document would pass ${MAXIMUM_FLATTENED_LENGTH} characters; the files ${path} includes add up to more than that.`,
+        );
+      }
     }
     return flattened + original.slice(cursor, region.end) + original.slice(region.tailStart, region.tailEnd);
   }

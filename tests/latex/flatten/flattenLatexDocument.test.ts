@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { flattenLatexDocument } from "../../../src/latex/flatten/flattenLatexDocument.js";
+import {
+  FlattenedDocumentTooLongError,
+  flattenLatexDocument,
+} from "../../../src/latex/flatten/flattenLatexDocument.js";
 import { inMemoryProject } from "../support/inMemoryProject.js";
 
 const begin = (path: string, written: string) => `% ---- begin ${path}, from ${written} ----\n`;
@@ -160,5 +163,16 @@ describe("flattenLatexDocument", () => {
     const flattened = await flattenLatexDocument(project, "main.tex");
     expect(flattened.text.match(/^A$/gm)).toHaveLength(2);
     expect(project.reads).toEqual(["main.tex", "a.tex"]);
+  });
+
+  it("refuses a document that includes one large file many times before building it", async () => {
+    const project = inMemoryProject({
+      "main.tex": "\\input{chapter}\n".repeat(60),
+      "chapter.tex": "\\input{table}\n".repeat(90),
+      "table.tex": "x".repeat(100_000),
+    });
+    const started = performance.now();
+    await expect(flattenLatexDocument(project, "main.tex")).rejects.toThrow(FlattenedDocumentTooLongError);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
