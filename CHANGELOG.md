@@ -1,12 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.5.2
+
+.bib files are read as BibTeX 0.99d reads them, or as biber does for a document that uses
+biblatex. No tool changes its name or arguments.
 
 - `check_references` and `look_up_citations` (`verify`) read .bib files the way the program
   that runs on them does: biber when the document loads biblatex or names its files with
   `\addbibresource`, BibTeX otherwise, including for biblatex loaded with `backend=bibtex`.
   `look_up_citations` (`find`) cannot tell which one will run, so before it picks a new key it
-  reads `%` lines, as BibTeX does, and what follows a file's last line, as biber does.
+  reads `%` lines, as BibTeX does, and every entry on a file's last line, as biber does.
 - For BibTeX, a line starting with `%` is text: an entry written on it is defined, and such a
   line between two fields ends the entry there. biber still skips the line.
 - For BibTeX, reading a file stops once an entry or command ends on its last line, so a second
