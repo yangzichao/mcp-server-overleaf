@@ -37,7 +37,10 @@ async function existsOnDisk(absolutePath: string): Promise<boolean> {
 export class ProjectDirectories {
   constructor(private readonly access: ProjectDirectoryAccess) {}
 
-  /** What a path names in the working tree. A path outside the clone throws rather than reading as missing. */
+  /**
+   * What a path names in the working tree. A path outside the clone throws rather than reading
+   * as missing. A path under a file, which stat refuses with ENOTDIR, names nothing and so is missing.
+   */
   async describePathKind(relativePath: string): Promise<ProjectPathKind> {
     await this.access.materializePathIfNeeded(relativePath);
     const absolutePath = await this.access.resolveClientPath(relativePath);
@@ -46,7 +49,8 @@ export class ProjectDirectories {
       if (entry.isDirectory()) return "directory";
       return entry.isFile() ? "file" : "missing";
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return "missing";
+      const { code } = error as NodeJS.ErrnoException;
+      if (code === "ENOENT" || code === "ENOTDIR") return "missing";
       throw error;
     }
   }
