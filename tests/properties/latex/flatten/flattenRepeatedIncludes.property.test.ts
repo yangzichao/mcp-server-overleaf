@@ -80,6 +80,35 @@ const includesOnOneLine = fc
     "b.tex": "x\n",
   }));
 
+/**
+ * A long file included many times, of which little is inlined: a subfile's preamble, or what
+ * follows \endinput, makes up most of it. It is included from main, or from a middle file
+ * that main includes in turn.
+ */
+const littleOfItInlined = fc
+  .record({
+    form: fc.constantFrom("subfile", "endinput"),
+    unusedLine: fc.constantFrom("\\usepackage{x}\n", "\\input{chapter}\n", "% \\input{chapter}\n"),
+    unusedLength: fc.integer({ min: 10_000, max: 300_000 }),
+    includes: fc.integer({ min: 200, max: 3000 }),
+    throughMiddleFile: fc.boolean(),
+  })
+  .map(({ form, unusedLine, unusedLength, includes, throughMiddleFile }): Record<string, string> => {
+    const unused = unusedLine.repeat(Math.ceil(unusedLength / unusedLine.length));
+    const chapter =
+      form === "subfile"
+        ? `\\documentclass[main]{subfiles}\n${unused}\\begin{document}\nBody.\n\\end{document}\n`
+        : `Body.\n\\endinput\n${unused}`;
+    const directive = form === "subfile" ? "\\subfile{chapter}\n" : "\\input{chapter}\n";
+    if (!throughMiddleFile) return { [ROOT_PATH]: directive.repeat(includes), "chapter.tex": chapter };
+    const perFile = Math.ceil(Math.sqrt(includes));
+    return {
+      [ROOT_PATH]: "\\input{middle}\n".repeat(perFile),
+      "middle.tex": directive.repeat(perFile),
+      "chapter.tex": chapter,
+    };
+  });
+
 describe("flattenLatexDocument on files included many times over", () => {
   // A main file with 60 copies of \input{chapter}, a chapter with 90 copies of \input{table} and
   // a table of 100,000 characters once threw RangeError after 7 seconds, because the length was
@@ -109,6 +138,17 @@ describe("flattenLatexDocument on files included many times over", () => {
   it("flattens many includes on one long line at once", async () => {
     await fc.assert(
       fc.asyncProperty(includesOnOneLine, async (files) => {
+        expectFlattenedOrRefusedAtOnce(await timeFlattening(files));
+      }),
+      { numRuns: 40, endOnFailure: true },
+    );
+  });
+
+  // 2000 copies of \subfile{chapter}, for a chapter whose preamble is 450,000 characters long,
+  // once took 8.5 seconds, because the chapter was masked and scanned whole at every include.
+  it("flattens a long file included many times at once when little of it is inlined", async () => {
+    await fc.assert(
+      fc.asyncProperty(littleOfItInlined, async (files) => {
         expectFlattenedOrRefusedAtOnce(await timeFlattening(files));
       }),
       { numRuns: 40, endOnFailure: true },

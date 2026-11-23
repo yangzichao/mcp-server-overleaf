@@ -12,7 +12,7 @@ import {
 import { maskLatexSource } from "../source/prepareLatexSource.js";
 import { locationOf, type ScannedSource, type SourceLocation, scanSource } from "../source/scannedSource.js";
 import { beginInlinedFileMarker, endInlinedFileMarker, notInlinedMarker } from "./flattenMarkers.js";
-import { findInlinedRegion } from "./inlinedRegion.js";
+import { findInlinedRegion, type InlinedRegion } from "./inlinedRegion.js";
 
 /** An include that resolved to a file but stayed as written, with the reason. */
 export interface SkippedInclude {
@@ -47,6 +47,16 @@ interface FileBeingFlattened {
   readonly masked: string;
   readonly scanned: ScannedSource;
   readonly regionEnd: number;
+}
+
+/** What flattening needs of a file, worked out once however many times the file is included. */
+interface PreparedFile {
+  readonly masked: string;
+  readonly scanned: ScannedSource;
+  readonly region: InlinedRegion;
+  /** Only those inside the region, the part of the file that is inlined. */
+  readonly directives: readonly IncludeDirective[];
+  readonly pathsBuiltFromMacros: number;
 }
 
 /**
@@ -101,6 +111,8 @@ class DocumentFlattener {
   readonly skippedIncludes: SkippedInclude[] = [];
   pathsBuiltFromMacros = 0;
   private readonly texts = new Map<string, Promise<string>>();
+  /** By path, kept apart for a \subfile, which inlines only the document body. */
+  private readonly preparedFiles = new Map<string, PreparedFile>();
 
   constructor(private readonly reader: ProjectSourceReader) {}
 
@@ -120,9 +132,11 @@ class DocumentFlattener {
     includeChain: readonly string[],
     isSubfile: boolean,
   ): Promise<string> {
-    const masked = maskLatexSource(original);
-    const region = findInlinedRegion(masked, isSubfile);
-    const scanned = scanSource(path, masked);
+    const { masked, scanned, region, directives, pathsBuiltFromMacros } = this.prepareFile(
+      path,
+      original,
+      isSubfile,
+    );
     const file: FileBeingFlattened = {
       path,
       baseDirectory,
@@ -132,14 +146,13 @@ class DocumentFlattener {
       scanned,
       regionEnd: region.end,
     };
-    const scan = findIncludeDirectives(scanned);
-    this.pathsBuiltFromMacros += scan.pathsBuiltFromMacros;
+    this.pathsBuiltFromMacros += pathsBuiltFromMacros;
 
     let flattened = "";
     let atLineStart = true;
     let cursor = region.start;
-    for (const directive of scan.directives) {
-      if (directive.index < cursor || directive.index + directive.length > region.end) continue;
+    for (const directive of directives) {
+      if (directive.index < cursor) continue;
       const before = original.slice(cursor, directive.index);
       atLineStart = endsAtLineStart(atLineStart, before);
       const replacement = await this.replaceDirective(directive, file, atLineStart);
@@ -155,6 +168,32 @@ class DocumentFlattener {
       }
     }
     return flattened + original.slice(cursor, region.end) + original.slice(region.tailStart, region.tailEnd);
+  }
+
+  /**
+   * Masks and scans a file only the first time it is reached. Done at every include, a long
+   * file included thousands of times was read whole each time, though little of it may be
+   * inlined, as with a subfile's preamble, and the length limit never stopped it.
+   */
+  private prepareFile(path: string, original: string, isSubfile: boolean): PreparedFile {
+    const key = `${isSubfile ? "subfile" : "input"} ${path}`;
+    const known = this.preparedFiles.get(key);
+    if (known) return known;
+    const masked = maskLatexSource(original);
+    const region = findInlinedRegion(masked, isSubfile);
+    const scanned = scanSource(path, masked);
+    const scan = findIncludeDirectives(scanned);
+    const prepared: PreparedFile = {
+      masked,
+      scanned,
+      region,
+      directives: scan.directives.filter(
+        (directive) => directive.index >= region.start && directive.index + directive.length <= region.end,
+      ),
+      pathsBuiltFromMacros: scan.pathsBuiltFromMacros,
+    };
+    this.preparedFiles.set(key, prepared);
+    return prepared;
   }
 
   private leaveAsWritten(

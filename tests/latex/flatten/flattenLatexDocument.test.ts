@@ -192,4 +192,16 @@ describe("flattenLatexDocument", () => {
     expect(performance.now() - started).toBeLessThan(1000);
     expect(text.endsWith(`${end("b.tex")}\n${"x".repeat(5_000_000)}\n`)).toBe(true);
   });
+
+  it("flattens a long file included many times at once when little of it is inlined", async () => {
+    const preamble = "\\usepackage{x}\n".repeat(30_000);
+    const project = inMemoryProject({
+      "main.tex": "\\subfile{chapter}\n".repeat(2000),
+      "chapter.tex": `\\documentclass[main]{subfiles}\n${preamble}\\begin{document}\nBody.\n\\end{document}\n`,
+    });
+    const started = performance.now();
+    const { text } = await flattenLatexDocument(project, "main.tex");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(text.split("Body.").length - 1).toBe(2000);
+  });
 });
