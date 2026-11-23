@@ -2,6 +2,8 @@ import { lstat, mkdir, rename, rm, stat } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 
 import type { GitCommandResult } from "../gitCommandRunner.js";
+import { isNothingAtPathError } from "./isNothingAtPathError.js";
+import { requireFileShapedPath } from "./requireFileShapedPath.js";
 
 /**
  * Deleting and moving whole directories of the clone, for manage_files. OverleafGitRepository
@@ -46,7 +48,7 @@ export class ProjectDirectories {
       if (entry.isDirectory()) return "directory";
       return entry.isFile() ? "file" : "missing";
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return "missing";
+      if (isNothingAtPathError(error)) return "missing";
       throw error;
     }
   }
@@ -74,6 +76,7 @@ export class ProjectDirectories {
     if ((await this.describePathKind(toRelativePath)) !== "missing") {
       throw new Error(`${toRelativePath} already exists. Nothing was moved.`);
     }
+    await requireFileShapedPath(this.access.repositoryDirectory, toRelativePath, toAbsolutePath);
     await this.bringBackHiddenFilesUnder(fromAbsolutePath);
     const files = await this.listFilesUnder(fromAbsolutePath);
     await mkdir(dirname(toAbsolutePath), { recursive: true });

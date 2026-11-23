@@ -10,7 +10,9 @@ import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./g
 import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import { isNothingAtPathError } from "./workingTree/isNothingAtPathError.js";
 import { ProjectDirectories } from "./workingTree/projectDirectories.js";
+import { requireFileShapedPath } from "./workingTree/requireFileShapedPath.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -248,7 +250,7 @@ export class OverleafGitRepository {
       await stat(absolutePath);
       return;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (!isNothingAtPathError(error)) throw error;
     }
 
     // Absent from the working tree means one of two different things, and expanding for
@@ -281,6 +283,7 @@ export class OverleafGitRepository {
   async readTextFile(relativePath: string): Promise<string> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     let contents: Buffer;
     try {
       contents = await readFile(absolutePath);
@@ -306,6 +309,7 @@ export class OverleafGitRepository {
    */
   async readFileBytes(relativePath: string): Promise<Buffer> {
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     try {
       return await readFile(absolutePath);
     } catch (error) {
@@ -344,6 +348,7 @@ export class OverleafGitRepository {
   async writeFileBytes(relativePath: string, content: Buffer): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content);
   }
@@ -381,6 +386,7 @@ export class OverleafGitRepository {
   async writeTextFile(relativePath: string, content: string): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content, "utf8");
   }
@@ -415,6 +421,7 @@ export class OverleafGitRepository {
     // resolveClientPath contains a path that does not exist yet by checking its nearest
     // existing ancestor, so a symlinked directory cannot be used to move a file out.
     const toAbsolutePath = await this.resolveClientPath(toRelativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, toRelativePath, toAbsolutePath);
     await mkdir(dirname(toAbsolutePath), { recursive: true });
     await rename(fromAbsolutePath, toAbsolutePath);
   }
@@ -425,8 +432,7 @@ export class OverleafGitRepository {
       const entry = await stat(await this.resolveClientPath(relativePath));
       return entry.isFile();
     } catch (error) {
-      if (error instanceof UnsafeRepositoryPathError || (error as NodeJS.ErrnoException).code === "ENOENT")
-        return false;
+      if (error instanceof UnsafeRepositoryPathError || isNothingAtPathError(error)) return false;
       throw error;
     }
   }

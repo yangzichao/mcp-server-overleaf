@@ -31,7 +31,12 @@ export function resolvePathInsideRepository(repositoryDirectory: string, relativ
   const absolutePath = resolve(repositoryDirectory, normalizedRelativePath);
   const pathRelativeToRepository = relative(repositoryDirectory, absolutePath);
 
-  if (pathRelativeToRepository === "" || leavesBaseDirectory(pathRelativeToRepository)) {
+  if (pathRelativeToRepository === "") {
+    throw new UnsafeRepositoryPathError(
+      `Path "${relativePath}" names the project's root folder, not a file or folder in it.`,
+    );
+  }
+  if (leavesBaseDirectory(pathRelativeToRepository)) {
     throw new UnsafeRepositoryPathError(`File path "${relativePath}" resolves outside the project.`);
   }
   // macOS and Windows filesystems are case-insensitive, so ".GIT/config" reaches the same

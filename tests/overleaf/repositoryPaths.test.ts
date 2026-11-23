@@ -57,7 +57,7 @@ describe("paths the model must not be able to reach", () => {
   });
 
   it("refuses the repository root itself", () => {
-    expect(reject(".")).toThrow(/outside the project/);
+    expect(reject(".")).toThrow(`Path "." names the project's root folder, not a file or folder in it.`);
   });
 
   it("refuses the .git directory", () => {
