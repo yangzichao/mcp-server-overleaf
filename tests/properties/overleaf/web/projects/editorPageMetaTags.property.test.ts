@@ -7,7 +7,7 @@ import {
   readMetaTag,
 } from "../../../../../src/overleaf/web/projects/editorPageMetaTags.js";
 import { millisecondsToRun, pumpedText } from "../../../support/pumpedText.js";
-import { editorPage } from "./pugMetaTags.js";
+import { editorPage, type GeneratedMetaTag } from "./pugMetaTags.js";
 
 const RAW_PIECES = [
   "&#x110000;",
@@ -25,17 +25,19 @@ const RAW_PIECES = [
   "x",
 ];
 
+function expectReadBack(page: string, { name, value }: GeneratedMetaTag): void {
+  if (value.kind === "text") expect(readMetaTag(page, name)).toEqual({ content: value.text });
+  if (value.kind === "json") expect(readJsonMetaTag(page, name)).toEqual(value.value);
+  if (value.kind === "boolean") expect(readBooleanMetaTag(page, name)).toBe(value.value);
+}
+
 describe("editorPageMetaTags properties", () => {
   // Found by this property: a tag "ol-a" whose JSON held the text `name='ol-b'` was once read as
   // tag "ol-b", because the name was looked for anywhere in a tag, quoted values included.
   it("reads back every setting as Pug wrote it, whatever the other tags hold", () => {
     fc.assert(
       fc.property(editorPage, ({ tags, page }) => {
-        for (const { name, value } of tags) {
-          if (value.kind === "text") expect(readMetaTag(page, name)).toEqual({ content: value.text });
-          if (value.kind === "json") expect(readJsonMetaTag(page, name)).toEqual(value.value);
-          if (value.kind === "boolean") expect(readBooleanMetaTag(page, name)).toBe(value.value);
-        }
+        for (const tag of tags) expectReadBack(page, tag);
         for (const absent of ["ol-missing", "ol-"]) expect(readMetaTag(page, absent)).toBeUndefined();
       }),
     );

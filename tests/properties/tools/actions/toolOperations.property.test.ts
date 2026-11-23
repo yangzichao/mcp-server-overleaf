@@ -46,10 +46,10 @@ describe("runSelectedOperation properties", () => {
             name,
             {
               uses: uses[index] ?? [],
-              run: async (received: GeneratedInput) => {
+              run: (received: GeneratedInput) => {
                 expect(received).toBe(input);
                 ran.push(name);
-                return textResult(name);
+                return Promise.resolve(textResult(name));
               },
             },
           ]),

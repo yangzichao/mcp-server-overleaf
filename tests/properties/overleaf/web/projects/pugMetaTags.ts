@@ -81,6 +81,8 @@ export const editorPage = fc
   .tuple(metaTags, fc.array(fc.constantFrom(...OTHER_MARKUP), { maxLength: 4 }), fc.nat())
   .map(([tags, others, seed]) => {
     const parts = [...tags.map(renderMetaTag)];
-    others.forEach((other, index) => parts.splice((seed + index) % (parts.length + 1), 0, other));
+    for (const [index, other] of others.entries()) {
+      parts.splice((seed + index) % (parts.length + 1), 0, other);
+    }
     return { tags, page: `<head>${parts.join("")}</head>` };
   });

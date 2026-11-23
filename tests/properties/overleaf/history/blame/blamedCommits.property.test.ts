@@ -33,7 +33,7 @@ describe("describeBlamedCommits properties", () => {
       fc.asyncProperty(commits, async (generated) => {
         const byHash = new Map(generated.map((one) => [one.hash, one]));
         const requested: string[] = [];
-        const git: HistoryGitRunner = async (args) => {
+        const git: HistoryGitRunner = (args) => {
           const separatorAt = args.indexOf("--");
           const hashes = args.slice(args.findIndex((arg) => arg.startsWith("--format=")) + 1, separatorAt);
           expect(hashes.length).toBeLessThanOrEqual(100);
@@ -45,7 +45,7 @@ describe("describeBlamedCommits properties", () => {
               FIELD_SEPARATOR,
             );
           });
-          return { stdout: `${rows.join("\n")}\n`, stderr: "", exitCode: 0 };
+          return Promise.resolve({ stdout: `${rows.join("\n")}\n`, stderr: "", exitCode: 0 });
         };
         const described = await describeBlamedCommits(
           git,
