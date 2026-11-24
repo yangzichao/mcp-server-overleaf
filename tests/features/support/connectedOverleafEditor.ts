@@ -31,11 +31,15 @@ export class ConnectedOverleafEditor {
 
   static async open(
     credentials: ServerCredentials = "a Git token and a session cookie",
+    environmentOverrides: NodeJS.ProcessEnv = {},
   ): Promise<ConnectedOverleafEditor> {
     const harness = new EditorTestHarness();
     await harness.setUp();
     try {
-      const client = await harness.startClient(environmentForCredentials(harness, credentials));
+      const client = await harness.startClient({
+        ...environmentForCredentials(harness, credentials),
+        ...environmentOverrides,
+      });
       return new ConnectedOverleafEditor(harness, client, TemporaryDownloadFolder.create());
     } catch (error) {
       await harness.tearDown();

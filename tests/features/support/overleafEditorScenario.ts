@@ -9,8 +9,11 @@ export class OverleafEditorScenario {
     return this.openWorld;
   }
 
-  async open(credentials?: ServerCredentials): Promise<ConnectedOverleafEditor> {
-    this.openWorld = await ConnectedOverleafEditor.open(credentials);
+  async open(
+    credentials?: ServerCredentials,
+    environmentOverrides?: NodeJS.ProcessEnv,
+  ): Promise<ConnectedOverleafEditor> {
+    this.openWorld = await ConnectedOverleafEditor.open(credentials, environmentOverrides);
     return this.openWorld;
   }
 

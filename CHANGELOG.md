@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+Fixes for what the new Gherkin and property tests found. No tool changes its name or arguments.
+
+- `manage_project` (`update_settings`) answers "nothing changed" and sends nothing when the
+  project already has every requested setting, as `rename`, `tag` and `archive` do. It used to
+  answer "Changed the settings" and send the change again.
+- `manage_comments` (`edit_message`) answers "nothing changed" and sends nothing when the
+  message already reads the new text. It used to answer "Edited message".
+- A path written with more than one `./`, such as `././main.tex`, or with `./` inside it, names
+  the same file as without them. `././main.tex` used to find nothing.
+- A `.env` value holding U+2028, U+2029 or a lone carriage return is read. The whole line used
+  to be skipped.
+- `OVERLEAF_PROJECT_NAME` is taken whole, so a name with `,` or `=` in it no longer stops the
+  server from starting.
+- `setup --project` takes an address with `=` in its query string as one address, not as
+  `name=address`, and a project named `__proto__` is kept in the configuration file it writes.
+- Reading Crossref and arXiv XML, an element whose name only starts with the one asked for,
+  such as `<title-group>` for `<title>`, is no longer taken for it.
+
 ## 0.5.2
 
 .bib files are read as BibTeX 0.99d reads them, or as biber does for a document that uses

@@ -20,6 +20,7 @@ Feature: An edit based on an outdated read is refused
       | text replacement |
       | section rewrite  |
       | whole-file write |
+      | append           |
 
   Scenario: An edit against a file nobody has changed goes through
     When I make a text replacement to "main.tex" passing the revision I kept

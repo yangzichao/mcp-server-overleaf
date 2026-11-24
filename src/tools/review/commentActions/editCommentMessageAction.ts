@@ -21,6 +21,11 @@ export async function editCommentMessageAction(
     edit.threadId,
     edit.messageId,
   );
+  if (found.message.content.trim() === edit.content.trim()) {
+    return textResult(
+      `Message ${edit.messageId} in thread ${edit.threadId} already reads that; nothing changed.`,
+    );
+  }
   try {
     await editCommentMessage(webClient, overleafProjectId, edit.threadId, edit.messageId, edit.content);
   } catch (error) {

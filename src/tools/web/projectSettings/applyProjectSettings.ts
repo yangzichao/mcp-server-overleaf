@@ -12,6 +12,7 @@ import {
 import { setTrackChangesForEveryone } from "../../../overleaf/web/projects/trackChangesSwitch.js";
 import { describeAccessLevel } from "../../reading/accessLevelNames.js";
 import { requireDocument } from "../../review/openReviewSession.js";
+import { confirmProjectSettings } from "./confirmProjectSettings.js";
 import type { RequestedProjectSettings } from "./requestedProjectSettings.js";
 
 /**
@@ -19,7 +20,7 @@ import type { RequestedProjectSettings } from "./requestedProjectSettings.js";
  * is refused with nothing sent. Overleaf applies the menu settings one after another and the
  * track-changes switch separately, so a refusal after that may leave part of the change in
  * place; it is returned rather than thrown, for the caller to read the project again and say
- * what took.
+ * what took. When the project already has every requested setting, nothing is sent.
  */
 
 export interface SentProjectSettings {
@@ -30,6 +31,8 @@ export interface SentProjectSettings {
   readonly namedUserIds: readonly string[];
   /** Why Overleaf refused part of the change after something was sent. */
   readonly failure: Error | undefined;
+  /** Every requested setting, when the project already had all of them and nothing was sent. */
+  readonly alreadyInEffect: readonly string[] | undefined;
 }
 
 const EDIT_ACCESS_LEVELS = new Set(["owner", "readAndWrite", "readWrite"]);
@@ -82,6 +85,14 @@ export async function applyProjectSettings(
     rootDocumentPath: rootDocument?.path,
     namedUserIds: requested.trackChanges === undefined ? [] : everyKnownUserId(session.details),
   };
+  const before = confirmProjectSettings(session, requested, {
+    ...sent,
+    failure: undefined,
+    alreadyInEffect: undefined,
+  });
+  if (before.notInEffect.length === 0) {
+    return { ...sent, failure: undefined, alreadyInEffect: before.inEffect };
+  }
   let anythingSent = false;
   try {
     const change = menuSettingsChange(
@@ -98,9 +109,13 @@ export async function applyProjectSettings(
     if (requested.trackChanges !== undefined) {
       await setTrackChangesForEveryone(webClient, projectId, requested.trackChanges, session.details);
     }
-    return { ...sent, failure: undefined };
+    return { ...sent, failure: undefined, alreadyInEffect: undefined };
   } catch (error) {
     if (!anythingSent && error instanceof RequestNotSentError) throw error;
-    return { ...sent, failure: error instanceof Error ? error : new Error(String(error)) };
+    return {
+      ...sent,
+      failure: error instanceof Error ? error : new Error(String(error)),
+      alreadyInEffect: undefined,
+    };
   }
 }

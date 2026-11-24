@@ -29,7 +29,8 @@ Options:
 
 function splitNamedProject(value: string): RequestedProject {
   const separator = value.indexOf("=");
-  if (separator <= 0) return { reference: value };
+  // A "/" or "?" before the "=" means it sits inside an address, such as a query string.
+  if (separator <= 0 || /[/?]/.test(value.slice(0, separator))) return { reference: value };
   return {
     projectName: value.slice(0, separator).trim(),
     reference: value.slice(separator + 1).trim(),

@@ -16,6 +16,7 @@ const editArgumentsByKind: Record<string, Record<string, unknown>> = {
     content: "\\section{Introduction}\nRewritten.\n",
   },
   "whole-file write": { action: "write", content: "Replaced entirely.\n" },
+  append: { action: "append", content: "Added at the end.\n" },
 };
 
 const feature = await loadFeature(fileURLToPath(new URL("refusingStaleEdits.feature", import.meta.url)));

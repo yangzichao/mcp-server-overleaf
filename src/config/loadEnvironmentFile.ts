@@ -11,7 +11,9 @@ import { dropUnfilledBundleSettings } from "./unfilledBundleSettings.js";
  * install lets the Overleaf token live in one file the user can chmod 600, instead of
  * being copied into every client's configuration file.
  */
-const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/;
+// `s`: each line is already split off, and a value may hold U+2028, U+2029 or a lone \r,
+// which `.` alone does not match.
+const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/s;
 
 function stripSurroundingQuotes(rawValue: string): string {
   const trimmed = rawValue.trim();
