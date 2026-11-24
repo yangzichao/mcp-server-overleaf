@@ -31,6 +31,10 @@ describe("renderCodexPluginManifest", () => {
     expect(renderCodexPluginManifest(packageMetadata).mcpServers).toBe("./.mcp.json");
   });
 
+  it("points at the skills folder shared with Claude Code", () => {
+    expect(renderCodexPluginManifest(packageMetadata).skills).toBe("./skills/");
+  });
+
   it("offers at most the three starter prompts Codex renders", () => {
     expect(renderCodexPluginManifest(packageMetadata).interface.defaultPrompt).toHaveLength(3);
   });

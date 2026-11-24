@@ -3,6 +3,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ConfigurationError } from "./serverConfiguration.js";
+import { dropUnfilledBundleSettings } from "./unfilledBundleSettings.js";
 
 /**
  * An MCP client spawns this server as a bare subprocess, so the shell environment a
@@ -10,7 +11,9 @@ import { ConfigurationError } from "./serverConfiguration.js";
  * install lets the Overleaf token live in one file the user can chmod 600, instead of
  * being copied into every client's configuration file.
  */
-const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
+// `s`: each line is already split off, and a value may hold U+2028, U+2029 or a lone \r,
+// which `.` alone does not match.
+const ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/s;
 
 function stripSurroundingQuotes(rawValue: string): string {
   const trimmed = rawValue.trim();
@@ -23,7 +26,7 @@ function stripSurroundingQuotes(rawValue: string): string {
 
 export function parseEnvironmentFile(fileContents: string): Record<string, string> {
   const parsed: Record<string, string> = {};
-  for (const line of fileContents.split("\n")) {
+  for (const line of fileContents.split(/\r?\n/)) {
     if (line.trim().startsWith("#")) continue;
     const match = ASSIGNMENT_PATTERN.exec(line);
     const [, name, rawValue] = match ?? [];
@@ -50,6 +53,8 @@ const CLIENT_OWNS_CONFIGURATION_VARIABLES = [
   "OVERLEAF_GIT_TOKEN_FILE",
   "OVERLEAF_PROJECTS_CONFIG",
   "OVERLEAF_PROJECT_ID",
+  "OVERLEAF_SESSION_COOKIE",
+  "OVERLEAF_SESSION_COOKIE_FILE",
 ] as const;
 
 export function clientSuppliedConfiguration(environment: NodeJS.ProcessEnv): boolean {
@@ -64,6 +69,7 @@ export function loadEnvironmentFileIfPresent(
   environment: NodeJS.ProcessEnv = process.env,
   environmentFilePath: string = resolve(packageRootDirectory(), ".env"),
 ): void {
+  dropUnfilledBundleSettings(environment);
   const explicitFilePath = environment.OVERLEAF_MCP_ENV_FILE?.trim();
   if (explicitFilePath) {
     if (!isAbsolute(explicitFilePath)) {

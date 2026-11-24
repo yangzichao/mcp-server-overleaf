@@ -4,9 +4,15 @@ import { parseRegisteredProjects } from "./parseRegisteredProjects.js";
 import { loadProjectConfigurationFile } from "./projectConfigurationFile.js";
 import { extractOverleafProjectId, looksLikeOverleafProjectId } from "./projectIdentity.js";
 
+function hasMixedGitTokenCoverage(registeredProjects: readonly RegisteredOverleafProject[]): boolean {
+  const projectsWithToken = registeredProjects.filter((project) => Boolean(project.overleafGitToken)).length;
+  return projectsWithToken > 0 && projectsWithToken < registeredProjects.length;
+}
+
 function validateProjectCredentials(
   registeredProjects: readonly RegisteredOverleafProject[],
   overleafGitToken: string,
+  sessionCookieConfigured: boolean,
 ): void {
   const names = new Set<string>();
   const projectIds = new Set<string>();
@@ -26,15 +32,13 @@ function validateProjectCredentials(
     }
     names.add(project.projectName);
     projectIds.add(project.overleafProjectId);
-    if (!project.overleafGitToken && !overleafGitToken) {
-      throw new ConfigurationError(
-        "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile.",
-      );
-    }
   }
-  if (!overleafGitToken && registeredProjects.length === 0) {
+
+  if (overleafGitToken || sessionCookieConfigured) return;
+  if (hasMixedGitTokenCoverage(registeredProjects)) {
     throw new ConfigurationError(
-      "OVERLEAF_GIT_TOKEN is not set. Configure a token, token file, or OVERLEAF_PROJECTS_CONFIG.",
+      "OVERLEAF_GIT_TOKEN is not set and a registered project has no gitToken/gitTokenFile. " +
+        "Without Git integration, set OVERLEAF_SESSION_COOKIE_FILE to reach it through the editor instead.",
     );
   }
 }
@@ -44,7 +48,7 @@ function validateProjectCredentials(
  * bar. Taking the URL here means every client that sets a single project gets the same
  * leniency the setup command already gives.
  */
-function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
+function singleProject(environment: NodeJS.ProcessEnv): RegisteredOverleafProject {
   const reference = environment.OVERLEAF_PROJECT_ID?.trim() ?? "";
   const overleafProjectId = extractOverleafProjectId(reference);
   if (!overleafProjectId) {
@@ -52,19 +56,26 @@ function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
       `OVERLEAF_PROJECT_ID="${reference}" is neither a 24-character project id nor an Overleaf project URL.`,
     );
   }
-  return `${environment.OVERLEAF_PROJECT_NAME?.trim() || "default"}=${overleafProjectId}`;
+  // Taken whole: the name is one value, so a "," or "=" in it is part of the name.
+  return { projectName: environment.OVERLEAF_PROJECT_NAME?.trim() || "default", overleafProjectId };
 }
 
-export function selectProjects(environment: NodeJS.ProcessEnv, overleafGitToken: string) {
+export function selectProjects(
+  environment: NodeJS.ProcessEnv,
+  overleafGitToken: string,
+  sessionCookieConfigured: boolean,
+) {
   // Explicit environment project selection wins as a whole, without merging credentials by position.
   const hasEnvironmentProjects = Boolean(
     environment.OVERLEAF_PROJECTS?.trim() || environment.OVERLEAF_PROJECT_ID?.trim(),
   );
   const projectFile = hasEnvironmentProjects ? undefined : loadProjectConfigurationFile(environment);
   const registeredProjects = hasEnvironmentProjects
-    ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS?.trim() || singleProjectEntry(environment))
+    ? environment.OVERLEAF_PROJECTS?.trim()
+      ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS)
+      : [singleProject(environment)]
     : (projectFile?.projects ?? []);
-  validateProjectCredentials(registeredProjects, overleafGitToken);
+  validateProjectCredentials(registeredProjects, overleafGitToken, sessionCookieConfigured);
   const explicitDefault = environment.OVERLEAF_DEFAULT_PROJECT?.trim() || projectFile?.defaultProject;
   if (explicitDefault && !registeredProjects.some((project) => project.projectName === explicitDefault)) {
     throw new ConfigurationError(

@@ -2,6 +2,9 @@ import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { promisify } from "node:util";
 
+import { collectLatexDiagnostics } from "../latex/collectLatexDiagnostics.js";
+import { readFinalCompileLog } from "./readFinalCompileLog.js";
+
 const execFileAsync = promisify(execFile);
 
 export interface CompileResult {
@@ -13,29 +16,6 @@ export interface CompileResult {
 }
 
 const MAXIMUM_REPORTED_DIAGNOSTICS = 40;
-
-function collectDiagnostics(compilerOutput: string): { errorLines: string[]; warningLines: string[] } {
-  const errorLines: string[] = [];
-  const warningLines: string[] = [];
-
-  for (const line of compilerOutput.split("\n")) {
-    // `-file-line-error` renders errors as `file.tex:12: Undefined control sequence`.
-    if (/^.+\.\w+:\d+:/.test(line) || line.startsWith("! ")) {
-      errorLines.push(line.trim());
-    } else if (
-      /^(LaTeX|Package|Class)\s.*Warning/.test(line) ||
-      line.startsWith("Overfull") ||
-      line.startsWith("Underfull")
-    ) {
-      warningLines.push(line.trim());
-    }
-  }
-
-  return {
-    errorLines: errorLines.slice(0, MAXIMUM_REPORTED_DIAGNOSTICS),
-    warningLines: warningLines.slice(0, MAXIMUM_REPORTED_DIAGNOSTICS),
-  };
-}
 
 /**
  * Compiles the project with latexmk into a build directory outside the clone, so
@@ -55,6 +35,8 @@ export async function compileLatexProject(options: {
     "-interaction=nonstopmode",
     "-file-line-error",
     "-halt-on-error",
+    // The map from PDF positions to source lines, beside the PDF, for SyncTeX lookups.
+    "-synctex=1",
     `-outdir=${buildDirectory}`,
     // "./" prefixed, always. latexmk parses any argument starting with a dash as an
     // option, so a file called "-weird.tex" is otherwise rejected as an unknown option
@@ -63,6 +45,10 @@ export async function compileLatexProject(options: {
     `./${mainTexFile}`,
   ];
 
+  const startedAtMs = Date.now();
+  const finalLog = (succeeded: boolean) =>
+    readFinalCompileLog({ buildDirectory, mainTexFile, startedAtMs, succeeded });
+
   try {
     const { stdout, stderr } = await execFileAsync("latexmk", latexmkArguments, {
       cwd: repositoryDirectory,
@@ -70,7 +56,7 @@ export async function compileLatexProject(options: {
       maxBuffer: 32 * 1024 * 1024,
     });
     const combinedOutput = `${stdout}\n${stderr}`;
-    const diagnostics = collectDiagnostics(combinedOutput);
+    const diagnostics = collectLatexDiagnostics((await finalLog(true)) ?? combinedOutput);
     return {
       succeeded: true,
       mainTexFile,
@@ -88,11 +74,14 @@ export async function compileLatexProject(options: {
     };
     if (failure.code === "ENOENT") {
       throw new Error(
-        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live) or skip calling compile_project.",
+        "latexmk was not found on PATH. Install a TeX distribution (MacTeX/TeX Live), or compile on Overleaf's servers with compile_project (where overleaf), which needs OVERLEAF_SESSION_COOKIE and compiles only what has been pushed.",
       );
     }
     const combinedOutput = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
-    const diagnostics = collectDiagnostics(combinedOutput);
+    const logDiagnostics = collectLatexDiagnostics((await finalLog(false)) ?? "");
+    // latexmk can stop before any LaTeX pass runs, and then only its own output says why.
+    const diagnostics =
+      logDiagnostics.errorLines.length > 0 ? logDiagnostics : collectLatexDiagnostics(combinedOutput);
     if (failure.killed) {
       diagnostics.errorLines.unshift(`Compilation timed out after ${timeoutMs} ms.`);
     } else if (diagnostics.errorLines.length === 0) {

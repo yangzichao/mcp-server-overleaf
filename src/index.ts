@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { loadHttpTransportConfiguration } from "./config/httpTransportConfiguration.js";
 import { loadEnvironmentFileIfPresent } from "./config/loadEnvironmentFile.js";
+import {
+  hasAnyOverleafCredential,
+  MISSING_OVERLEAF_CREDENTIAL_MESSAGE,
+} from "./config/missingOverleafCredential.js";
 import { PACKAGE_VERSION } from "./config/packageMetadata.js";
 import { ConfigurationError, loadServerConfigurationFromEnvironment } from "./config/serverConfiguration.js";
 import { createToolContext } from "./server/createOverleafMcpServer.js";
@@ -34,10 +38,16 @@ Environment:
   OVERLEAF_MCP_CHECKOUT_MODE   full (default) or text-only sparse checkout
   OVERLEAF_MCP_HTTP_AUTH_TOKEN bearer token required by --http unless --allow-anonymous
 
-Tracked changes (optional; these three tools appear only once a cookie is set):
+Review and web tools (optional; read_review, manage_tracked_changes, manage_comments,
+manage_project and compiling on Overleaf appear once a cookie is set):
   OVERLEAF_SESSION_COOKIE      your overleaf_session2 cookie, copied from a signed-in browser
   OVERLEAF_SESSION_COOKIE_FILE absolute path to a file holding that cookie instead
   OVERLEAF_WEB_BASE_URL        Overleaf instance to connect to (default https://www.overleaf.com)
+
+Citation lookups (look_up_citations; each defaults to the public service):
+  OVERLEAF_MCP_DOI_RESOLVER_URL  DOI resolver (default https://doi.org)
+  OVERLEAF_MCP_CROSSREF_API_URL  Crossref REST API (default https://api.crossref.org)
+  OVERLEAF_MCP_ARXIV_API_URL     arXiv API (default https://export.arxiv.org/api)
 
 With OVERLEAF_MCP_ENV_FILE, read that file and let process environment values override it.
 Otherwise use the process environment, or the install's .env when the client supplies no
@@ -57,8 +67,7 @@ function parseCommandLine(argv: readonly string[]): CommandLineOptions {
       case "--version":
       case "-v":
         process.stdout.write(`${PACKAGE_VERSION}\n`);
-        process.exit(0);
-        break;
+        return process.exit(0);
       case "--stdio":
         transport = "stdio";
         break;
@@ -79,8 +88,7 @@ function parseCommandLine(argv: readonly string[]): CommandLineOptions {
       case "--help":
       case "-h":
         process.stdout.write(USAGE);
-        process.exit(0);
-        break;
+        return process.exit(0);
       default:
         throw new Error(`Unknown argument "${argument}".\n\n${USAGE}`);
     }
@@ -104,6 +112,9 @@ async function main(): Promise<void> {
   loadEnvironmentFileIfPresent();
 
   const configuration = loadServerConfigurationFromEnvironment();
+  if (!hasAnyOverleafCredential(configuration)) {
+    process.stderr.write(`mcp-server-overleaf: ${MISSING_OVERLEAF_CREDENTIAL_MESSAGE}\n`);
+  }
   const context = createToolContext(configuration);
 
   if (options.transport === "stdio") {

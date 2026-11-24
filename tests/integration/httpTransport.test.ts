@@ -105,8 +105,8 @@ describe("the HTTP endpoint", () => {
         id: 2,
         method: "tools/call",
         params: {
-          name: "write_file",
-          arguments: { path: "main.tex", content: "Unauthorized edit" },
+          name: "edit_file",
+          arguments: { action: "write", path: "main.tex", content: "Unauthorized edit" },
         },
       },
       { authorization: "" },
@@ -115,7 +115,7 @@ describe("the HTTP endpoint", () => {
     expect(response.headers.get("www-authenticate")).toContain("Bearer");
     await response.text();
     expect(await remote.readPublishedFile("main.tex")).toBe("Original draft");
-    expect(await client.call("show_diff")).toBe("No local changes pending.");
+    expect(await client.call("read_project", { view: "changes" })).toBe("No local changes pending.");
   });
 
   it("rejects an unexpected Host even with a valid token", async () => {

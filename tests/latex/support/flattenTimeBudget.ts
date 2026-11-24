@@ -1,0 +1,1 @@
+export const FLATTEN_TIME_BUDGET_MS = 3000;

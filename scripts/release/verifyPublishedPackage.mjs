@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,12 +26,32 @@ async function fetchRegistryDocument(url, headers = {}) {
   return undefined;
 }
 
+// The tarball can lag the documents that list it, and the registry's CDN caches a 404 for the
+// tarball for minutes: 0.4.0's install asked twelve seconds after npm listed the version and
+// kept getting 404 for about five minutes. Asking for the plain URL here would plant that 404,
+// so this asks with a query string, which reaches the origin under a different cache key, and
+// leaves the plain URL for `npm install`'s first request.
+async function tarballIsServed(tarballUrl) {
+  const probeUrl = new URL(tarballUrl);
+  probeUrl.searchParams.set("published-check", String(Date.now()));
+  const response = await fetch(probeUrl, { method: "HEAD", signal: AbortSignal.timeout(15_000) });
+  assert.ok(
+    response.ok || response.status === 404 || response.status >= 500,
+    `Registry returned ${response.status} for the tarball`,
+  );
+  return response.ok;
+}
+
 const registryVisibilityDeadline = Date.now() + registryVisibilityTimeoutMilliseconds;
 let publishedMetadata;
 while (Date.now() < registryVisibilityDeadline) {
   const versionDocument = await fetchRegistryDocument(`${packageUrl}/${manifest.version}`);
   const installPackument = await fetchRegistryDocument(packageUrl, { accept: abbreviatedPackumentMediaType });
-  if (versionDocument && installPackument?.versions?.[manifest.version]) {
+  if (
+    versionDocument &&
+    installPackument?.versions?.[manifest.version] &&
+    (await tarballIsServed(versionDocument.dist.tarball))
+  ) {
     publishedMetadata = versionDocument;
     break;
   }
@@ -48,13 +68,37 @@ assert.equal(
 );
 assert.ok(publishedMetadata.dist.attestations?.url, "npm did not record provenance attestations");
 
+// Even after the checks above pass, npm's own request for the packument can reach a CDN copy
+// that still lacks the version: 0.5.0's install failed with ETARGET right after they passed.
+// So an install that fails that way is retried while the copies catch up, and --prefer-online
+// keeps npm from answering a retry out of its own cache.
+const installRetryTimeoutMilliseconds = 5 * 60_000;
+const staleRegistryAnswer = /\b(ETARGET|E404)\b/;
+
+async function installPublishedPackage(directory) {
+  const retryDeadline = Date.now() + installRetryTimeoutMilliseconds;
+  for (;;) {
+    const install = spawnSync(
+      "npm",
+      ["install", "--ignore-scripts", "--no-fund", "--prefer-online", manifest.id],
+      {
+        cwd: directory,
+        stdio: ["ignore", "inherit", "pipe"],
+        encoding: "utf8",
+        timeout: 180_000,
+      },
+    );
+    process.stderr.write(install.stderr ?? "");
+    if (install.status === 0) return;
+    const registryWasStale = staleRegistryAnswer.test(install.stderr ?? "");
+    assert.ok(registryWasStale && Date.now() < retryDeadline, `npm install ${manifest.id} failed`);
+    await setTimeout(registryPollIntervalMilliseconds);
+  }
+}
+
 const consumerDirectory = mkdtempSync(join(tmpdir(), "overleaf-published-check-"));
 try {
-  execFileSync("npm", ["install", "--ignore-scripts", "--no-fund", manifest.id], {
-    cwd: consumerDirectory,
-    stdio: "inherit",
-    timeout: 180_000,
-  });
+  await installPublishedPackage(consumerDirectory);
   execFileSync("npm", ["audit", "signatures"], {
     cwd: consumerDirectory,
     stdio: "inherit",

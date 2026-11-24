@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { serverEntryPoint, serverWorkingDirectory } from "../../support/serverUnderTest.js";
+import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "../../support/withoutBackgroundGitMaintenance.js";
 import { type JsonRpcResponse, responseText } from "./mcpProtocol.js";
 
 export const httpTestToken = "test-bearer-token-not-a-real-secret";
@@ -32,6 +33,7 @@ export class McpHttpClient {
       env: {
         PATH: process.env.PATH,
         HOME: process.env.HOME,
+        ...WITHOUT_BACKGROUND_GIT_MAINTENANCE,
         ...environment,
         OVERLEAF_MCP_HTTP_AUTH_TOKEN: httpTestToken,
       },

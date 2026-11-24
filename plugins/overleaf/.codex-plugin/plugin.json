@@ -1,7 +1,7 @@
 {
   "name": "overleaf",
-  "version": "0.3.6",
-  "description": "Overleaf MCP server for Claude, Codex, ChatGPT, and Cursor with safe LaTeX editing and review.",
+  "version": "0.5.2",
+  "description": "Overleaf MCP server for Claude, Codex, ChatGPT & Cursor. Edit LaTeX via Git or as tracked changes.",
   "author": {
     "name": "Zichao Yang",
     "url": "https://github.com/yangzichao"
@@ -33,10 +33,11 @@
     "ai"
   ],
   "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
   "interface": {
     "displayName": "Overleaf",
     "shortDescription": "Read and edit Overleaf papers, with tracked changes.",
-    "longDescription": "Read and edit your Overleaf papers from Codex.\n\nThe plugin runs this server over the Overleaf Git bridge and keeps the clone on your computer.\nCodex can read the paper, search it, rewrite a section, and compile it locally. Nothing reaches\nOverleaf until you approve push_changes, and every edit can be inspected with show_diff first.\nIf a co-author changed the same lines, the push stops and shows you both versions.\n\nAdd an Overleaf session cookie and three more tools appear. An edit then arrives in the editor\nas a tracked-change suggestion your co-authors accept or reject, you can read what the review\npanel already holds, and you can leave a comment on a passage.\n\nRun `npx --yes mcp-server-overleaf setup` once before installing. It stores your Overleaf Git\ntoken outside this plugin, so the plugin itself carries no credential.",
+    "longDescription": "Read and edit your Overleaf papers from Codex.\n\nWith an Overleaf Git token, the plugin keeps a clone of the project on your computer. Codex can\nread the paper, search it, rewrite a section, check its references and citations, and compile\nit. Nothing reaches Overleaf until you approve push_changes, and read_project shows every\npending edit first. If a co-author changed the same lines, the push stops and shows you both\nversions.\n\nWith an Overleaf session cookie, an edit can arrive in the editor as a tracked-change suggestion\nyour co-authors accept or reject. Codex can also answer and resolve review comments, compile on\nOverleaf, and organise projects, folders and settings. The cookie alone is enough on a plan\nwithout Git integration.\n\nThe plugin's skills run chktex, latexindent, texcount, latexdiff and latexpand on the clone,\npackage a paper for arXiv, and render compiled pages to check how they look.\n\nRun `npx --yes mcp-server-overleaf setup` once before installing. It stores your Overleaf Git\ntoken outside this plugin, so the plugin itself carries no credential.",
     "developerName": "Zichao Yang",
     "category": "Productivity",
     "capabilities": [

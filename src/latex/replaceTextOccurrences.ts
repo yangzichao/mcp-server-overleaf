@@ -4,7 +4,7 @@ export type TextReplacement =
   | { readonly status: "replaced"; readonly occurrenceCount: number; readonly updatedContent: string };
 
 /**
- * Decides what a replace_text call should do, without touching the clone.
+ * Decides what an edit_file replace_text call should do, without touching the clone.
  *
  * A find string that matches several places is refused rather than guessed at: replacing
  * only the first occurrence would silently leave the others, and replacing all of them

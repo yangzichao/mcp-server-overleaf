@@ -1,3 +1,5 @@
+import { stripLineComment } from "./source/prepareLatexSource.js";
+
 export const LATEX_SECTION_LEVELS = [
   "part",
   "chapter",
@@ -8,7 +10,7 @@ export const LATEX_SECTION_LEVELS = [
   "subparagraph",
 ] as const;
 
-export type LatexSectionLevel = (typeof LATEX_SECTION_LEVELS)[number];
+type LatexSectionLevel = (typeof LATEX_SECTION_LEVELS)[number];
 
 export interface LatexSection {
   readonly level: LatexSectionLevel;
@@ -63,21 +65,6 @@ function skipOptionalArgument(text: string, startIndex: number): number {
     }
   }
   return startIndex;
-}
-
-function stripLineComment(line: string): string {
-  let result = "";
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    if (character === "\\") {
-      result += line.slice(index, index + 2);
-      index += 1;
-      continue;
-    }
-    if (character === "%") break;
-    result += character;
-  }
-  return result;
 }
 
 /**

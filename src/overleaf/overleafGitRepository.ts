@@ -6,9 +6,17 @@ import {
   configureSparseCheckout,
   materializeFullCheckout,
 } from "./checkout/sparseCheckout.js";
-import { type GitCommandResult, runGitCommand } from "./gitCommandRunner.js";
+import { type GitCommandResult, runGitCommand, runGitCommandForBytes } from "./gitCommandRunner.js";
+import { ProjectHistory } from "./history/projectHistory.js";
 import { pendingProjectDiff } from "./pendingProjectDiff.js";
 import { resolvePathInsideRepository, UnsafeRepositoryPathError } from "./repositoryPaths.js";
+import {
+  NameSpelledOtherwiseOnDiskError,
+  refuseNameSpelledOtherwiseOnDisk,
+} from "./workingTree/diskSpelling/refuseNameSpelledOtherwiseOnDisk.js";
+import { isNothingAtPathError } from "./workingTree/isNothingAtPathError.js";
+import { ProjectDirectories } from "./workingTree/projectDirectories.js";
+import { requireFileShapedPath } from "./workingTree/requireFileShapedPath.js";
 
 /**
  * Junk that must never reach a co-author's project. Edits are committed with `git add
@@ -41,7 +49,7 @@ export interface OverleafGitRepositoryOptions {
   readonly checkoutMode?: CheckoutMode;
 }
 
-export class DetachedHeadError extends Error {}
+class DetachedHeadError extends Error {}
 
 export class BinaryFileError extends Error {}
 
@@ -219,6 +227,12 @@ export class OverleafGitRepository {
     await materializeFullCheckout((args, options) => this.git(args, options));
   }
 
+  /** True while sparse checkout keeps binary files such as figures off disk. */
+  async hasTextOnlyCheckout(): Promise<boolean> {
+    const { stdout } = await this.git(["config", "--bool", "core.sparseCheckout"], { tolerateFailure: true });
+    return stdout.trim() === "true";
+  }
+
   /**
    * True when Git has this path in the index, whatever the working tree looks like. A
    * sparse checkout leaves skipped files tracked, so this is what separates "hidden by
@@ -229,9 +243,15 @@ export class OverleafGitRepository {
    * files are all skipped.
    */
   private async isTrackedInIndex(absolutePath: string): Promise<boolean> {
-    const gitPath = relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
-    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPath}`]);
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${this.gitPathOf(absolutePath)}`]);
     return stdout.split("\0").some((entry) => entry !== "");
+  }
+
+  private async isTrackedUnderThatSpelling(gitPathPrefix: string): Promise<boolean> {
+    const { stdout } = await this.git(["ls-files", "-z", "--", `:(literal)${gitPathPrefix}`]);
+    return stdout
+      .split("\0")
+      .some((entry) => entry === gitPathPrefix || entry.startsWith(`${gitPathPrefix}/`));
   }
 
   private async materializePathIfNeeded(relativePath: string): Promise<void> {
@@ -240,7 +260,7 @@ export class OverleafGitRepository {
       await stat(absolutePath);
       return;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (!isNothingAtPathError(error)) throw error;
     }
 
     // Absent from the working tree means one of two different things, and expanding for
@@ -253,19 +273,41 @@ export class OverleafGitRepository {
     await this.materializeAllFiles();
   }
 
-  /**
-   * The single place a client-supplied path becomes an absolute one. Both halves of the
-   * guard run here: path arithmetic first, then the symlink check, which needs the disk.
-   */
   private async resolveClientPath(relativePath: string): Promise<string> {
+    const absolutePath = await this.resolveContainedPathInAnySpelling(relativePath);
+    await refuseNameSpelledOtherwiseOnDisk(
+      this.options.repositoryDirectory,
+      this.gitPathOf(absolutePath),
+      (gitPathPrefix) => this.isTrackedUnderThatSpelling(gitPathPrefix),
+    );
+    return absolutePath;
+  }
+
+  private async resolveContainedPathInAnySpelling(relativePath: string): Promise<string> {
     const absolutePath = resolvePathInsideRepository(this.options.repositoryDirectory, relativePath);
     await assertRealPathInsideRepository(this.options.repositoryDirectory, absolutePath);
     return absolutePath;
   }
 
+  private gitPathOf(absolutePath: string): string {
+    return relative(this.options.repositoryDirectory, absolutePath).split(sep).join("/");
+  }
+
+  private async toGitPath(relativePath: string): Promise<string> {
+    return this.gitPathOf(await this.resolveClientPath(relativePath));
+  }
+
   async readTextFile(relativePath: string): Promise<string> {
     await this.materializePathIfNeeded(relativePath);
-    const contents = await readFile(await this.resolveClientPath(relativePath));
+    const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
+    let contents: Buffer;
+    try {
+      contents = await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      throw await this.missingFileError(relativePath, absolutePath);
+    }
 
     // Figures and PDFs decode to pages of mojibake that would go straight into the
     // model's context and tell it nothing. A NUL byte early on is the usual tell.
@@ -277,9 +319,91 @@ export class OverleafGitRepository {
     return contents.toString("utf8");
   }
 
+  /**
+   * A file's bytes, for figures. A file sparse checkout keeps off disk is read from Git's index
+   * rather than materialized, because expansion is permanent and looking at a figure should not
+   * turn a text-only checkout into a full one.
+   */
+  async readFileBytes(relativePath: string): Promise<Buffer> {
+    const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
+    try {
+      return await readFile(absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    if ((await this.describeIndexEntry(absolutePath)) !== "skipped") {
+      throw await this.missingFileError(relativePath, absolutePath);
+    }
+    return await runGitCommandForBytes({
+      workingDirectory: this.options.repositoryDirectory,
+      args: ["cat-file", "blob", `:${await this.toGitPath(relativePath)}`],
+      overleafGitToken: this.options.overleafGitToken,
+    });
+  }
+
+  private async missingFileError(relativePath: string, absolutePath: string): Promise<Error> {
+    return (await this.describeIndexEntry(absolutePath)) === "tracked"
+      ? new Error(`${relativePath} is deleted in the clone, and the deletion is not pushed yet.`)
+      : new Error(`No file ${relativePath} in the project.`);
+  }
+
+  /**
+   * Whether Git tracks a path absent from disk, and why it is absent: `ls-files -t` marks a file
+   * sparse checkout skipped with S, while one deleted in the clone keeps the plain H.
+   */
+  private async describeIndexEntry(absolutePath: string): Promise<"untracked" | "tracked" | "skipped"> {
+    const gitPath = this.gitPathOf(absolutePath);
+    const { stdout } = await this.git(["ls-files", "-t", "-z", "--", `:(literal)${gitPath}`]);
+    const entries = stdout.split("\0").filter((entry) => entry !== "");
+    if (entries.length === 0) return "untracked";
+    return entries.includes(`S ${gitPath}`) ? "skipped" : "tracked";
+  }
+
+  /** Bytes as they are, for figures and other binary files. */
+  async writeFileBytes(relativePath: string, content: Buffer): Promise<void> {
+    await this.materializePathIfNeeded(relativePath);
+    const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, content);
+  }
+
+  /**
+   * Puts one file back to its content at an earlier commit, in the working tree only, so the
+   * restore is pushed like any other edit. Git writes the bytes itself, which keeps binary
+   * files intact.
+   */
+  async restoreFileFromCommit(commitHash: string, relativePath: string): Promise<void> {
+    const gitPath = await this.toGitPath(relativePath);
+    await this.git(["restore", `--source=${commitHash}`, "--worktree", "--", `:(literal)${gitPath}`]);
+  }
+
+  /** Deleting and moving whole directories, behind the same path guards as single files. */
+  directories(): ProjectDirectories {
+    return new ProjectDirectories({
+      repositoryDirectory: this.options.repositoryDirectory,
+      git: (args) => this.git(args),
+      resolveClientPath: (relativePath) => this.resolveClientPath(relativePath),
+      materializePathIfNeeded: (relativePath) => this.materializePathIfNeeded(relativePath),
+      materializeAllFiles: () => this.materializeAllFiles(),
+    });
+  }
+
+  /** History queries, kept in src/overleaf/history so this class stays about the working copy. */
+  history(): ProjectHistory {
+    return new ProjectHistory({
+      git: (args, options) => this.git(args, options),
+      toGitPath: async (relativePath) =>
+        this.gitPathOf(await this.resolveContainedPathInAnySpelling(relativePath)),
+      latestOverleafRevision: async () => `origin/${await this.getBranchName()}`,
+    });
+  }
+
   async writeTextFile(relativePath: string, content: string): Promise<void> {
     await this.materializePathIfNeeded(relativePath);
     const absolutePath = await this.resolveClientPath(relativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, relativePath, absolutePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, content, "utf8");
   }
@@ -314,6 +438,7 @@ export class OverleafGitRepository {
     // resolveClientPath contains a path that does not exist yet by checking its nearest
     // existing ancestor, so a symlinked directory cannot be used to move a file out.
     const toAbsolutePath = await this.resolveClientPath(toRelativePath);
+    await requireFileShapedPath(this.options.repositoryDirectory, toRelativePath, toAbsolutePath);
     await mkdir(dirname(toAbsolutePath), { recursive: true });
     await rename(fromAbsolutePath, toAbsolutePath);
   }
@@ -324,8 +449,13 @@ export class OverleafGitRepository {
       const entry = await stat(await this.resolveClientPath(relativePath));
       return entry.isFile();
     } catch (error) {
-      if (error instanceof UnsafeRepositoryPathError || (error as NodeJS.ErrnoException).code === "ENOENT")
+      if (
+        error instanceof UnsafeRepositoryPathError ||
+        error instanceof NameSpelledOtherwiseOnDiskError ||
+        isNothingAtPathError(error)
+      ) {
         return false;
+      }
       throw error;
     }
   }
@@ -338,12 +468,14 @@ export class OverleafGitRepository {
       .filter((line) => line !== "");
   }
 
-  async getPendingDiff(): Promise<string> {
+  async getPendingDiff(relativePath?: string): Promise<string> {
     const branchName = await this.getBranchName();
+    const gitPath = relativePath ? await this.toGitPath(relativePath) : undefined;
     return pendingProjectDiff(
       (args, options) => this.git(args, options),
       `origin/${branchName}`,
       (path) => this.resolveClientPath(path),
+      gitPath,
     );
   }
 

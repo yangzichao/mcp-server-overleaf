@@ -1,5 +1,7 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { withoutTrailing } from "../text/withoutTrailing.js";
+import { type CitationLookupEndpoints, loadCitationLookupEndpoints } from "./citationLookupConfiguration.js";
 import { ConfigurationError } from "./configurationError.js";
 import { resolveGitToken } from "./projects/projectCredentials.js";
 import { selectProjects } from "./projects/projectSelection.js";
@@ -25,8 +27,9 @@ export interface ServerConfiguration {
   readonly checkoutMode?: "full" | "text-only";
   readonly gitCommitAuthorName: string;
   readonly gitCommitAuthorEmail: string;
-  /** Absent unless a session cookie is configured; only the review tools need it. */
   readonly reviewCredentials?: OverleafReviewCredentials;
+  /** Where look_up_citations looks entries up; the public services when absent. */
+  readonly citationLookup?: CitationLookupEndpoints;
 }
 
 function parsePositiveInteger(rawValue: string | undefined, fallback: number, variableName: string): number {
@@ -45,7 +48,12 @@ export function loadServerConfigurationFromEnvironment(
     environment.OVERLEAF_GIT_TOKEN,
     environment.OVERLEAF_GIT_TOKEN_FILE,
   );
-  const { registeredProjects, defaultProjectName } = selectProjects(environment, overleafGitToken);
+  const reviewCredentials = loadReviewCredentials(environment);
+  const { registeredProjects, defaultProjectName } = selectProjects(
+    environment,
+    overleafGitToken,
+    reviewCredentials !== undefined,
+  );
   const checkoutMode = environment.OVERLEAF_MCP_CHECKOUT_MODE?.trim() || "full";
   if (checkoutMode !== "full" && checkoutMode !== "text-only") {
     throw new ConfigurationError("OVERLEAF_MCP_CHECKOUT_MODE must be full or text-only.");
@@ -59,9 +67,9 @@ export function loadServerConfigurationFromEnvironment(
   return {
     overleafGitToken,
     checkoutMode,
-    overleafGitBaseUrl: (environment.OVERLEAF_GIT_BASE_URL?.trim() || "https://git.overleaf.com").replace(
-      /\/+$/,
-      "",
+    overleafGitBaseUrl: withoutTrailing(
+      environment.OVERLEAF_GIT_BASE_URL?.trim() || "https://git.overleaf.com",
+      "/",
     ),
     workspaceDirectory,
     registeredProjects,
@@ -74,6 +82,7 @@ export function loadServerConfigurationFromEnvironment(
     gitCommitAuthorName: environment.OVERLEAF_MCP_GIT_AUTHOR_NAME?.trim() || "mcp-server-overleaf",
     gitCommitAuthorEmail:
       environment.OVERLEAF_MCP_GIT_AUTHOR_EMAIL?.trim() || "mcp-server-overleaf@localhost",
-    reviewCredentials: loadReviewCredentials(environment),
+    reviewCredentials,
+    citationLookup: loadCitationLookupEndpoints(environment),
   };
 }

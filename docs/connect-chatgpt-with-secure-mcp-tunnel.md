@@ -292,8 +292,8 @@ Leave the tunnel runtime online while creating and testing the app.
    does not authenticate directly to Overleaf.
 8. Review the risk acknowledgement, create the app, and connect it to the workspace.
 
-ChatGPT should discover 18 tools, or 21 with a session cookie configured. If the tunnel is
-absent from the selector, return to
+ChatGPT should discover 11 tools with a Git token, 13 with only a session cookie, or 15 with
+both. If the tunnel is absent from the selector, return to
 steps 3–5 instead of creating a second tunnel immediately.
 
 ## 10. Verify the complete path with read-only calls
@@ -305,7 +305,7 @@ Start with an explicit read-only prompt:
 > which one is the default.
 
 Confirm that ChatGPT displays a tool call to `Overleaf Local` and returns the configured
-project. Then test `list_files` on that project.
+project. Then test `read_project` with `view: "files"` on that project.
 
 These two calls prove the full path:
 
@@ -316,7 +316,8 @@ These two calls prove the full path:
 5. The local server authenticated to Overleaf and read the project.
 
 Only after this read-only proof should you test edits. Edits remain in the local clone until
-`push_changes` is called. Review `show_diff`, optionally run `compile_project`, and ask for
+`push_changes` is called. Review `read_project` with `view: "changes"`, optionally run
+`compile_project`, and ask for
 an explicit push with a meaningful commit message before publishing changes to Overleaf.
 
 ## Troubleshooting
@@ -342,7 +343,7 @@ an explicit push with a meaningful commit message before publishing changes to O
 - Associate the tunnel only with organizations and workspaces that should be able to use it.
 - Remember that tool results intentionally send selected Overleaf document content to
   ChatGPT. The Git token itself remains local.
-- Treat `push_changes` as publication to Overleaf and `discard_local_changes` as destructive
-  to unpublished local work.
+- Treat `push_changes` as publication to Overleaf and `manage_files` with
+  `action: "discard_local_changes"` as destructive to unpublished local work.
 - Re-run the read-only end-to-end test after rotating credentials, changing organizations,
   changing proxies, upgrading `tunnel-client`, or moving the repository.

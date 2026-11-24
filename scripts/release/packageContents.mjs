@@ -21,8 +21,14 @@ export function verifyPackageContents(packageInformation) {
       `Unexpected published file: ${path}`,
     );
   }
+  // 0.3.9 unpacked to 369 KB in 89 files. The competitor-parity tools (review, web, history,
+  // reference and citation checks) brought it to 546 KB in 156 files. 0.5.0's editor and
+  // file-tree versions, project actions, images, flattening, blame, citation search and
+  // prompts bring it to 895 KB in 319 files: documentation, and dist/*.js that dist/index.js
+  // reaches, all but one empty type-only module. Raise this again only after the same
+  // inspection.
   assert.ok(
-    packageInformation.unpackedSize < 500_000,
+    packageInformation.unpackedSize < 1_050_000,
     "Unexpected package size growth; inspect before release",
   );
 }

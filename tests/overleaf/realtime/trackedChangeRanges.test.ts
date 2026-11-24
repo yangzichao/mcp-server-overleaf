@@ -148,6 +148,13 @@ describe("timestamps, which Overleaf has sent as both a number and a string", ()
     expect(changes.map((change) => change.madeAt)).toEqual([undefined, undefined]);
   });
 
+  it("leaves a number outside the range of a Date undefined", () => {
+    const { changes } = readDocumentRanges({
+      changes: [{ id: "c1", op: { p: 0, i: "" }, metadata: { ts: 8.640000000000001e15 } }],
+    });
+    expect(changes[0]?.madeAt).toBeUndefined();
+  });
+
   it("survives metadata that is not an object", () => {
     const { changes } = readDocumentRanges({ changes: [{ id: "c1", op: { p: 0, i: "x" }, metadata: 5 }] });
     expect(changes[0]).toMatchObject({ changeId: "c1", authorId: undefined, madeAt: undefined });

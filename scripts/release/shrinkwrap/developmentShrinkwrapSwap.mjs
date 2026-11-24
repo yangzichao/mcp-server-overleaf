@@ -5,7 +5,7 @@ import { countDevelopmentEntries, pruneDevelopmentEntries } from "./pruneDevelop
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-export const developmentShrinkwrapPath = join(packageRoot, "npm-shrinkwrap.json");
+const developmentShrinkwrapPath = join(packageRoot, "npm-shrinkwrap.json");
 
 /**
  * `npm pack` runs `postpack` only when packing succeeded, so a failed pack would otherwise
@@ -13,7 +13,7 @@ export const developmentShrinkwrapPath = join(packageRoot, "npm-shrinkwrap.json"
  * tooling. This backup is the marker for that window: whoever runs next puts the full lock
  * back before doing anything else, and Git ignores the file so it cannot be committed.
  */
-export const developmentShrinkwrapBackupPath = join(packageRoot, "npm-shrinkwrap.development.json");
+const developmentShrinkwrapBackupPath = join(packageRoot, "npm-shrinkwrap.development.json");
 
 export function restoreDevelopmentShrinkwrap() {
   if (!existsSync(developmentShrinkwrapBackupPath)) return false;
