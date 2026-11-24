@@ -1,5 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
-import { isAbsolute, resolve, sep } from "node:path";
+
+import { requireVisibleAbsolutePath } from "./localSourcePath.js";
 
 /**
  * Reads a file from this computer for manage_files (action upload), with the limits that keep a confused or
@@ -9,23 +10,10 @@ import { isAbsolute, resolve, sep } from "node:path";
  */
 
 /** Overleaf refuses uploads above 50 MB. */
-const MAXIMUM_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAXIMUM_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export async function readLocalUpload(sourcePath: string): Promise<Buffer> {
-  if (!isAbsolute(sourcePath)) {
-    throw new Error(
-      "sourcePath must be an absolute path to a file on this computer, e.g. /Users/me/figures/plot.png.",
-    );
-  }
-  const absolutePath = resolve(sourcePath);
-  const hiddenPart = absolutePath
-    .split(sep)
-    .find((part) => part.startsWith(".") && part !== "." && part !== "..");
-  if (hiddenPart) {
-    throw new Error(
-      `Refusing to upload from a hidden path (${hiddenPart}): hidden files and directories usually hold credentials or settings, not paper material.`,
-    );
-  }
+  const absolutePath = requireVisibleAbsolutePath(sourcePath, "file");
   const entry = await stat(absolutePath).catch(() => undefined);
   if (!entry?.isFile()) throw new Error(`${absolutePath} is not a file on this computer.`);
   if (entry.size > MAXIMUM_UPLOAD_BYTES) {

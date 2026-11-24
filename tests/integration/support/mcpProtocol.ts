@@ -37,6 +37,8 @@ export interface JsonRpcResponse {
     readonly prompts?: McpPromptDescription[];
     readonly messages?: Array<{ role: string; content: McpContentBlock }>;
     readonly isError?: boolean;
+    readonly resultType?: string;
+    readonly inputRequests?: Record<string, unknown>;
     readonly protocolVersion?: string;
     readonly instructions?: string;
   };

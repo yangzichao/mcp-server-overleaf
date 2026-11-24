@@ -1,3 +1,4 @@
+import type { McpClientOptions } from "../../integration/mcpStdioClient.js";
 import { ConnectedOverleafEditor } from "./connectedOverleafEditor.js";
 import type { ServerCredentials } from "./serverCredentials.js";
 
@@ -12,8 +13,9 @@ export class OverleafEditorScenario {
   async open(
     credentials?: ServerCredentials,
     environmentOverrides?: NodeJS.ProcessEnv,
+    clientOptions?: McpClientOptions,
   ): Promise<ConnectedOverleafEditor> {
-    this.openWorld = await ConnectedOverleafEditor.open(credentials, environmentOverrides);
+    this.openWorld = await ConnectedOverleafEditor.open(credentials, environmentOverrides, clientOptions);
     return this.openWorld;
   }
 

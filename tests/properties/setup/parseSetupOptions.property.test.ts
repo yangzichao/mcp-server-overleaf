@@ -11,7 +11,9 @@ const projectReference = fc.oneof(
   fc.constantFrom("-h", "my paper", "北京"),
 );
 const bareReference = projectReference.filter((reference) => !reference.slice(1).includes("="));
-const nameWithoutEquals = projectAlias.filter((alias) => !alias.includes("="));
+const nameWithoutEqualsOrLeadingDashes = projectAlias.filter(
+  (alias) => !alias.includes("=") && !alias.startsWith("--"),
+);
 
 type WrittenOption =
   | {
@@ -31,7 +33,7 @@ const writtenOption: fc.Arbitrary<WrittenOption> = fc.oneof(
     argv: ["--project", reference],
     project: { reference },
   })),
-  fc.tuple(nameWithoutEquals, projectReference).map(([projectName, reference]) => ({
+  fc.tuple(nameWithoutEqualsOrLeadingDashes, projectReference).map(([projectName, reference]) => ({
     kind: "project" as const,
     argv: ["--project", `${projectName}=${reference}`],
     project: { projectName: projectName.trim(), reference: reference.trim() },

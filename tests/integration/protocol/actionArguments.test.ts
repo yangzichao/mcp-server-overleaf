@@ -63,9 +63,10 @@ it.each([
   [
     "manage_files",
     { action: "discard_local_changes", path: "main.tex" },
-    "path does not apply to discard_local_changes; delete, move, upload and restore use it.",
+    "path does not apply to discard_local_changes; delete, move, upload, upload_folder and restore use it.",
   ],
   ["manage_files", { action: "restore", path: "main.tex" }, "restore needs revision."],
+  ["manage_files", { action: "upload_folder", path: "figures" }, "upload_folder needs sourcePath."],
   [
     "read_file",
     { path: "main.tex", sectionTitle: "Introduction", startLine: 1 },

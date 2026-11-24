@@ -52,6 +52,8 @@ export class FakeProjectTree {
   readonly files = new Map<string, FakeTreeFile>([
     [FIGURE_FILE_ID, { fileId: FIGURE_FILE_ID, path: "figure.png", bytes: FAKE_FIGURE_BYTES }],
   ]);
+  /** Uploads still accepted before the fake answers as Overleaf does for a project at its file limit. */
+  uploadsLeftBeforeFull: number | undefined;
   private nextEntityNumber = 0;
 
   constructor(private readonly documents: FakeTreeDocuments) {}

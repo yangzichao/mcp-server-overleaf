@@ -15,6 +15,9 @@ import { discardLocalChangesAction } from "./fileActions/discardLocalChangesActi
 import { moveFileAction } from "./fileActions/moveFileAction.js";
 import { restoreFileAction } from "./fileActions/restoreFileAction.js";
 import { readUploadBytes, uploadFileAction } from "./fileActions/uploadFileAction.js";
+import { uploadFolderAction } from "./fileActions/uploadFolderAction.js";
+import { readFolderUploadDestination } from "./folderUpload/folderUploadTargets.js";
+import { readLocalFolder } from "./folderUpload/readLocalFolder.js";
 import {
   describeManageFiles,
   describeManageFilesAction,
@@ -22,7 +25,14 @@ import {
   FOLDER_IN_CLONE_NEXT_STEP,
 } from "./manageFilesDescriptions.js";
 
-const FILE_ACTIONS = ["delete", "move", "upload", "restore", "discard_local_changes"] as const;
+const FILE_ACTIONS = [
+  "delete",
+  "move",
+  "upload",
+  "upload_folder",
+  "restore",
+  "discard_local_changes",
+] as const;
 const FILE_AND_FOLDER_ACTIONS = [...FILE_ACTIONS, "create_folder"] as const;
 const TITLE = "Delete, move, upload or restore files and folders";
 
@@ -40,7 +50,7 @@ const fileAndFolderInput = z.object({
     .string()
     .optional()
     .describe(
-      "upload: absolute path of the file on this computer to copy, e.g. /Users/me/results/plot.png. Give this or contentBase64.",
+      "upload: absolute path of the file on this computer to copy, e.g. /Users/me/results/plot.png; give this or contentBase64. upload_folder, required: absolute path of the folder on this computer to copy, e.g. /Users/me/results/plots.",
     ),
   contentBase64: z
     .string()
@@ -99,6 +109,18 @@ function buildFileActions(
         const bytes = await readUploadBytes(input.sourcePath, input.contentBase64);
         return await changeSynchronizedClone(input.project, (repository) =>
           uploadFileAction(repository, path, bytes),
+        );
+      },
+    },
+    upload_folder: {
+      uses: ["path", "sourcePath"],
+      run: async (input) => {
+        const destination = readFolderUploadDestination(requireArgument(input.path, "path", "upload_folder"));
+        const listing = await readLocalFolder(
+          requireArgument(input.sourcePath, "sourcePath", "upload_folder"),
+        );
+        return await changeSynchronizedClone(input.project, (repository) =>
+          uploadFolderAction(repository, destination, listing),
         );
       },
     },

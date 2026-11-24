@@ -98,6 +98,17 @@ export class OverleafWebClient {
     await response.body?.cancel();
   }
 
+  async putIgnoringAnswer(path: string, body: unknown, options: WebRequestOptions = {}): Promise<void> {
+    const response = await this.sendWithCsrf(
+      "PUT",
+      path,
+      { "content-type": "application/json", accept: "application/json" },
+      () => JSON.stringify(body),
+      options,
+    );
+    await response.body?.cancel();
+  }
+
   /** An HTML page, for the settings Overleaf hands its editor only in meta tags. */
   async getPage(path: string, options: WebRequestOptions = {}): Promise<string> {
     const response = await this.send("GET", path, { accept: "text/html" }, undefined, options);
@@ -202,7 +213,13 @@ export class OverleafWebClient {
       );
     }
     if (!response.ok) {
-      throw describeFailedResponse(method, path, response.status, await response.text());
+      throw describeFailedResponse(
+        method,
+        path,
+        response.status,
+        await response.text(),
+        response.headers.get("x-served-by") ?? undefined,
+      );
     }
     return response;
   }

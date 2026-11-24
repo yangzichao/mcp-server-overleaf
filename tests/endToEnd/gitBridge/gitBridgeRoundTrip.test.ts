@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -185,6 +185,25 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
     ).toContain(`Added ${figurePath}`);
     await call("push_changes", { commitMessage: `End-to-end figure ${runIdentifier}` });
     expect(await listFiles()).toContain(figurePath);
+  });
+
+  it("uploads a folder from this computer, keeping its subfolder", async () => {
+    const localFolder = join(server.scratchDirectory, "figures");
+    mkdirSync(join(localFolder, "raw"), { recursive: true });
+    writeFileSync(join(localFolder, "plot.png"), PNG_SIGNATURE);
+    writeFileSync(join(localFolder, "raw", "data.csv"), "x,y\n1,2\n");
+    const uploadedFolder = `${scratchFolder}/figures`;
+    const reply = await call("manage_files", {
+      action: "upload_folder",
+      path: uploadedFolder,
+      sourcePath: localFolder,
+    });
+    expect(reply).toContain(`- ${uploadedFolder}/plot.png (added, 8 bytes)`);
+    expect(reply).toContain(`- ${uploadedFolder}/raw/data.csv (added, 8 bytes)`);
+    await call("push_changes", { commitMessage: `End-to-end folder ${runIdentifier}` });
+    const files = await listFiles();
+    expect(files).toContain(`${uploadedFolder}/plot.png`);
+    expect(files).toContain(`${uploadedFolder}/raw/data.csv`);
   });
 
   it("moves a file locally and discards the move", async () => {

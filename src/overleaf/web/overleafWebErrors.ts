@@ -3,12 +3,20 @@
  * socket. Each carries what the user can do about it, so a tool can say more than a status code.
  */
 
+export interface OverleafFailedAnswer {
+  readonly reason?: string;
+  readonly errorReason?: string;
+  /** Overleaf's web servers send `X-Served-By` only when `EXPOSE_HOSTNAME` is on, as overleaf.com has it. */
+  readonly servedBy?: string;
+}
+
 export class OverleafWebRequestError extends Error {
   constructor(
     message: string,
     readonly status: number | undefined,
     /** What the user can do about it, kept separate so a tool can present it on its own line. */
     readonly remedy?: string,
+    readonly answer: OverleafFailedAnswer = {},
   ) {
     super(remedy ? `${message} ${remedy}` : message);
     this.name = "OverleafWebRequestError";
@@ -48,8 +56,10 @@ export function describeFailedResponse(
   path: string,
   status: number,
   body: string,
+  servedBy?: string,
 ): OverleafWebRequestError {
-  const overleafReason = readOverleafReason(body);
+  const answer = readFailedAnswer(body, servedBy);
+  const overleafReason = answer.reason;
   const action = `${method} ${path}`;
   if (status === 401) return expiredSessionError();
   if (status === 403) {
@@ -57,6 +67,7 @@ export function describeFailedResponse(
       `Overleaf refused ${action}: this account does not have permission.${overleafReason ? ` ${overleafReason}` : ""}`,
       status,
       "Check the account's access level in the project's Share menu.",
+      answer,
     );
   }
   if (status === 404) {
@@ -64,6 +75,7 @@ export function describeFailedResponse(
       `Overleaf has nothing at ${action}.${overleafReason ? ` ${overleafReason}` : ""}`,
       status,
       "The project, document or thread id may be wrong, or this Overleaf instance may not offer the feature.",
+      answer,
     );
   }
   if (status === 429) {
@@ -71,24 +83,37 @@ export function describeFailedResponse(
       `Overleaf is rate-limiting ${action}.`,
       status,
       "Wait a minute before trying again.",
+      answer,
     );
   }
   return new OverleafWebRequestError(
     `Overleaf answered ${action} with status ${status}.${overleafReason ? ` ${overleafReason}` : ""}`,
     status,
+    undefined,
+    answer,
   );
 }
 
 const LONGEST_PLAIN_TEXT_REASON = 200;
 
-function readOverleafReason(body: string): string | undefined {
+function readFailedAnswer(body: string, servedBy: string | undefined): OverleafFailedAnswer {
+  const served = servedBy ? { servedBy } : {};
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
   } catch {
-    return readPlainTextReason(body);
+    const reason = readPlainTextReason(body);
+    return { ...served, ...(reason ? { reason } : {}) };
   }
-  return readJsonReason(parsed);
+  const reason = readJsonReason(parsed);
+  const errorReason = readErrorReason(parsed);
+  return { ...served, ...(reason ? { reason } : {}), ...(errorReason ? { errorReason } : {}) };
+}
+
+function readErrorReason(parsed: unknown): string | undefined {
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const { errorReason } = parsed as { errorReason?: unknown };
+  return typeof errorReason === "string" && errorReason ? errorReason : undefined;
 }
 
 function readPlainTextReason(body: string): string | undefined {

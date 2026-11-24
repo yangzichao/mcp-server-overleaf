@@ -1,9 +1,24 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
-Fixes for what the new Gherkin and property tests found. No tool changes its name or arguments.
+`manage_files` uploads a folder from this computer, and `manage_project` shares a project the
+account owns. Both are new actions on existing tools, so the tool count stays at 15 and no
+existing action changes its arguments. The rest fixes what the new Gherkin and property tests
+found.
 
+- `manage_files` (action `upload_folder`) copies a folder from this computer into the project,
+  keeping its subfolders: into the clone with a Git token, or straight into Overleaf with a
+  session cookie alone. Hidden files and symbolic links are left out and named in the reply,
+  and a folder of more than 180 files, the most Overleaf's upload dialog takes, is refused.
+  When Overleaf refuses a file partway, the reply lists what was already uploaded.
+- `manage_project` shares a project the account owns: `invite` an email address with access
+  edit, review or view, `set_access` for a member, `remove_member` and `revoke_invite`.
+  Inviting someone, or giving a member more access, waits until the MCP client asks the user
+  through elicitation and they confirm it, so text planted in a paper cannot have the model
+  share the project. A client without elicitation, or one on HTTP with a 2025 protocol
+  revision, is refused and pointed to the Share menu. An invitation overleaf.com's bot
+  protection holds back for a captcha is reported the same way.
 - `manage_project` (`update_settings`) answers "nothing changed" and sends nothing when the
   project already has every requested setting, as `rename`, `tag` and `archive` do. It used to
   answer "Changed the settings" and send the change again.

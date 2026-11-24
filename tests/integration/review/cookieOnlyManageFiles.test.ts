@@ -265,7 +265,7 @@ describe("manage_files over the web file tree, with only a session cookie", () =
         toPath: "x.tex",
         sourcePath: "/tmp/x.png",
       }),
-    ).toBe("sourcePath does not apply to move; upload uses it.");
+    ).toBe("sourcePath does not apply to move; upload and upload_folder use it.");
     expect(await callExpectingError(client, "manage_files", { action: "create_folder", path: "  " })).toBe(
       "path must name a file or folder inside the project, for example figures/plot.png; the project's root folder cannot be changed.",
     );

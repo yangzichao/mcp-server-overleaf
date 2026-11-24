@@ -60,6 +60,7 @@ export const TOOL_ARGUMENT_RECIPES: Readonly<Record<string, readonly ArgumentRec
     { fixed: { action: "move" }, uses: ["path", "toPath"] },
     { fixed: { action: "upload" }, uses: ["path", "sourcePath"] },
     { fixed: { action: "upload" }, uses: ["path", "contentBase64"] },
+    { fixed: { action: "upload_folder" }, uses: ["path", "sourcePath"] },
     { fixed: { action: "restore" }, uses: ["path", "revision"] },
     { fixed: { action: "discard_local_changes" }, uses: [] },
     { fixed: { action: "create_folder" }, uses: ["path"] },
@@ -103,6 +104,10 @@ export const TOOL_ARGUMENT_RECIPES: Readonly<Record<string, readonly ArgumentRec
       mayUse: ["compiler", "rootDocument", "spellCheckLanguage", "texLiveImage", "trackChanges"],
     },
     { fixed: { action: "download_zip" }, uses: ["project", "saveTo"] },
+    { fixed: { action: "invite" }, uses: ["email", "accessLevel"] },
+    { fixed: { action: "set_access" }, uses: ["email", "accessLevel"] },
+    { fixed: { action: "remove_member" }, uses: ["email"] },
+    { fixed: { action: "revoke_invite" }, uses: ["email"] },
   ],
 };
 

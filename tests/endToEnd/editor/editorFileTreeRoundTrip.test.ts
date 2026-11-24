@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { LIVE_PROJECT_NAME, LiveOverleafServer, liveRunIdentifier } from "../support/liveOverleafServer.js";
@@ -21,6 +23,7 @@ const notes = [
   "",
 ].join("\n");
 const appendedLine = `% appended by run ${runIdentifier}`;
+const TABLE = "\\begin{tabular}{ll}\nx & y\n\\end{tabular}\n";
 
 describe.skipIf(!liveEditorConfigured)(
   "the editor's file tree and whole-file edits against a live Overleaf project, cookie only",
@@ -92,6 +95,27 @@ describe.skipIf(!liveEditorConfigured)(
         await call("manage_files", { action: "upload", path: figurePath, contentBase64: PNG_BASE64 }),
       ).toBe(`Added ${figurePath} (8 bytes) in Overleaf, stored as a binary file. ${IS_LIVE}`);
       expect(await listedPaths()).toContain(figurePath);
+    });
+
+    it("uploads a folder from this computer, keeping its subfolder", async () => {
+      const localFolder = join(server.scratchDirectory, "tables");
+      mkdirSync(join(localFolder, "raw"), { recursive: true });
+      writeFileSync(join(localFolder, "table.tex"), TABLE);
+      writeFileSync(join(localFolder, "raw", "data.csv"), "x,y\n1,2\n");
+      const uploadedFolder = `${scratchFolder}/tables`;
+      const reply = await call("manage_files", {
+        action: "upload_folder",
+        path: uploadedFolder,
+        sourcePath: localFolder,
+      });
+      expect(reply).toContain(`into ${uploadedFolder} in Overleaf.`);
+      expect(reply).toContain(
+        `- ${uploadedFolder}/table.tex (added, ${Buffer.byteLength(TABLE)} bytes, an editable document)`,
+      );
+      const paths = await listedPaths();
+      expect(paths).toContain(`${uploadedFolder}/table.tex`);
+      expect(paths).toContain(`${uploadedFolder}/raw/data.csv`);
+      expect(await call("read_file", { path: `${uploadedFolder}/table.tex` })).toContain("x & y");
     });
 
     it("renames a document and keeps its text", async () => {

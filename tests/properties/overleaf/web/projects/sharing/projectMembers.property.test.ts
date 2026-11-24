@@ -4,15 +4,15 @@ import { describe, expect, it } from "vitest";
 import {
   OverleafWebRequestError,
   RequestNotSentError,
-} from "../../../../../src/overleaf/web/overleafWebErrors.js";
+} from "../../../../../../src/overleaf/web/overleafWebErrors.js";
 import {
   fetchPendingInvites,
   fetchProjectMembers,
   type PendingProjectInvite,
   type ProjectMember,
-} from "../../../../../src/overleaf/web/projects/projectMembers.js";
-import { anyJsonField, awkwardText, notAnOverleafId, overleafId } from "./generatedOverleafAnswers.js";
-import { recordingWebClient } from "./recordingWebClient.js";
+} from "../../../../../../src/overleaf/web/projects/sharing/projectMembers.js";
+import { anyJsonField, awkwardText, notAnOverleafId, overleafId } from "../generatedOverleafAnswers.js";
+import { recordingWebClient } from "../recordingWebClient.js";
 
 const PROJECT_ID = "64b000000000000000000002";
 

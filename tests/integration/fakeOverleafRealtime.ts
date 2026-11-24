@@ -7,7 +7,7 @@ import {
   encodeSocketIoEvent,
 } from "../../src/overleaf/realtime/socketIoZeroNineProtocol.js";
 import { FakeOverleafWeb } from "./fakeOverleafWeb.js";
-import { FAKE_PENDING_INVITES, fakeOwnerAndMembers } from "./fakeWebRoutes/fakeProjectMembers.js";
+import { FakeProjectSharing } from "./fakeWebRoutes/fakeProjectSharing.js";
 import { FakeProjectTree } from "./fakeWebRoutes/fakeProjectTree.js";
 
 /**
@@ -86,6 +86,7 @@ export class FakeOverleafRealtime {
 
   /** Changed by a test to exercise the review-permission branch. */
   permissionsLevel: FakePermissionsLevel = "owner";
+  readonly sharing = new FakeProjectSharing();
   /** Set by a test to make the next `applyOtUpdate` fail the way Overleaf does. */
   rejectNextUpdateWith: string | undefined;
   /** Documents stored in the newer history-OT format, which `joinDoc` refuses to old clients. */
@@ -291,7 +292,7 @@ export class FakeOverleafRealtime {
   }
 
   private buildJoinProjectResponse(): unknown {
-    const { owner, members } = fakeOwnerAndMembers(this.userId, this.permissionsLevel);
+    const { owner, members } = this.sharing.ownerAndMembers(this.userId, this.permissionsLevel);
     const rootDocumentId =
       this.rootDocumentId && this.documents.has(this.rootDocumentId)
         ? this.rootDocumentId
@@ -310,7 +311,7 @@ export class FakeOverleafRealtime {
         spellCheckLanguage: this.projectSettings.spellCheckLanguage,
         owner,
         members,
-        invites: this.permissionsLevel === "owner" ? FAKE_PENDING_INVITES : [],
+        invites: this.permissionsLevel === "owner" ? this.sharing.invites : [],
         features: { trackChanges: this.hasTrackChangesFeature },
         // `project.track_changes || false`, sent only when the plan has the feature.
         ...(this.hasTrackChangesFeature

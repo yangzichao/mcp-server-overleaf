@@ -23,7 +23,7 @@ import { registerManageCommentsTool } from "./review/manageCommentsTool.js";
 import { registerManageTrackedChangesTool } from "./review/manageTrackedChangesTool.js";
 import { registerReadReviewTool } from "./review/readReviewTool.js";
 import type { ToolContext } from "./toolContext.js";
-import { registerManageProjectTool } from "./web/manageProjectTool.js";
+import { registerManageProjectTool } from "./web/manageProject/manageProjectTool.js";
 
 /**
  * Every tool this server lists, read tools first. The Git-bridge group works on a local clone and

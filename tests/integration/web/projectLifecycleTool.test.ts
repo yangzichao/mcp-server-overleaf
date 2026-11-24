@@ -209,7 +209,7 @@ describe("managing projects in the account", () => {
     expect(
       await client.call("manage_project", { action: "create", name: "New", project: SHARED_THESIS_ID }),
     ).toBe(
-      "project does not apply to create; copy, rename, archive, unarchive, trash, untrash, tag, untag, update_settings and download_zip use it.",
+      "project does not apply to create; copy, rename, archive, unarchive, trash, untrash, tag, untag, update_settings, download_zip, invite, set_access, remove_member and revoke_invite use it.",
     );
   });
 });

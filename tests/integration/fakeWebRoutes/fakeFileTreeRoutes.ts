@@ -135,6 +135,13 @@ export class FakeFileTreeRoutes implements FakeWebRoutes {
     let folderId = request.query.get("folder_id") ?? "";
     const folderPath = this.realtime.tree.folderPath(folderId);
     if (folderPath === undefined) return statusAnswer(422, { success: false, error: "folder_not_found" });
+    const { tree } = this.realtime;
+    if (tree.uploadsLeftBeforeFull !== undefined) {
+      if (tree.uploadsLeftBeforeFull <= 0) {
+        return statusAnswer(422, { success: false, error: "project_has_too_many_files" });
+      }
+      tree.uploadsLeftBeforeFull -= 1;
+    }
     const relativePath = fields.get("relativePath");
     if (relativePath && relativePath !== "null") {
       const directory = relativePath.split("/").slice(0, -1).join("/");

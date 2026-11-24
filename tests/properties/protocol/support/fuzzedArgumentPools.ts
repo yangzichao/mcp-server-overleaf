@@ -88,6 +88,18 @@ export function fuzzedArgumentPools(known: KnownProjectValues): PropertyValuePoo
     contentBase64: fc.constantFrom("aGVsbG8=", "", "!!!", "AAAA", "iVBORw0KGgo="),
     name: mostly(["Copy of paper", "Renamed paper"], ["a/b", " ", "x".repeat(150), "x".repeat(151)]),
     tag: mostly(["fuzz", "Tag With Spaces"], ["x".repeat(50), " "]),
+    email: mostly(
+      ["ada@example.com", "bea@example.com", "invited.coauthor@example.com", "new.coauthor@example.com"],
+      [
+        "you@example.com",
+        " BEA@Example.COM ",
+        "",
+        "a@b",
+        "Ada <ada@example.com>",
+        "ada@example.com, bea@example.com",
+        "ada@@example.com",
+      ],
+    ),
     nameContains: fc.constantFrom("paper", "", "Fake", "ZZZ"),
     spellCheckLanguage: fc.constantFrom("en", "de", "zz", ""),
     texLiveImage: fc.constantFrom("texlive-full:2025.1", "texlive-full:1999.1", ""),

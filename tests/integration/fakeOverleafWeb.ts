@@ -2,7 +2,14 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { FakeOverleafAccount } from "./fakeOverleafAccount.js";
 import type { FakeOverleafRealtime } from "./fakeOverleafRealtime.js";
-import { type FakeAnswer, FORBIDDEN, jsonAnswer, NO_CONTENT, NOT_FOUND } from "./fakeWebAnswers.js";
+import {
+  FAKE_SERVED_BY,
+  type FakeAnswer,
+  FORBIDDEN,
+  jsonAnswer,
+  NO_CONTENT,
+  NOT_FOUND,
+} from "./fakeWebAnswers.js";
 import { FakeCollaboratorRoutes } from "./fakeWebRoutes/fakeCollaboratorRoutes.js";
 import { FakeFileTreeRoutes } from "./fakeWebRoutes/fakeFileTreeRoutes.js";
 import { FakeProjectAccess } from "./fakeWebRoutes/fakeProjectAccess.js";
@@ -110,7 +117,7 @@ export class FakeOverleafWeb {
     }
     if (method !== "GET" && csrfToken !== this.acceptedCsrfToken) {
       response
-        .writeHead(403, { "content-type": "application/json" })
+        .writeHead(403, { "content-type": "application/json", "x-served-by": FAKE_SERVED_BY })
         .end(JSON.stringify({ message: "invalid csrf token" }));
       return;
     }
@@ -128,7 +135,10 @@ export class FakeOverleafWeb {
         contentType: request.headers["content-type"],
       };
       void this.answer(webRequest, url.search.slice(1)).then((answer) => {
-        response.writeHead(answer.status, answer.contentType ? { "content-type": answer.contentType } : {});
+        response.writeHead(answer.status, {
+          ...(answer.contentType ? { "content-type": answer.contentType } : {}),
+          ...(answer.fromBotProtection ? {} : { "x-served-by": FAKE_SERVED_BY }),
+        });
         response.end(answer.body);
       });
     });

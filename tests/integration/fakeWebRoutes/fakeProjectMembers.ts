@@ -17,6 +17,7 @@ export interface FakeMember {
   pendingReviewer?: boolean;
 }
 
+export const FAKE_CURRENT_USER_EMAIL = "you@example.com";
 export const FAKE_COLLABORATOR_ID = "6500000000000000000000bb";
 export const FAKE_REVIEWER_ID = "6500000000000000000000dd";
 const FAKE_OTHER_OWNER_ID = "6500000000000000000000cc";
@@ -45,10 +46,10 @@ export function fakeOwnerAndMembers(
     { ...member(FAKE_REVIEWER_ID, "Bea", "bea@example.com", "review"), pendingEditor: false },
   ];
   if (currentLevel === "owner") {
-    return { owner: member(currentUserId, "You", "you@example.com", "owner"), members: collaborators };
+    return { owner: member(currentUserId, "You", FAKE_CURRENT_USER_EMAIL, "owner"), members: collaborators };
   }
   return {
     owner: member(FAKE_OTHER_OWNER_ID, "Olga", "olga@example.com", "owner"),
-    members: [member(currentUserId, "You", "you@example.com", currentLevel), ...collaborators],
+    members: [member(currentUserId, "You", FAKE_CURRENT_USER_EMAIL, currentLevel), ...collaborators],
   };
 }

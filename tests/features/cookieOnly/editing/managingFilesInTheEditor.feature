@@ -1,8 +1,8 @@
 Feature: Without Git integration, manage_files changes Overleaf's file tree directly
 
-  With only a session cookie, manage_files deletes, moves, uploads and creates folders in
-  Overleaf's file tree at once: co-authors see the change immediately, and there is no push step
-  and no undo here. The actions that work on a local clone, restore and discard_local_changes,
+  With only a session cookie, manage_files deletes, moves, uploads files and folders, and creates
+  folders in Overleaf's file tree at once: co-authors see the change immediately, and there is no
+  push step and no undo here. The actions that work on a local clone, restore and discard_local_changes,
   are not offered, since there is no clone.
 
   Background:
@@ -117,7 +117,7 @@ Feature: Without Git integration, manage_files changes Overleaf's file tree dire
   Scenario Outline: The actions that work on a local clone are not offered
     When I use manage_files's action "<action>" on "main.tex"
     Then the reply is an error
-    And the reply says 'expected one of "delete"|"move"|"upload"|"create_folder"'
+    And the reply says 'expected one of "delete"|"move"|"upload"|"upload_folder"|"create_folder"'
     And the paper is unchanged
 
     Examples:

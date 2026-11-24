@@ -2,6 +2,21 @@ import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { serverEntryPoint, serverWorkingDirectory } from "../support/serverUnderTest.js";
 import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "../support/withoutBackgroundGitMaintenance.js";
 import { type JsonRpcResponse, responseText } from "./support/mcpProtocol.js";
+import type { ElicitationQuestion, PersonAtTheClient } from "./support/personAtTheClient.js";
+
+export interface McpClientOptions {
+  readonly personAtTheClient?: PersonAtTheClient;
+}
+
+interface ServerToClientRequest {
+  readonly id: number | string;
+  readonly method: string;
+  readonly params?: unknown;
+}
+
+function isServerToClientRequest(message: object): message is ServerToClientRequest {
+  return "method" in message && "id" in message;
+}
 
 /**
  * Speaks MCP to the compiled server over stdio, the way a real client does. Tests drive
@@ -17,9 +32,15 @@ export class McpStdioClient {
   /** What the server sent as `instructions` in its initialize result. */
   serverInstructions: string | undefined;
 
-  private constructor(private readonly child: ChildProcessWithoutNullStreams) {}
+  private constructor(
+    private readonly child: ChildProcessWithoutNullStreams,
+    private readonly options: McpClientOptions,
+  ) {}
 
-  static async start(environment: NodeJS.ProcessEnv): Promise<McpStdioClient> {
+  static async start(
+    environment: NodeJS.ProcessEnv,
+    options: McpClientOptions = {},
+  ): Promise<McpStdioClient> {
     const child = spawn(process.execPath, [serverEntryPoint, "--stdio"], {
       // A bare environment, minus PATH: an MCP client does not pass a shell through.
       env: {
@@ -32,7 +53,7 @@ export class McpStdioClient {
       cwd: serverWorkingDirectory,
     });
 
-    const client = new McpStdioClient(child);
+    const client = new McpStdioClient(child, options);
     child.once("error", (error) => {
       client.processFailure = error;
     });
@@ -59,9 +80,27 @@ export class McpStdioClient {
     while (newlineIndex !== -1) {
       const line = this.buffer.slice(0, newlineIndex).trim();
       this.buffer = this.buffer.slice(newlineIndex + 1);
-      if (line !== "") this.received.push(JSON.parse(line) as JsonRpcResponse);
+      if (line !== "") this.receive(JSON.parse(line) as JsonRpcResponse | ServerToClientRequest);
       newlineIndex = this.buffer.indexOf("\n");
     }
+  }
+
+  private receive(message: JsonRpcResponse | ServerToClientRequest): void {
+    if (!isServerToClientRequest(message)) {
+      this.received.push(message);
+      return;
+    }
+    const person = this.options.personAtTheClient;
+    if (message.method === "elicitation/create" && person) {
+      const answer = person.answer(message.params as ElicitationQuestion);
+      this.send({ jsonrpc: "2.0", id: message.id, result: answer });
+      return;
+    }
+    this.send({
+      jsonrpc: "2.0",
+      id: message.id,
+      error: { code: -32601, message: `This test client does not answer ${message.method}.` },
+    });
   }
 
   private send(message: unknown): void {
@@ -95,7 +134,7 @@ export class McpStdioClient {
       method: "initialize",
       params: {
         protocolVersion: "2025-11-25",
-        capabilities: {},
+        capabilities: this.options.personAtTheClient ? { elicitation: { form: {} } } : {},
         clientInfo: { name: "integration-test", version: "1" },
       },
     });

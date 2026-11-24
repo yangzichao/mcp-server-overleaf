@@ -119,19 +119,25 @@ Over the real-time editor connection and the web application:
 | `read_review` | `tracked_changes`: the suggestions and comment anchors on one document, with line numbers. `comments`: every thread with its messages, anchors and state. |
 | `manage_tracked_changes` | `suggest` an edit as a tracked change: an exact snippet, a whole section or a whole file. `accept` or `reject` suggestions by id or all at once in a document. |
 | `manage_comments` | `add` a thread on an exact passage with its first message, `reply`, `resolve`, `reopen`, `delete` a thread, and `edit_message` or `delete_message` inside one. |
-| `manage_project` | `create` a blank or example project, `create_from_zip`, `copy`, `rename`, `archive`/`unarchive`, `trash`/`untrash`, `update_settings` (compiler, main document, TeX Live image, spell-check language, track changes for everyone), `tag`/`untag`, and `download_zip`. |
+| `manage_project` | `create` a blank or example project, `create_from_zip`, `copy`, `rename`, `archive`/`unarchive`, `trash`/`untrash`, `update_settings` (compiler, main document, TeX Live image, spell-check language, track changes for everyone), `tag`/`untag`, and `download_zip`. For the owner, `invite` by email address, `set_access`, `remove_member` and `revoke_invite`. |
 | `list_projects` | Every project the account can open, with access level, tags and address, filtered by owned, shared, archived, trashed or tag. |
 | `read_project` | `members`: collaborators and their access, and pending invitations for the owner. `word_count`: Overleaf's own count. |
 | `compile_project` | `where: "overleaf"` compiles on Overleaf's servers, reports errors and warnings, and saves the PDF, log, `.bbl`, `.blg` and SyncTeX file. |
-| `manage_files` | `create_folder`, which a Git push cannot do, since Git does not keep empty folders. |
+| `manage_files` | `create_folder`, which a Git push cannot do, since Git does not keep empty folders. With a cookie alone, `delete`, `move`, `upload` and `upload_folder` too. |
 
 Every write here takes effect in Overleaf immediately. There is no separate `push_changes`
 step, because nothing went through a clone. That is the opposite of every Git-bridge editing
 tool, and deliberate for suggestions: a suggestion is already reversible by the person
 reviewing it. Accepting, rejecting, resolving, deleting, archiving, trashing and changing
 settings are not reversible from here, so a client should confirm them with the user first.
-Permanent project deletion and sharing changes (inviting, removing or transferring) are not
-offered at all: a prompt injected into a paper must not be able to give someone else access.
+Permanent project deletion and transferring ownership are not offered at all. A prompt
+injected into a paper must not be able to give someone else access either, so `manage_project`
+invites someone, or gives a member more access, only after the MCP client asks the user
+through elicitation and they confirm. The model cannot answer that question. A client without
+elicitation is refused and pointed to the Share menu, and so is a client on HTTP with a 2025
+protocol revision, where the server answers each request on its own and cannot ask back.
+Removing a member, withdrawing an invitation and lowering access only take access away, and
+ask nothing.
 
 Overleaf requires review permission for a tracked change, so read-only access is refused before
 anything is sent. A reviewer who may not write plain text can still suggest. Accepting and

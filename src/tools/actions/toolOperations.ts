@@ -4,9 +4,9 @@ import type { ToolTextResult } from "../toolContext.js";
  * One action or view of a tool that does several related things: the arguments it reads,
  * beyond the ones every operation of that tool shares, and the work itself.
  */
-export interface ToolOperation<Arguments> {
+export interface ToolOperation<Arguments, Reply = ToolTextResult> {
   readonly uses: readonly (keyof Arguments & string)[];
-  readonly run: (input: Arguments) => Promise<ToolTextResult>;
+  readonly run: (input: Arguments) => Promise<Reply>;
 }
 
 /**
@@ -16,12 +16,12 @@ export interface ToolOperation<Arguments> {
  * argument would let the misreading stand, so the call fails and names the operations that
  * do take it.
  */
-export function runSelectedOperation<Name extends string, Arguments extends object>(
+export function runSelectedOperation<Name extends string, Arguments extends object, Reply = ToolTextResult>(
   selected: Name,
-  operations: Readonly<Record<Name, ToolOperation<Arguments>>>,
+  operations: Readonly<Record<Name, ToolOperation<Arguments, Reply>>>,
   input: Arguments,
   sharedArguments: readonly (keyof Arguments & string)[],
-): Promise<ToolTextResult> {
+): Promise<Reply> {
   const operation = operations[selected];
   const shared: readonly string[] = sharedArguments;
   for (const [name, value] of Object.entries(input)) {
@@ -32,7 +32,7 @@ export function runSelectedOperation<Name extends string, Arguments extends obje
     ) {
       continue;
     }
-    const users = (Object.entries(operations) as [string, ToolOperation<Arguments>][])
+    const users = (Object.entries(operations) as [string, ToolOperation<Arguments, Reply>][])
       .filter(([, candidate]) => (candidate.uses as readonly string[]).includes(name))
       .map(([operationName]) => operationName);
     const usedBy = users.length > 0 ? `; ${joinAsList(users)} ${users.length === 1 ? "uses" : "use"} it` : "";

@@ -19,12 +19,13 @@ and says how this server covers it. Tool names refer to [the tools](../README.md
 | Comment-driven agent tasks (`#agent`) | nipdep/agent-overleaf-connector, ayghri/overleaf-mcp | the `address_review_comments` prompt and a plugin skill |
 | Create, copy, rename, archive and trash projects | DanielHou315/overleaf-mcp-rt, n-qber/unofficial-overleaf-mcp-server, darshdevlab/OverleafMCP | `manage_project`; permanent deletion is not offered |
 | A new project from a ZIP | darshdevlab/OverleafMCP, mhmdaskari/overleaf-web-mcp, ajmainapon/OverleafMCP | `manage_project` (action `create_from_zip`) |
-| Folders, and file-tree changes without Git | netique/overleaf-mcp, wtdcode/overleaf-mcp, MarcoDotIO/overleaf-latex | `manage_files`: `create_folder`, and delete, move and upload over the editor |
+| Folders, and file-tree changes without Git | netique/overleaf-mcp, wtdcode/overleaf-mcp, MarcoDotIO/overleaf-latex | `manage_files`: `create_folder`, `upload_folder`, and delete, move and upload over the editor |
 | Project settings and the track-changes switch | Firefox2100/overleaf-mcp, mhmdaskari/overleaf-web-mcp, gradusnikov/overleaf-mcp | `manage_project` (action `update_settings`) |
 | Tags, and archived or trashed listings | darshdevlab/OverleafMCP, mhmdaskari/overleaf-web-mcp, vvbbnn00/overleaf-mcp | `list_projects` filters, `manage_project` (actions `tag`, `untag`) |
 | Compile on Overleaf, with outputs beyond the PDF | DanielHou315/overleaf-mcp-rt, wtdcode/overleaf-mcp, deepghs/overleaf-mcp | `compile_project` (`where: "overleaf"`): PDF, log, `.bbl`, `.blg`, SyncTeX file |
 | Compile locally | elias-ramzi/WebLatexMCP, 2sandy-glitch/overleaf-mcp, EthanRodrigues001/moss | `compile_project` with latexmk |
-| Members of a project | netique/overleaf-mcp, n-qber/unofficial-overleaf-mcp-server, vvbbnn00/overleaf-mcp | `read_project` (view `members`); sharing changes are not offered |
+| Members of a project | netique/overleaf-mcp, n-qber/unofficial-overleaf-mcp-server, vvbbnn00/overleaf-mcp | `read_project` (view `members`) |
+| Inviting, changing access and removing members | gradusnikov/overleaf-mcp, n-qber/unofficial-overleaf-mcp-server, Firefox2100/overleaf-mcp | `manage_project` (actions `invite`, `set_access`, `remove_member`, `revoke_invite`), for the owner; inviting and raising access wait for the user to confirm in the MCP client |
 | Word count | MarvelCollin/overleaf-claude-mcp, oscardvs/vibetex, Firefox2100/overleaf-mcp | `read_project` (view `word_count`) |
 | Figures as images the model can see | DanielHou315/overleaf-mcp-rt, MarvelCollin/overleaf-claude-mcp, gradusnikov/overleaf-mcp | `read_file` on a PNG, JPEG, GIF or WebP file |
 | Flatten `\input` and `\include` | oscardvs/vibetex, mhmdaskari/overleaf-web-mcp, yasaminfayyaz/milatexai | `read_file` with `followIncludes`, and latexpand in a skill |
@@ -45,11 +46,12 @@ and says how this server covers it. Tool names refer to [the tools](../README.md
   (aloth/olcli, netique/overleaf-mcp, DanielHou315/overleaf-mcp-rt and others). A password or
   a whole browser profile is a broader credential than this server is willing to hold. It
   takes a Git token, a session cookie you copy, or both.
-- **Changing who can open a project**: inviting, removing or transferring ownership
-  (gradusnikov/overleaf-mcp, n-qber/unofficial-overleaf-mcp-server, ayghri/overleaf-mcp,
-  Firefox2100/overleaf-mcp). Paper text, comments and compile logs reach the model, so a
-  prompt hidden in a paper must not be able to give someone else access. `read_project`
-  lists members; the Share dialog changes them.
+- **Sharing on the model's word alone, and transferring ownership.** Paper text, comments
+  and compile logs reach the model, so a prompt hidden in a paper must not be able to give
+  someone else access. `manage_project` invites someone, or gives a member more access, only
+  after the MCP client asks the user through elicitation and they confirm. A client without
+  elicitation is pointed to the Share dialog, which also transfers ownership and turns on
+  sharing links.
 - **Permanent project deletion.** `manage_project` moves a project to the trash, from which
   Overleaf can restore it.
 - **Merging a conflicting push automatically.** The point of the Git route is that a
@@ -66,7 +68,7 @@ and says how this server covers it. Tool names refer to [the tools](../README.md
 - Linked files imported from a URL.
 - Several Overleaf hosts from one server process.
 - OAuth for the Streamable HTTP transport; it takes a bearer token today.
-- MCP resources and elicitation, and the list of users online in a project.
+- MCP resources, and the list of users online in a project.
 - Reverting a whole commit; `manage_files` restores one file at a time.
 
 ## Where the Git-bridge implementations differ
