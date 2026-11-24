@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/mcp-server-overleaf?logo=npm&label=npm)](https://www.npmjs.com/package/mcp-server-overleaf)
 [![Build](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml/badge.svg)](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-16A34A)](#find-it-in-the-mcp-registry)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/yangzichao/mcp-server-overleaf/badge)](https://scorecard.dev/viewer/?uri=github.com/yangzichao/mcp-server-overleaf)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Connect **Claude Code, Claude Desktop, Codex, ChatGPT, Cursor, VS Code, or any MCP client**
