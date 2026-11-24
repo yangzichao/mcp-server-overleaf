@@ -74,7 +74,7 @@ describe("findGraphicsInclusions properties", () => {
           const scan = findGraphicsInclusions(visitedSourceFile("main.tex", text), []);
           const named = written
             .map(([command, , name]) => ({
-              command: command.replace("*", ""),
+              command: command.replace(/\*$/, ""),
               fileName: name.trim().replace(/^"(.*)"$/, "$1"),
             }))
             .filter(({ fileName }) => fileName !== "");
@@ -130,7 +130,7 @@ describe("findGraphicsInclusions properties", () => {
         fc.constantFrom("plot", "北京", "my plot"),
         fc.nat(),
         (command, name, choice) => {
-          const extensions = EXTENSIONS[command.replace("*", "")] ?? [];
+          const extensions = EXTENSIONS[command.replace(/\*$/, "")] ?? [];
           const present = `${name}${extensions[choice % extensions.length]}`;
           const [inclusion] = findGraphicsInclusions(
             visitedSourceFile("main.tex", `\\${command}{${name}}`),
