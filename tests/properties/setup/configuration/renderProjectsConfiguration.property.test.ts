@@ -80,8 +80,7 @@ describe("renderProjectsConfiguration properties", () => {
     );
   });
 
-  // Counterexample: [{ projectName: "__proto__", ... }] renders {"defaultProject":"__proto__","projects":{}}.
-  it.fails("keeps a project registered under the name __proto__", () => {
+  it("keeps a project registered under the name __proto__", () => {
     fc.assert(
       fc.property(registration(fc.constant("__proto__")), (written) => {
         expect(Object.keys(renderProjectsConfiguration([written]).projects)).toEqual(["__proto__"]);

@@ -97,8 +97,7 @@ describe("selectProjects properties", () => {
     );
   });
 
-  // Counterexample: OVERLEAF_PROJECT_NAME "a,b" is read back as two OVERLEAF_PROJECTS entries and refused.
-  it.fails("registers OVERLEAF_PROJECT_ID under a name holding a comma or an equals sign", () => {
+  it("registers OVERLEAF_PROJECT_ID under a name holding a comma or an equals sign", () => {
     fc.assert(
       fc.property(writtenProjectId, fc.constantFrom("a,b", "a=b", "Draft, v2"), (projectId, projectName) => {
         const selection = selectProjects(

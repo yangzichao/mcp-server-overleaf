@@ -89,8 +89,7 @@ describe("tree path properties", () => {
     );
   });
 
-  // Counterexample: "././x" normalises to "./x", which normalises to "x", so "././x" finds nothing at x.
-  it.fails("is idempotent, also after more than one ./", () => {
+  it("is idempotent, also after more than one ./", () => {
     const afterDotSlashes = fc
       .tuple(fc.array(fc.constantFrom("./", "/", ".//"), { maxLength: 3 }), treePath)
       .map(([prefixes, path]) => `${prefixes.join("")}${path}`);

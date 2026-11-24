@@ -23,9 +23,8 @@ export interface OverleafFolderLocation {
 /** "./figures/plot.png", "/figures/plot.png/" and "figures//plot.png" all name figures/plot.png. */
 export function normaliseTreePath(path: string): string {
   return path
-    .replace(/^\.\//, "")
     .split("/")
-    .filter((segment) => segment.length > 0)
+    .filter((segment) => segment.length > 0 && segment !== ".")
     .join("/");
 }
 

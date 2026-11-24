@@ -109,9 +109,7 @@ describe("parseSetupOptions properties", () => {
     );
   });
 
-  // Counterexample: "--project https://www.overleaf.com/project/<id>?a=b" reads as project name
-  // "https://www.overleaf.com/project/<id>?a" with reference "b".
-  it.fails("takes an address with a query string whole when no name is given", () => {
+  it("takes an address with a query string whole when no name is given", () => {
     fc.assert(
       fc.property(writtenProjectId, (projectId) => {
         const reference = `https://www.overleaf.com/project/${projectId}?a=b`;

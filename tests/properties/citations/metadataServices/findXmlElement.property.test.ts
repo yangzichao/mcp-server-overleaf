@@ -77,8 +77,7 @@ describe("findXmlElement properties", () => {
     );
   });
 
-  // Counterexample: in "<title-group>a</title-group><title>b</title>", "title" reads "a</title-group><title>b".
-  it.fails("does not take an element whose name only starts with the one asked for", () => {
+  it("does not take an element whose name only starts with the one asked for", () => {
     fc.assert(
       fc.property(fc.constantFrom("-group", ".x", ":x"), (rest) => {
         const xml = `<title${rest}>a</title${rest}><title>b</title>`;

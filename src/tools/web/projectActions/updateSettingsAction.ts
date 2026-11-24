@@ -29,6 +29,9 @@ export async function updateSettingsAction(
     applyProjectSettings(webClient, session, requested),
   );
   const label = `"${sent.projectName}"`;
+  if (sent.alreadyInEffect) {
+    return textResult(`${label} already has ${sent.alreadyInEffect.join(", ")}; nothing changed.`);
+  }
   const confirmation: SettingsConfirmation | Error = await withReviewSession(context, project, (fresh) =>
     Promise.resolve(confirmProjectSettings(fresh, requested, sent)),
   ).catch((error: unknown) => (error instanceof Error ? error : new Error(String(error))));

@@ -48,7 +48,7 @@ function validateProjectCredentials(
  * bar. Taking the URL here means every client that sets a single project gets the same
  * leniency the setup command already gives.
  */
-function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
+function singleProject(environment: NodeJS.ProcessEnv): RegisteredOverleafProject {
   const reference = environment.OVERLEAF_PROJECT_ID?.trim() ?? "";
   const overleafProjectId = extractOverleafProjectId(reference);
   if (!overleafProjectId) {
@@ -56,7 +56,8 @@ function singleProjectEntry(environment: NodeJS.ProcessEnv): string {
       `OVERLEAF_PROJECT_ID="${reference}" is neither a 24-character project id nor an Overleaf project URL.`,
     );
   }
-  return `${environment.OVERLEAF_PROJECT_NAME?.trim() || "default"}=${overleafProjectId}`;
+  // Taken whole: the name is one value, so a "," or "=" in it is part of the name.
+  return { projectName: environment.OVERLEAF_PROJECT_NAME?.trim() || "default", overleafProjectId };
 }
 
 export function selectProjects(
@@ -70,7 +71,9 @@ export function selectProjects(
   );
   const projectFile = hasEnvironmentProjects ? undefined : loadProjectConfigurationFile(environment);
   const registeredProjects = hasEnvironmentProjects
-    ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS?.trim() || singleProjectEntry(environment))
+    ? environment.OVERLEAF_PROJECTS?.trim()
+      ? parseRegisteredProjects(environment.OVERLEAF_PROJECTS)
+      : [singleProject(environment)]
     : (projectFile?.projects ?? []);
   validateProjectCredentials(registeredProjects, overleafGitToken, sessionCookieConfigured);
   const explicitDefault = environment.OVERLEAF_DEFAULT_PROJECT?.trim() || projectFile?.defaultProject;

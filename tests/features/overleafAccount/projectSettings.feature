@@ -69,8 +69,6 @@ Feature: The project's compiler, main document, spell check, TeX Live version an
     And Overleaf still compiles with "pdflatex"
     And no settings change was sent to Overleaf
 
-  # Bug: update_settings answers "Changed the settings" and sends the change when the value is already in effect.
-  @bug
   Scenario: A setting that is already in effect changes nothing
     When I change the project's "compiler" to "pdflatex"
     Then the reply says "nothing changed"

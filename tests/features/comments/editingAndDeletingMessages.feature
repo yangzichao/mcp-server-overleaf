@@ -23,8 +23,6 @@ Feature: One message in a comment thread can be corrected or taken back
     Then the reply says my reply was edited and reading the thread again shows the new text
     And Ada's thread holds "Should this greeting be formal?", "No, make it formal." and "Fine by me."
 
-  # Bug: edit_message answers "Edited message" when the message already reads the new text.
-  @bug
   Scenario: Rewriting a message with the text it already has changes nothing
     When I edit my reply to read "Yes, keep it."
     Then the reply says "nothing changed"

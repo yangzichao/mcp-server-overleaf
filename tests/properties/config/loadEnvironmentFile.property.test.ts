@@ -104,8 +104,7 @@ describe("parseEnvironmentFile properties", () => {
     );
   });
 
-  // Counterexample: A="x<U+2028>y" reads as {}. The value pattern's `.` stops at U+2028 and U+2029.
-  it.fails("keeps a quoted value that holds a Unicode line or paragraph separator", () => {
+  it("keeps a quoted value that holds a Unicode line or paragraph separator", () => {
     fc.assert(
       fc.property(variableName, fc.constantFrom("\u2028", "\u2029"), (name, separator) => {
         expect(parseEnvironmentFile(`${name}="x${separator}y"`)).toEqual({ [name]: `x${separator}y` });

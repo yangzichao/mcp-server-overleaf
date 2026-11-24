@@ -4,7 +4,8 @@ export interface FoundXmlElement {
 }
 
 export function findXmlElement(xml: string, elementName: string, from = 0): FoundXmlElement | undefined {
-  const openingTag = new RegExp(`<${elementName}\\b[^<>]*>`, "g");
+  // Not \b: "-", "." and ":" may continue an element name, so <title-group> would pass for <title>.
+  const openingTag = new RegExp(`<${elementName}(?=[\\s/>])[^<>]*>`, "g");
   openingTag.lastIndex = from;
   const opening = openingTag.exec(xml);
   if (!opening) return undefined;
