@@ -1,5 +1,6 @@
 import { tmpdir } from "node:os";
 import { runGitCommand } from "../../overleaf/gitCommandRunner.js";
+import { withoutTrailing } from "../../text/withoutTrailing.js";
 import { SetupError } from "../setupError.js";
 
 export interface OverleafAccessRequest {
@@ -39,7 +40,7 @@ function explainFailure(diagnostics: string): SetupError {
  * user is still in the terminal that can fix it. Listing refs reads nothing from the paper.
  */
 export async function verifyOverleafAccess(request: OverleafAccessRequest): Promise<void> {
-  const baseUrl = (request.overleafGitBaseUrl ?? "https://git.overleaf.com").replace(/\/+$/, "");
+  const baseUrl = withoutTrailing(request.overleafGitBaseUrl ?? "https://git.overleaf.com", "/");
   const result = await runGitCommand({
     workingDirectory: tmpdir(),
     args: ["ls-remote", "--heads", `${baseUrl}/${request.overleafProjectId}`],

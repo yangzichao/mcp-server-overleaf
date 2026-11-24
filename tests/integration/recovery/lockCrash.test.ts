@@ -71,7 +71,8 @@ it("serializes real MCP clients editing one shared project without losing either
     clients.push(await McpStdioClient.start(remote.environment()));
     const responses = await Promise.all(
       clients.map((client, index) =>
-        client.callRaw("replace_text", {
+        client.callRaw("edit_file", {
+          action: "replace_text",
           path: "main.tex",
           findText: index === 0 ? "First original." : "Second original.",
           replaceWith: `Client ${index} edit.`,

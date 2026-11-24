@@ -1,14 +1,18 @@
 import { defineConfig } from "vitest/config";
+import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "./tests/support/withoutBackgroundGitMaintenance.js";
 
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
+    exclude: ["tests/endToEnd/**"],
     globalSetup: ["./tests/support/buildServer.ts"],
+    setupFiles: ["./tests/properties/support/fastCheckSettings.ts"],
     // Integration tests clone real git repositories and run latexmk, so they are slower
     // than the default allows, and they must not share a temporary workspace.
     testTimeout: 120_000,
     hookTimeout: 120_000,
     fileParallelism: false,
+    env: WITHOUT_BACKGROUND_GIT_MAINTENANCE,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

@@ -1,6 +1,6 @@
 import { SetupError } from "./setupError.js";
 
-export interface RequestedProject {
+interface RequestedProject {
   readonly reference: string;
   readonly projectName?: string;
 }
@@ -13,7 +13,7 @@ export interface SetupOptions {
   readonly acceptDefaults: boolean;
 }
 
-export const SETUP_USAGE = `mcp-server-overleaf setup - connect this computer's AI clients to Overleaf
+const SETUP_USAGE = `mcp-server-overleaf setup - connect this computer's AI clients to Overleaf
 
   mcp-server-overleaf setup                    ask for the project and token, then register
   mcp-server-overleaf setup --project <url>    take the project from the command line
@@ -29,7 +29,8 @@ Options:
 
 function splitNamedProject(value: string): RequestedProject {
   const separator = value.indexOf("=");
-  if (separator <= 0) return { reference: value };
+  // A "/" or "?" before the "=" means it sits inside an address, such as a query string.
+  if (separator <= 0 || /[/?]/.test(value.slice(0, separator))) return { reference: value };
   return {
     projectName: value.slice(0, separator).trim(),
     reference: value.slice(separator + 1).trim(),
@@ -79,8 +80,7 @@ export function parseSetupOptions(argv: readonly string[]): SetupOptions {
       case "--help":
       case "-h":
         process.stdout.write(SETUP_USAGE);
-        process.exit(0);
-        break;
+        return process.exit(0);
       default:
         throw new SetupError(`Unknown setup argument "${argument}".\n\n${SETUP_USAGE}`);
     }

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 
+import { type OverleafProjectDetails, readProjectDetails } from "./overleafProjectDetails.js";
 import { type OverleafProjectTree, readProjectTree } from "./overleafProjectDocuments.js";
 import {
   RealtimeCallError,
@@ -33,10 +34,17 @@ export interface JoinedDocument {
   readonly ranges: DocumentRanges;
 }
 
-/** An operation in Overleaf's own vocabulary: position, plus what happens there. */
+/**
+ * An operation in Overleaf's own vocabulary: position, plus what happens there.
+ *
+ * `u` marks an operation as undoing an earlier one, which is how the web editor rejects a
+ * suggestion (`sharejs.js` sets it for undo and reject alike). It matters for a rejected
+ * deletion: ranges-tracker removes the tracked delete when an `u` insert puts the same text
+ * back at its position, and without the flag it keeps the delete and duplicates the text.
+ */
 export type DocumentOperation =
-  | { readonly p: number; readonly i: string }
-  | { readonly p: number; readonly d: string }
+  | { readonly p: number; readonly i: string; readonly u?: true }
+  | { readonly p: number; readonly d: string; readonly u?: true }
   | { readonly p: number; readonly c: string; readonly t: string };
 
 const PROJECT_JOIN_TIMEOUT_MS = 30_000;
@@ -70,6 +78,7 @@ export class OverleafRealtimeSession {
     client: SocketIoZeroNineClient,
     readonly project: OverleafProjectTree,
     readonly permissionsLevel: string,
+    readonly details: OverleafProjectDetails,
   ) {
     this.client = client;
   }
@@ -84,7 +93,7 @@ export class OverleafRealtimeSession {
     });
     try {
       const joined = await waitForProjectJoin(client, options.connectTimeoutMs ?? PROJECT_JOIN_TIMEOUT_MS);
-      return new OverleafRealtimeSession(client, joined.project, joined.permissionsLevel);
+      return new OverleafRealtimeSession(client, joined.project, joined.permissionsLevel, joined.details);
     } catch (error) {
       client.close();
       throw error;
@@ -95,7 +104,12 @@ export class OverleafRealtimeSession {
   async joinDocument(documentId: string): Promise<JoinedDocument> {
     // `encodeRanges` is deliberately omitted so suggestions and comment anchors arrive as
     // ordinary text; only the document lines are escaped unconditionally.
-    const answer = await this.client.callRemote("joinDoc", [documentId, -1, { supportsHistoryOT: false }]);
+    let answer: readonly unknown[];
+    try {
+      answer = await this.client.callRemote("joinDoc", [documentId, -1, { supportsHistoryOT: false }]);
+    } catch (error) {
+      throw explainHistoryOtRefusal(error);
+    }
     this.joinedDocumentIds.add(documentId);
     const [rawLines, rawVersion, , rawRanges] = answer;
     const lines = (Array.isArray(rawLines) ? rawLines : [])
@@ -175,9 +189,26 @@ export class OverleafRealtimeSession {
   }
 }
 
+/**
+ * Overleaf is moving documents to a newer operation format, history-OT, whose operations and
+ * ranges have a different shape. `WebsocketController.joinDoc` refuses such a document to a
+ * client that did not declare support, with the bare text "client does not support history-ot".
+ * That says nothing to a user, so it is reworded with what it means and what still works.
+ */
+function explainHistoryOtRefusal(error: unknown): unknown {
+  if (!(error instanceof RealtimeCallError) || !/history-ot/i.test(error.message)) return error;
+  return new RealtimeCallError(
+    "This document is stored in Overleaf's newer history-OT format, which the review tools do not support yet. " +
+      "Reading and editing it through the Git-bridge tools (read_file, edit_file, push_changes) still works; " +
+      "suggestions, comments and decisions on it have to be made in the Overleaf editor for now.",
+    "joinDoc",
+  );
+}
+
 interface ProjectJoin {
   readonly project: OverleafProjectTree;
   readonly permissionsLevel: string;
+  readonly details: OverleafProjectDetails;
 }
 
 function describeRejection(payload: unknown): RealtimeConnectionError {
@@ -222,6 +253,7 @@ function waitForProjectJoin(client: SocketIoZeroNineClient, timeoutMs: number): 
       resolve({
         project,
         permissionsLevel: typeof body.permissionsLevel === "string" ? body.permissionsLevel : "unknown",
+        details: readProjectDetails(body.project),
       });
     });
   });

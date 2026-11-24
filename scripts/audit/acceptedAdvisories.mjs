@@ -9,12 +9,13 @@
  */
 export const acceptedAdvisories = [
   {
-    advisory: "GHSA-86w9-cpqp-85rv",
-    package: "node-forge",
-    reviewBy: "2027-01-09",
+    advisory: "GHSA-mrhx-c7xc-m3w5",
+    package: "zod",
+    reviewBy: "2027-01-17",
     reason:
-      "Development only, through @anthropic-ai/mcpb, which builds the Claude Desktop bundle. The flaw is in " +
-      "RSA signature verification, which mcpb reaches only from its sign, verify and info commands; this " +
-      "repository runs validate, pack and unpack. No node-forge release fixes it, and 2.1.2 is the newest mcpb.",
+      "Development only: zod 3.25 nested under @anthropic-ai/mcpb, which builds the Claude Desktop bundle. The " +
+      "flaw needs an attacker-supplied oversized array; mcpb validates only the manifest this repository " +
+      "renders itself. The fix is zod 4.6.6 and no 3.x release has it; 2.1.2 is the newest mcpb. The server " +
+      "itself runs zod 4.6.7.",
   },
 ];

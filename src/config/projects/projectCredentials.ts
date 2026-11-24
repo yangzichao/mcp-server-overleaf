@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { ConfigurationError } from "../configurationError.js";
 
-export function readTokenFile(filePath: string): string {
+function readTokenFile(filePath: string): string {
   if (!isAbsolute(filePath)) throw new ConfigurationError("Git token file must be an absolute path.");
   try {
     const token = readFileSync(filePath, "utf8").trim();

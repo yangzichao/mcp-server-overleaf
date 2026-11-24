@@ -1,5 +1,5 @@
 /**
- * The categories `list_files` groups by and `project_summary` counts.
+ * The categories read_project groups files by in its files view and counts in its overview.
  *
  * Exported as a list rather than only as a union so the tool schema that documents these
  * names can be built from them. Restating them in prose is how the schema came to promise

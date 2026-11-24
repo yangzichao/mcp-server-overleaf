@@ -1,0 +1,5 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // scripts/mcpb/buildMcpbBundle.mjs runs node_modules/.bin/mcpb by path, which knip cannot follow.
+  "ignoreDependencies": ["@anthropic-ai/mcpb"]
+}

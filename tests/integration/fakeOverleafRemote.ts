@@ -1,11 +1,23 @@
 import { execFile } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * A push into a local bare repository runs `receive-pack` there, and receive-pack starts
+ * detached maintenance on its own. Git clears GIT_CONFIG_* for that process, so the
+ * environment the tests set cannot reach it: the bare repository's own config has to say
+ * no, or the detached process can still be writing while cleanUp deletes the directory.
+ */
+async function initializeBareRepository(directory: string): Promise<void> {
+  await mkdir(directory, { recursive: true });
+  await execFileAsync("git", ["init", "--bare", "--initial-branch=main", directory]);
+  await execFileAsync("git", ["config", "receive.autoGc", "false"], { cwd: directory });
+}
 
 /**
  * A bare repository standing in for a project on git.overleaf.com, plus a second clone
@@ -28,8 +40,7 @@ export class FakeOverleafRemote {
     const bareRepositoryDirectory = join(rootDirectory, "overleaf", projectId);
     const collaboratorDirectory = join(rootDirectory, "collaborator");
 
-    await mkdir(bareRepositoryDirectory, { recursive: true });
-    await execFileAsync("git", ["init", "--bare", "--initial-branch=main", bareRepositoryDirectory]);
+    await initializeBareRepository(bareRepositoryDirectory);
 
     const remote = new FakeOverleafRemote(
       rootDirectory,
@@ -58,10 +69,39 @@ export class FakeOverleafRemote {
   }
 
   /** Writes a file as the co-author and pushes it, the way the Overleaf editor would. */
-  async collaboratorPushes(relativePath: string, content: string, message: string): Promise<void> {
+  async collaboratorPushes(relativePath: string, content: string | Buffer, message: string): Promise<void> {
     const absolutePath = join(this.collaboratorDirectory, relativePath);
     await mkdir(join(absolutePath, ".."), { recursive: true });
-    await writeFile(absolutePath, content, "utf8");
+    await writeFile(absolutePath, content);
+    await this.commitAndPushAsCollaborator(message);
+  }
+
+  /** Deletes a file as the co-author and pushes the deletion. */
+  async collaboratorDeletes(relativePath: string, message: string): Promise<void> {
+    await rm(join(this.collaboratorDirectory, relativePath));
+    await this.commitAndPushAsCollaborator(message);
+  }
+
+  /**
+   * Renames a file or folder as the co-author and pushes the rename. It goes through a temporary
+   * name, because on a disk that ignores case `git mv sections Sections` moves sections into itself.
+   */
+  async collaboratorRenames(fromPath: string, toPath: string, message: string): Promise<void> {
+    const temporaryPath = `${toPath}.renaming`;
+    await execFileAsync("git", ["mv", fromPath, temporaryPath], { cwd: this.collaboratorDirectory });
+    await execFileAsync("git", ["mv", temporaryPath, toPath], { cwd: this.collaboratorDirectory });
+    await this.commitAndPushAsCollaborator(message);
+  }
+
+  /** The hash of the newest commit "on Overleaf", for addressing a revision in a test. */
+  async publishedHeadHash(): Promise<string> {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "main"], {
+      cwd: this.bareRepositoryDirectory,
+    });
+    return stdout.trim();
+  }
+
+  private async commitAndPushAsCollaborator(message: string): Promise<void> {
     await execFileAsync("git", ["add", "--all"], { cwd: this.collaboratorDirectory });
     await execFileAsync("git", ["commit", "-m", message], { cwd: this.collaboratorDirectory });
     await execFileAsync("git", ["push", "origin", "main"], { cwd: this.collaboratorDirectory });
@@ -76,8 +116,7 @@ export class FakeOverleafRemote {
   async addSiblingProject(projectId: string, relativePath: string, content: string): Promise<string> {
     const bareDirectory = join(this.gitBaseUrl, projectId);
     const authorDirectory = join(this.rootDirectory, `author-${projectId}`);
-    await mkdir(bareDirectory, { recursive: true });
-    await execFileAsync("git", ["init", "--bare", "--initial-branch=main", bareDirectory]);
+    await initializeBareRepository(bareDirectory);
     await execFileAsync("git", ["clone", bareDirectory, authorDirectory]);
     await this.configureIdentity(authorDirectory, "A Collaborator", "collaborator@example.com");
     await writeFile(join(authorDirectory, relativePath), content, "utf8");
@@ -91,6 +130,15 @@ export class FakeOverleafRemote {
   async readPublishedFile(relativePath: string): Promise<string> {
     const { stdout } = await execFileAsync("git", ["show", `main:${relativePath}`], {
       cwd: this.bareRepositoryDirectory,
+    });
+    return stdout;
+  }
+
+  /** A file's exact bytes "on Overleaf", for binary files. */
+  async readPublishedBytes(relativePath: string): Promise<Buffer> {
+    const { stdout } = await execFileAsync("git", ["show", `main:${relativePath}`], {
+      cwd: this.bareRepositoryDirectory,
+      encoding: "buffer",
     });
     return stdout;
   }

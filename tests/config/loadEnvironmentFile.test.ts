@@ -56,6 +56,10 @@ describe("parseEnvironmentFile", () => {
   it("does not strip mismatched quotes", () => {
     expect(parseEnvironmentFile('A="unbalanced')).toEqual({ A: '"unbalanced' });
   });
+
+  it("reads a file saved with Windows line endings", () => {
+    expect(parseEnvironmentFile('# c\r\nA=1\r\nB = "two"\r\n')).toEqual({ A: "1", B: "two" });
+  });
 });
 
 describe("clientSuppliedConfiguration", () => {
@@ -65,6 +69,10 @@ describe("clientSuppliedConfiguration", () => {
 
   it("is true when the client set the project list", () => {
     expect(clientSuppliedConfiguration({ OVERLEAF_PROJECTS: "paper=x" })).toBe(true);
+  });
+
+  it("is true when the client set only a session cookie, the whole setup without Git integration", () => {
+    expect(clientSuppliedConfiguration({ OVERLEAF_SESSION_COOKIE_FILE: "/home/me/cookie" })).toBe(true);
   });
 
   it("treats a blank value as not configured", () => {

@@ -26,7 +26,7 @@ function claudeDesktopConfigurationFile(): string {
   return resolve(homedir(), ".config", "Claude", "claude_desktop_config.json");
 }
 
-export function jsonConfigurationClientDefinitions(): readonly JsonConfigurationClientDefinition[] {
+function jsonConfigurationClientDefinitions(): readonly JsonConfigurationClientDefinition[] {
   const claudeDesktopFile = claudeDesktopConfigurationFile();
   return [
     {

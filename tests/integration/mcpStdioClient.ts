@@ -1,5 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { serverEntryPoint, serverWorkingDirectory } from "../support/serverUnderTest.js";
+import { WITHOUT_BACKGROUND_GIT_MAINTENANCE } from "../support/withoutBackgroundGitMaintenance.js";
 import { type JsonRpcResponse, responseText } from "./support/mcpProtocol.js";
 
 /**
@@ -13,13 +14,20 @@ export class McpStdioClient {
   private buffer = "";
   private stderrText = "";
   private processFailure: Error | null = null;
+  /** What the server sent as `instructions` in its initialize result. */
+  serverInstructions: string | undefined;
 
   private constructor(private readonly child: ChildProcessWithoutNullStreams) {}
 
   static async start(environment: NodeJS.ProcessEnv): Promise<McpStdioClient> {
     const child = spawn(process.execPath, [serverEntryPoint, "--stdio"], {
       // A bare environment, minus PATH: an MCP client does not pass a shell through.
-      env: { PATH: process.env.PATH, HOME: process.env.HOME, ...environment },
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        ...WITHOUT_BACKGROUND_GIT_MAINTENANCE,
+        ...environment,
+      },
       stdio: ["pipe", "pipe", "pipe"],
       cwd: serverWorkingDirectory,
     });
@@ -95,6 +103,7 @@ export class McpStdioClient {
     if (response.error || !response.result?.protocolVersion) {
       throw new Error(`MCP initialization failed: ${JSON.stringify(response)}`);
     }
+    this.serverInstructions = response.result.instructions;
     this.send({ jsonrpc: "2.0", method: "notifications/initialized" });
   }
 
@@ -108,6 +117,23 @@ export class McpStdioClient {
     const response = await this.waitFor(id);
     if (response.error) throw new Error(response.error.message);
     return response.result?.tools ?? [];
+  }
+
+  async listPrompts() {
+    const response = await this.request("prompts/list", {});
+    if (response.error) throw new Error(response.error.message);
+    return response.result?.prompts ?? [];
+  }
+
+  /** The raw response, so a test can check both a prompt's messages and a refused request. */
+  getPrompt(name: string, promptArguments: Record<string, string> = {}): Promise<JsonRpcResponse> {
+    return this.request("prompts/get", { name, arguments: promptArguments });
+  }
+
+  private async request(method: string, params: Record<string, unknown>): Promise<JsonRpcResponse> {
+    const id = this.nextRequestId++;
+    this.send({ jsonrpc: "2.0", id, method, params });
+    return await this.waitFor(id);
   }
 
   /** Calls a tool and returns its text output, or the RPC error rendered as text. */

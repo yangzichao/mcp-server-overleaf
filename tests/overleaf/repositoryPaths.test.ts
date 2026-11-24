@@ -57,7 +57,7 @@ describe("paths the model must not be able to reach", () => {
   });
 
   it("refuses the repository root itself", () => {
-    expect(reject(".")).toThrow(/outside the project/);
+    expect(reject(".")).toThrow(`Path "." names the project's root folder, not a file or folder in it.`);
   });
 
   it("refuses the .git directory", () => {
@@ -75,5 +75,13 @@ describe("paths the model must not be able to reach", () => {
     expect(resolvePathInsideRepository(repositoryDirectory, ".gitignore")).toBe(
       resolve(repositoryDirectory, ".gitignore"),
     );
+  });
+
+  it("allows a top-level file whose name starts with two dots", () => {
+    expect(resolvePathInsideRepository(repositoryDirectory, "..notes.tex")).toBe(
+      resolve(repositoryDirectory, "..notes.tex"),
+    );
+    expect(reject("../notes.tex")).toThrow(/outside the project/);
+    expect(reject("..")).toThrow(/outside the project/);
   });
 });
