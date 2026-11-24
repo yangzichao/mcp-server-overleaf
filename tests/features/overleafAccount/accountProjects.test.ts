@@ -79,6 +79,16 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
       );
     }
 
+    Then("the account's projects are listed in this order:", (_context, rows: Array<{ name: string }>) => {
+      const replyLines = scenario.world.lastReply.text.split("\n");
+      const heading = replyLines.indexOf(`${rows.length} projects in the account:`);
+      expect(heading, scenario.world.lastReply.text).toBeGreaterThan(-1);
+      const listedNames = replyLines
+        .slice(heading + 1, heading + 1 + rows.length)
+        .map((line) => line.slice("- ".length).split(" — ")[0]);
+      expect(listedNames).toEqual(rows.map((row) => row.name));
+    });
+
     Then(
       "{string} is marked as registered here as {string}",
       (_context, projectName: string, registeredName: string) => {
@@ -138,6 +148,7 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
   Background(() => {});
 
   Scenario("Every project is listed with my access and its address", () => {});
+  Scenario("The account's projects keep the order Overleaf sends, not sorted by name", () => {});
   Scenario("A project this server already knows is marked with its registered name", () => {});
   ScenarioOutline("Each access level is named the way a person would say it", () => {});
   Scenario("The list can be narrowed by part of a name, ignoring case", () => {});

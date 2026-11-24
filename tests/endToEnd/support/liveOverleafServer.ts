@@ -7,7 +7,7 @@ import { requireLiveOverleafSettings } from "./liveOverleafSettings.js";
 
 export const LIVE_PROJECT_NAME = "e2e";
 
-export type LiveCredentials = "gitBridgeAndEditor" | "editorOnly";
+export type LiveCredentials = "gitBridgeAndEditor" | "gitBridgeOnly" | "editorOnly";
 
 export class LiveOverleafServer {
   private constructor(
@@ -24,10 +24,12 @@ export class LiveOverleafServer {
       XDG_CONFIG_HOME: join(scratchDirectory, "config"),
       OVERLEAF_WEB_BASE_URL: settings.webBaseUrl,
     };
-    if (credentials === "gitBridgeAndEditor" && settings.gitToken) {
+    if (credentials !== "editorOnly" && settings.gitToken) {
       environment.OVERLEAF_GIT_TOKEN = settings.gitToken;
     }
-    if (settings.sessionCookie) environment.OVERLEAF_SESSION_COOKIE = settings.sessionCookie;
+    if (credentials !== "gitBridgeOnly" && settings.sessionCookie) {
+      environment.OVERLEAF_SESSION_COOKIE = settings.sessionCookie;
+    }
     try {
       return new LiveOverleafServer(await McpStdioClient.start(environment), scratchDirectory);
     } catch (error) {

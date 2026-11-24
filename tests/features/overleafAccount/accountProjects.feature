@@ -15,6 +15,14 @@ Feature: The projects in the Overleaf account can be found and started from here
     And "Shared Thesis" is listed as "can edit" at its Overleaf address
     And "Grant Proposal" is listed as "can view" at its Overleaf address
 
+  Scenario: The account's projects keep the order Overleaf sends, not sorted by name
+    When I list the projects in the account
+    Then the account's projects are listed in this order:
+      | name           |
+      | Fake paper     |
+      | Shared Thesis  |
+      | Grant Proposal |
+
   Scenario: A project this server already knows is marked with its registered name
     When I list the projects in the account
     Then "Fake paper" is marked as registered here as "paper"
