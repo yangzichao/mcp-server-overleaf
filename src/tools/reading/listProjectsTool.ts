@@ -28,12 +28,10 @@ const CONFIGURED_ONLY_DESCRIPTION =
   "Any project not listed can still be reached by passing its Overleaf address as `project`.";
 
 const WITH_ACCOUNT_DESCRIPTION =
-  "List the Overleaf projects this server can reach: the ones configured here, marking the default, and, with the session cookie, the signed-in account's projects as Overleaf's dashboard lists them, each with its access level, address and tags. " +
-  "filter picks the dashboard list: all, the default, leaves out archived and trashed projects as the dashboard does; owned, shared, archived and trashed give those lists, where archive and trash are this account's own. " +
-  "tag keeps the projects carrying that tag. A filter other than all, or a tag, lists the account's projects alone, without the configured ones; nameContains narrows every list. " +
-  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project; any project listed can be passed to other tools as `project`, by its registered name or its address. " +
-  "filter and tag need the session cookie; a tag the account does not have is reported along with the tags it does have. " +
-  "Returns the registered names, marked (default) where it applies, then one line per account project, marked with its registered name where it has one.";
+  "List the Overleaf projects this server can reach. The ones configured here come first, with the default marked. With the session cookie, the signed-in account's projects follow, as Overleaf's dashboard lists them, each with its access level, address and tags. " +
+  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. Any project listed can be passed to other tools as `project`, by its registered name or its address. " +
+  "filter and tag need the session cookie. Setting tag, or a filter other than all, lists only the account's projects, without the configured ones. nameContains narrows every list. A tag the account does not have is reported with the tags it does have. " +
+  "Returns the registered names, then one line per account project, marked with its registered name where it has one. The whole list comes in one reply, with no paging, and is cut off after 60,000 characters.";
 
 const nameContainsArgument = z
   .string()
@@ -48,7 +46,7 @@ const withAccountInput = z.object({
     .enum(ACCOUNT_PROJECT_FILTERS)
     .optional()
     .describe(
-      "Which of the account's projects to list, as Overleaf's dashboard groups them: all (default; leaves out archived and trashed projects), owned (by this account), shared (owned by someone else), archived or trashed.",
+      "Which of the account's projects to list, as Overleaf's dashboard groups them: all (default; leaves out archived and trashed projects), owned (by this account), shared (owned by someone else), archived or trashed (in this account's own archive or trash, not a co-author's).",
     ),
   tag: z
     .string()

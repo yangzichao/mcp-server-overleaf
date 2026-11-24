@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.1
+
+Five tool descriptions are rewritten, and one reply of `manage_comments` is fixed. No tool,
+action or argument changes.
+
+- `manage_comments`, `read_review`, `check_references`, `read_history` and `list_projects`
+  describe each action or view in short sentences and say what their arguments do beyond the
+  schema: how `quoteText` is matched, where `check_references` starts without `mainTexFile`
+  and when it warns, how hidden resolved threads are counted, and that an argument the chosen
+  action does not take is refused. `list_projects` no longer repeats the filter list its
+  schema gives.
+- `manage_comments` (action `add`) answers a passage that is not in the document with "No
+  comment was added." It used to say "Nothing was suggested.", the reply for a suggestion.
+
 ## 0.6.0
 
 `manage_files` uploads a folder from this computer, and `manage_project` shares a project the

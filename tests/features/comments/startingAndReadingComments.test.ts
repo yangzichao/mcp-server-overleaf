@@ -144,6 +144,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   Scenario("Commenting leaves the text of the paper as it was", () => {});
   Scenario("A comment Overleaf refuses to anchor leaves no message behind", () => {});
   Scenario("A passage that appears twice is refused rather than guessed at", () => {});
+  Scenario("A passage that is not in the document is refused, and no thread is started", () => {});
   Scenario("A read-only collaborator may still comment", () => {});
   Scenario("A collaborator's thread is listed with its author, line and status", () => {});
   Scenario("Threads are grouped under the document they are anchored in", () => {});

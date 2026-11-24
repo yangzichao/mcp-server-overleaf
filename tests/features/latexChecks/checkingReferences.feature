@@ -32,3 +32,9 @@ Feature: Broken references are found without compiling
     When I check the references starting from "paper.tex"
     Then the check says there is no file at "paper.tex"
     And the check names the .tex files that exist: "main.tex, old/notes.tex, sections/method.tex"
+
+  Scenario: A guessed main document without a document environment is checked with a warning
+    When I take the start of the document environment out of main.tex
+    And I check the references
+    Then the check says "Checked main.tex and 1 file it includes with refs.bib: 3 problems:"
+    And the check warns that main.tex may not be the main document

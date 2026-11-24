@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 import { checkProjectReferences } from "../../latex/references/checkProjectReferences.js";
 import {
   CHECK_REFERENCES_FINDS,
+  CHECK_REFERENCES_GUESSED_ROOT,
   CHECK_REFERENCES_RETURNS,
   CHECK_REFERENCES_SCOPE,
   CHECK_REFERENCES_TITLE,
@@ -34,7 +35,7 @@ export function registerEditorCheckReferencesTool(server: McpServer, context: To
       description:
         CHECK_REFERENCES_FINDS +
         "Use it before a compile, and after renaming a label, a citation key or a figure. " +
-        "The main document is the one set in Overleaf's menu unless mainTexFile names another. " +
+        `The check starts at mainTexFile, or without it at the main document set in Overleaf's menu, or when none is set at ${CHECK_REFERENCES_GUESSED_ROOT}. ` +
         CHECK_REFERENCES_SCOPE +
         `${NO_GIT_BRIDGE_NOTE} Documents are read as the editor holds them now, with pending suggestions shown as if accepted, and an uploaded figure counts as present. ` +
         CHECK_REFERENCES_RETURNS,

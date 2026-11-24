@@ -22,6 +22,11 @@ Feature: Replying to, resolving and deleting a comment thread
     Then the reply says "A thread id is 24 hexadecimal characters."
     And Ada's thread holds only "Should this greeting be formal?"
 
+  Scenario: An argument the action does not take is refused before anything is sent
+    When I reply "Yes, changed it." in Ada's thread and also pass the quoteText "Hello world."
+    Then the reply says "quoteText does not apply to reply; add uses it."
+    And Ada's thread holds only "Should this greeting be formal?"
+
   Scenario: Resolving a thread keeps its messages
     When I resolve Ada's thread
     Then the reply says Ada's thread on "Hello world." in "main.tex" was resolved

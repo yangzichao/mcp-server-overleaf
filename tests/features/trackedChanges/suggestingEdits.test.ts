@@ -51,6 +51,17 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
       await scenario.world.callTool("read_review", { view: "tracked_changes", path });
     });
 
+    When(
+      "I list the tracked changes in {string} including resolved threads",
+      async (_context, path: string) => {
+        await scenario.world.callTool("read_review", {
+          view: "tracked_changes",
+          path,
+          includeResolved: true,
+        });
+      },
+    );
+
     Then("the reply says the suggestion is waiting in the review panel", () => {
       expect(scenario.world.lastReply.text).toContain(
         "in the review panel, waiting to be accepted or rejected",
@@ -137,6 +148,7 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
   Scenario("Text that appears twice is refused rather than guessed at", () => {});
   Scenario("Text that is not in the paper is refused", () => {});
   Scenario("A wrong path is answered with the documents that do exist", () => {});
+  Scenario("An argument only the comments view takes is refused", () => {});
   Scenario("A document in Overleaf's newer history-OT format is explained", () => {});
   ScenarioOutline("Any account that can review may suggest, and read-only access is refused", () => {});
 });

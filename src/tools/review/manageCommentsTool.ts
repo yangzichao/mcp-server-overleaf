@@ -134,13 +134,14 @@ export function registerManageCommentsTool(server: McpServer, context: ToolConte
     {
       title: "Add, answer, edit, resolve or delete comments",
       description:
-        "Change the comment threads in Overleaf's review panel; action picks what. " +
-        "add starts a thread on an exact snippet, quoteText, with a first message, for raising a question without changing the prose; the snippet must occur exactly once in the document path names. " +
-        "reply adds a message to a thread without resolving it. resolve marks a thread resolved and reopen opens a resolved one again, keeping the thread and its messages either way. " +
-        "delete removes a thread for everyone, its anchor and every message in it, and cannot be undone from here, so prefer resolve unless the thread should not exist at all. " +
-        "edit_message replaces the text of one message, which Overleaf's editor allows only on the account's own messages. delete_message removes one reply from a thread for everyone; with review access only the account's own replies can go, and the first message is refused because it is the thread's own text, which delete removes with the thread. Both read the thread again afterwards and fail if the change is not there. " +
-        "Thread and message ids come from read_review (view comments); a thread or message id that does not exist is refused and the reply names the ids that do, so a typo never starts a new thread. path saves searching every document when resolving, reopening or deleting. " +
-        "Messages appear under the signed-in account's name, and every action takes effect in Overleaf immediately, with no push step, so confirm with the user first. " +
+        "Change the comment threads in Overleaf's review panel. Every action takes effect in Overleaf at once, with no push step, and messages appear under the signed-in account's name, so confirm with the user first. " +
+        "add starts a thread on a passage, to raise a question without changing the prose. quoteText is compared literally with the document as the editor holds it now, and must occur exactly once in the document at path. When it is missing or repeated, nothing is added. " +
+        "reply adds a message without resolving the thread. resolve and reopen change only the thread's status, keeping the thread and its messages. " +
+        "delete removes a thread, its anchor and every message for everyone, and cannot be undone from here, so prefer resolve unless the thread should not exist at all. " +
+        "edit_message replaces the text of one message. Overleaf's editor offers that only on the account's own messages, and sending the text the message already has changes nothing. " +
+        "delete_message removes one reply. With review access only the account's own replies can go. A thread's first message is refused, because only delete removes it, with the whole thread. " +
+        "After edit_message or delete_message, the thread is read again, and the call fails if the change is not there. " +
+        "An unknown threadId is refused rather than starting a new thread, and an unknown messageId is refused with the ids the thread has. An argument the chosen action does not take is refused before anything is sent. " +
         "Returns the new thread id for add, otherwise a one-line confirmation.",
       inputSchema: manageCommentsInput,
       annotations: WRITES_TO_OVERLEAF,

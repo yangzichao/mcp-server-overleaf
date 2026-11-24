@@ -49,6 +49,10 @@ Feature: A suggested edit waits in the review panel for a co-author to decide
     Then the reply says there is no editable document at "nope.tex"
     And the reply names "main.tex" as a document that exists
 
+  Scenario: An argument only the comments view takes is refused
+    When I list the tracked changes in "main.tex" including resolved threads
+    Then the reply says "includeResolved does not apply to tracked_changes; comments uses it."
+
   Scenario: A document in Overleaf's newer history-OT format is explained
     Given Overleaf keeps "main.tex" in the newer history-OT format
     When I list the tracked changes in "main.tex"

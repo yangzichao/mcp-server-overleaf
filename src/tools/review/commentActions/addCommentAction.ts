@@ -28,7 +28,7 @@ export function addCommentAction(context: ToolContext, comment: NewComment): Pro
     const webClient = requireOverleafWebClient(context);
     const document = requireDocument(session, comment.path);
     const joined = await session.joinDocument(document.documentId);
-    const position = findTextOffset(joined.lines, comment.quoteText, "unique");
+    const position = findTextOffset(joined.lines, comment.quoteText, "No comment was added.");
     const threadId = newThreadId();
 
     // The web editor posts the message first and anchors it second, so a thread is never

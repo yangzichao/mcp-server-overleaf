@@ -8,6 +8,7 @@ import { READS_OVERLEAF } from "../toolAnnotations.js";
 import { runToolSafely, type ToolContext, textResult, truncateForModel } from "../toolContext.js";
 import {
   CHECK_REFERENCES_FINDS,
+  CHECK_REFERENCES_GUESSED_ROOT,
   CHECK_REFERENCES_RETURNS,
   CHECK_REFERENCES_SCOPE,
   CHECK_REFERENCES_TITLE,
@@ -24,6 +25,7 @@ export function registerCheckReferencesTool(server: McpServer, context: ToolCont
       description:
         CHECK_REFERENCES_FINDS +
         "Use it before push_changes or a compile, and after renaming a label, a citation key or a figure. " +
+        `The check starts at mainTexFile, or without it at ${CHECK_REFERENCES_GUESSED_ROOT}. ` +
         CHECK_REFERENCES_SCOPE +
         "Pulls from Overleaf first. " +
         CHECK_REFERENCES_RETURNS,

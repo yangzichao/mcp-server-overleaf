@@ -67,8 +67,23 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
       });
     });
 
+    Step("I take the start of the document environment out of main.tex", async () => {
+      await project.client.call("edit_file", {
+        action: "replace_text",
+        path: "main.tex",
+        findText: "\\begin{document}\n",
+        replaceWith: "",
+      });
+    });
+
     Step("the check says {string}", (_context: unknown, expected: string) => {
       expect(lastReply).toContain(expected);
+    });
+
+    Step("the check warns that main.tex may not be the main document", () => {
+      expect(lastReply).toContain(
+        "main.tex has no \\begin{document}, so it may not be the main document; pass mainTexFile to choose another.",
+      );
     });
 
     Step("the check lists these problems:", (_context: unknown, rows: Array<{ problem: string }>) => {
@@ -112,4 +127,5 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   Scenario("What is worth a look but not wrong is noted separately", () => {});
   Scenario("The check reads local edits, so a fix shows up before it is pushed", () => {});
   Scenario("A main document that does not exist is refused, naming the ones that do", () => {});
+  Scenario("A guessed main document without a document environment is checked with a warning", () => {});
 });
