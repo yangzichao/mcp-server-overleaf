@@ -1,15 +1,14 @@
-import { requireOverleafId } from "../overleafIds.js";
-import type { OverleafWebClient } from "../overleafWebClient.js";
-import { OverleafWebRequestError } from "../overleafWebErrors.js";
+import { requireOverleafId } from "../../overleafIds.js";
+import type { OverleafWebClient } from "../../overleafWebClient.js";
+import { OverleafWebRequestError } from "../../overleafWebErrors.js";
 
 /**
- * Who a project is shared with, read-only. `GET /project/:id/members`
+ * Who a project is shared with. `GET /project/:id/members`
  * (`CollaboratorsController.getAllMembers`) lists invited members as
  * `ProjectEditorHandler.buildUserModelView` describes them, leaving out the owner and anyone who
  * joined through a sharing link. `GET /project/:id/invites`
  * (`CollaboratorsInviteController.getAllInvites`) lists invitations not yet accepted, and only to
- * the owner. Inviting, removing and transferring are deliberately not offered: an invitation
- * gives someone outside the project access to it.
+ * the owner.
  */
 
 export interface ProjectMember {
@@ -51,7 +50,7 @@ function readMember(entry: unknown): ProjectMember | undefined {
   };
 }
 
-function readInvite(entry: unknown): PendingProjectInvite | undefined {
+export function readInvite(entry: unknown): PendingProjectInvite | undefined {
   if (!entry || typeof entry !== "object") return undefined;
   const invite = entry as Record<string, unknown>;
   const inviteId = readString(invite._id);

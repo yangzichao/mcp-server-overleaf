@@ -44,7 +44,7 @@ describe("manage_files create_folder on a server with a Git credential and a ses
     const client = await harness.startClient();
     const discard = await client.callRaw("manage_files", { action: "discard_local_changes", path: "x" });
     expect(discard.result?.content?.[0]?.text).toBe(
-      "path does not apply to discard_local_changes; delete, move, upload, restore and create_folder use it.",
+      "path does not apply to discard_local_changes; delete, move, upload, upload_folder, restore and create_folder use it.",
     );
     const extra = await client.callRaw("manage_files", { action: "create_folder", path: "x", toPath: "y" });
     expect(extra.result?.content?.[0]?.text).toBe("toPath does not apply to create_folder; move uses it.");

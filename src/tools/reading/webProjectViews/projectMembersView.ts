@@ -4,7 +4,7 @@ import {
   fetchProjectMembers,
   type PendingProjectInvite,
   type ProjectMember,
-} from "../../../overleaf/web/projects/projectMembers.js";
+} from "../../../overleaf/web/projects/sharing/projectMembers.js";
 import { withReviewSession } from "../../review/openReviewSession.js";
 import type { ToolContext } from "../../toolContext.js";
 import { requireOverleafWebClient } from "../../web/requireOverleafWebClient.js";
@@ -17,7 +17,7 @@ import { describeAccessLevel } from "../accessLevelNames.js";
  */
 
 const NOT_LISTED_NOTE =
-  "Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them, and sharing is changed there, not through this server.";
+  "Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them. The owner can invite, change access, remove members and withdraw invitations with manage_project.";
 
 function describePerson(name: string | undefined, email: string | undefined): string | undefined {
   if (name && email) return `${name} <${email}>`;

@@ -20,6 +20,10 @@ async function findAvailablePort(): Promise<number> {
   return address.port;
 }
 
+interface McpHttpClientOptions {
+  readonly capabilities?: Record<string, unknown>;
+}
+
 export class McpHttpClient {
   private nextRequestId = 1;
   private constructor(
@@ -27,7 +31,10 @@ export class McpHttpClient {
     private readonly child: ChildProcessWithoutNullStreams,
   ) {}
 
-  static async start(environment: NodeJS.ProcessEnv): Promise<McpHttpClient> {
+  static async start(
+    environment: NodeJS.ProcessEnv,
+    options: McpHttpClientOptions = {},
+  ): Promise<McpHttpClient> {
     const port = await findAvailablePort();
     const child = spawn(process.execPath, [serverEntryPoint, "--http", "--port", String(port)], {
       env: {
@@ -66,7 +73,7 @@ export class McpHttpClient {
       });
       const initialized = await client.request("initialize", {
         protocolVersion: "2025-11-25",
-        capabilities: {},
+        capabilities: options.capabilities ?? {},
         clientInfo: { name: "http-integration-test", version: "1" },
       });
       if (initialized.error || !initialized.result?.protocolVersion)
@@ -96,9 +103,13 @@ export class McpHttpClient {
     });
   }
 
-  private async request(method: string, params: unknown): Promise<JsonRpcResponse> {
+  async request(
+    method: string,
+    params: unknown,
+    headers: Record<string, string> = {},
+  ): Promise<JsonRpcResponse> {
     const id = this.nextRequestId++;
-    const response = await this.post({ jsonrpc: "2.0", id, method, params });
+    const response = await this.post({ jsonrpc: "2.0", id, method, params }, headers);
     const body = await response.text();
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${body}`);
     const messages: JsonRpcResponse[] = response.headers.get("content-type")?.includes("text/event-stream")

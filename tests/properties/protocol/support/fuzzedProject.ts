@@ -115,6 +115,7 @@ export async function seedSandbox(sandboxDirectory: string): Promise<{
   await writeFakeExecutable(programDirectory, "texcount", FAKE_TEXCOUNT);
   await mkdir(join(sandboxDirectory, ".hidden"), { recursive: true });
   await mkdir(join(sandboxDirectory, "downloads"), { recursive: true });
+  await mkdir(join(sandboxDirectory, "chapter", "figures"), { recursive: true });
   const files: Record<string, Buffer | string> = {
     "upload.png": SMALL_PNG,
     "upload.bib": "@misc{uploaded, title = {Uploaded}}\n",
@@ -122,6 +123,9 @@ export async function seedSandbox(sandboxDirectory: string): Promise<{
     "not-a-zip.zip": "plain text\n",
     "existing.zip": FAKE_ZIP_BYTES,
     ".hidden/secret.txt": "not for upload\n",
+    "chapter/chapter.tex": "\\section{Chapter}\nWords.\n",
+    "chapter/figures/chart.png": SMALL_PNG,
+    "chapter/.env": "NOT_FOR_UPLOAD=1\n",
     "empty.env": "",
   };
   for (const [name, content] of Object.entries(files)) await writeFile(join(sandboxDirectory, name), content);
@@ -132,6 +136,7 @@ export async function seedSandbox(sandboxDirectory: string): Promise<{
         .map((name) => join(sandboxDirectory, name)),
       join(sandboxDirectory, "missing.png"),
       join(sandboxDirectory, "downloads"),
+      join(sandboxDirectory, "chapter"),
       join(sandboxDirectory, "downloads", "project.zip"),
       sandboxDirectory,
     ],

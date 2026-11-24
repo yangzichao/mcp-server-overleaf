@@ -8,7 +8,7 @@ import { useEditorTestHarness } from "../support/editorTestHarness.js";
  */
 
 const NOT_LISTED_NOTE =
-  "Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them, and sharing is changed there, not through this server.";
+  "Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them. The owner can invite, change access, remove members and withdraw invitations with manage_project.";
 
 describe("read_project's account views", () => {
   const harness = useEditorTestHarness();

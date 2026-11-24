@@ -5,14 +5,14 @@
 
 export function describeManageFilesAction(withFolders: boolean): string {
   return withFolders
-    ? "What to do: delete, move, upload, restore (a file from an earlier revision), discard_local_changes (every local change in the project, permanently) or create_folder (a folder in Overleaf, at once)."
-    : "What to do: delete, move, upload, restore (a file from an earlier revision) or discard_local_changes (every local change in the project, permanently).";
+    ? "What to do: delete, move, upload, upload_folder (every file of a folder on this computer), restore (a file from an earlier revision), discard_local_changes (every local change in the project, permanently) or create_folder (a folder in Overleaf, at once)."
+    : "What to do: delete, move, upload, upload_folder (every file of a folder on this computer), restore (a file from an earlier revision) or discard_local_changes (every local change in the project, permanently).";
 }
 
 export function describeManageFilesPath(withFolders: boolean): string {
   return (
-    `${withFolders ? "delete, move, upload, restore and create_folder" : "delete, move, upload and restore"}, required: a path relative to the project root, as read_project (view files) prints it, e.g. sections/intro.tex. ` +
-    "delete and move take a file or a directory, move at its current path; upload and restore take the file to write." +
+    `${withFolders ? "delete, move, upload, upload_folder, restore and create_folder" : "delete, move, upload, upload_folder and restore"}, required: a path relative to the project root, as read_project (view files) prints it, e.g. sections/intro.tex. ` +
+    'delete and move take a file or a directory, move at its current path; upload and restore take the file to write; upload_folder takes the directory to copy into, e.g. figures/plots, or "." for the project root.' +
     (withFolders ? " For create_folder, the folder to create, e.g. figures/plots." : "")
   );
 }
@@ -22,6 +22,7 @@ export function describeManageFiles(withFolders: boolean): string {
     "Change which files and directories the project's local clone holds, or throw local work away; action picks what.",
     "delete removes a file, or a directory with everything in it. move renames a file or a directory or moves it inside the project, creating missing parent directories and refusing a toPath that already exists or lies inside the directory being moved.",
     "upload adds a file byte for byte, such as a figure, a PDF, a data file or a .bib from elsewhere, copied from sourcePath on this computer or decoded from contentBase64, and replaces a file already at path; edit_file is for text written in the call itself.",
+    "upload_folder copies every file under the folder sourcePath into the directory path, keeping its subfolders and replacing files already at those paths; hidden files and folders and symbolic links are left out, and it takes at most 180 files, as Overleaf's upload dialog does.",
     "restore puts a file back to exactly what it was at revision, binary files included, and brings back a file deleted since; find the revision with read_history.",
     "discard_local_changes permanently throws away every local edit, new file and unpushed commit in the project, fetching Overleaf first so the clone ends up matching its current version; call it only once the user has said the work should be abandoned, typically after push_changes refuses a conflicting change.",
     ...(withFolders

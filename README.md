@@ -10,7 +10,7 @@ to Overleaf. Read, search, edit, compile, and review real LaTeX projects without
 copy-pasting your paper into a chat window.
 
 ```bash
-npx --yes mcp-server-overleaf@0.5.2 setup
+npx --yes mcp-server-overleaf@0.6.0 setup
 ```
 
 Edits stay in a local clone until you explicitly publish them. Before every read and every
@@ -54,7 +54,8 @@ co-author has already changed the lines you are editing.
   same tools also reach Overleaf's editor and web app: a change lands in the review panel for
   a co-author to accept or reject, comment threads can be read and answered, a project
   compiles on Overleaf without a local TeX installation, and projects can be copied, renamed,
-  archived, tagged and configured. [Tracked changes](docs/tracked-changes.md)
+  archived, tagged, configured and shared. An invitation goes out only after you confirm it in
+  your MCP client. [Tracked changes](docs/tracked-changes.md)
 - **Skills and prompts for the work around the tools.** The Claude Code and Codex plugins add
   skills for chktex, latexindent, texcount, latexdiff, latexpand, arXiv packaging and SyncTeX,
   and the server offers prompts for reviewing a paper, revising a section, answering
@@ -161,7 +162,7 @@ any other client, use the command below. Details in
 Store the token once:
 
 ```bash
-npx --yes mcp-server-overleaf@0.5.2 setup --clients none
+npx --yes mcp-server-overleaf@0.6.0 setup --clients none
 ```
 
 Then, in Claude Code:
@@ -192,7 +193,7 @@ installation. Details in
 ## Install with one command
 
 ```bash
-npx --yes mcp-server-overleaf@0.5.2 setup
+npx --yes mcp-server-overleaf@0.6.0 setup
 ```
 
 It checks Node and git, asks for the project and a token, proves the token reaches Overleaf
@@ -220,7 +221,7 @@ run. Then ask the assistant to list the files in the project.
 Setup can also run unattended:
 
 ```bash
-printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.5.2 setup \
+printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.6.0 setup \
   --project paper=https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1 \
   --token-stdin --yes
 ```
@@ -241,8 +242,8 @@ Claude Code and Codex do not read that registry. They have their own plugin mark
 which is the section above, or the server can be added by hand:
 
 ```bash
-claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.5.2 --stdio
-codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.5.2 --stdio
+claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.6.0 --stdio
+codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.6.0 --stdio
 ```
 
 Both forms need `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECT_ID` in the environment, which is
@@ -251,12 +252,12 @@ why `setup` writes a `projects.json` instead and registers an absolute path.
 ## Install from npm by hand
 
 Use this when you want to see every step, or to configure a client setup does not cover.
-The commands below select version `0.5.2` explicitly so a client restart does not silently
+The commands below select version `0.6.0` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.5.2 --version
+npx --yes mcp-server-overleaf@0.6.0 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -281,7 +282,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.5.2", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.6.0", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
@@ -427,6 +428,10 @@ the port could otherwise read and rewrite the user's papers. `--allow-anonymous`
 this and should only be used when the port is genuinely unreachable from outside the
 machine. Do not pass it to work around a missing token.
 
+Over HTTP, the server can ask you to confirm an invitation or more access only on protocol
+revision 2026-07-28. On a 2025 revision it answers each request on its own and cannot ask
+back, so `manage_project` refuses to invite or give more access and points to the Share menu.
+
 ## Step 5: verify end to end
 
 Call `read_project` with `view: "files"`. A file listing means the whole path works:
@@ -457,11 +462,11 @@ and still confirm each write. A tool with several jobs takes a `view` (reads) or
 | `compile_project` | read | Compile locally with latexmk or on Overleaf, and report errors and warnings, BibTeX and biber ones included, with the paths of the PDF and SyncTeX map, and from Overleaf the log, `.bbl` and `.blg` |
 | `read_review` | read | `tracked_changes` on a document, or `comments` with every message |
 | `edit_file` | write | `replace_text` (refusing an ambiguous match), `replace_section`, `append`, or `write` a whole file |
-| `manage_files` | write | `delete`, `move`, `upload`, `restore` an earlier revision, `discard_local_changes`, `create_folder` |
+| `manage_files` | write | `delete`, `move`, `upload` a file, `upload_folder` from this computer, `restore` an earlier revision, `discard_local_changes`, `create_folder` |
 | `push_changes` | write | Commit and publish, refusing to overwrite a co-author's change to the same lines |
 | `manage_tracked_changes` | write | `suggest` an edit as a tracked change, `accept` or `reject` suggestions |
 | `manage_comments` | write | `add`, `reply`, `resolve`, `reopen` or `delete` a thread; `edit_message` or `delete_message` |
-| `manage_project` | write | `create`, `create_from_zip`, `copy`, `rename`, `archive`/`unarchive`, `trash`/`untrash`, `update_settings`, `tag`/`untag`, `download_zip` |
+| `manage_project` | write | `create`, `create_from_zip`, `copy`, `rename`, `archive`/`unarchive`, `trash`/`untrash`, `update_settings`, `tag`/`untag`, `download_zip`, and for the owner `invite`, `set_access`, `remove_member`, `revoke_invite` |
 
 Which tools appear depends on the credentials:
 
@@ -475,7 +480,10 @@ With a Git token, `edit_file` and `manage_files` change a local clone, and nothi
 Overleaf until `push_changes`. With only a cookie, they change the live Overleaf project at
 once, as a co-author typing in the editor would. `manage_tracked_changes`,
 `manage_comments`, `manage_project` and `manage_files` (action `create_folder`) always act on
-Overleaf at once. The cookie and its trade-offs are described in
+Overleaf at once. `manage_project` invites someone, or gives a member more access, only after
+your MCP client asks you through elicitation and you confirm; the model cannot answer for you.
+A client without elicitation, or one on HTTP with a 2025 protocol revision, is pointed to
+Overleaf's Share menu instead. The cookie and its trade-offs are described in
 [tracked changes](docs/tracked-changes.md).
 
 ### Prompts

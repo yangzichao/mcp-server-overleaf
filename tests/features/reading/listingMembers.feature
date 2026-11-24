@@ -17,7 +17,7 @@ Feature: The people who share the project can be listed
       - Bea Example <bea@example.com> — can review
       Pending invitations (1):
       - invited.coauthor@example.com — can edit
-      Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them, and sharing is changed there, not through this server.
+      Anyone who joined through a sharing link is not listed; Overleaf's Share menu shows them. The owner can invite, change access, remove members and withdraw invitations with manage_project.
       """
 
   Scenario: A collaborator sees who owns the project, but not the invitations

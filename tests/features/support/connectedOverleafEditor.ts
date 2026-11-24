@@ -5,7 +5,7 @@ import type {
   FakeTrackedChange,
 } from "../../integration/fakeOverleafRealtime.js";
 import type { FakeOverleafWeb } from "../../integration/fakeOverleafWeb.js";
-import type { McpStdioClient } from "../../integration/mcpStdioClient.js";
+import type { McpClientOptions, McpStdioClient } from "../../integration/mcpStdioClient.js";
 import { EditorTestHarness, PAPER } from "../../integration/support/editorTestHarness.js";
 import { type McpContentBlock, responseText } from "../../integration/support/mcpProtocol.js";
 import { environmentForCredentials, type ServerCredentials } from "./serverCredentials.js";
@@ -25,22 +25,22 @@ export class ConnectedOverleafEditor {
 
   private constructor(
     private readonly harness: EditorTestHarness,
-    readonly client: McpStdioClient,
+    private readonly environment: NodeJS.ProcessEnv,
+    private currentClient: McpStdioClient,
     readonly downloadFolder: TemporaryDownloadFolder,
   ) {}
 
   static async open(
     credentials: ServerCredentials = "a Git token and a session cookie",
     environmentOverrides: NodeJS.ProcessEnv = {},
+    clientOptions: McpClientOptions = {},
   ): Promise<ConnectedOverleafEditor> {
     const harness = new EditorTestHarness();
     await harness.setUp();
     try {
-      const client = await harness.startClient({
-        ...environmentForCredentials(harness, credentials),
-        ...environmentOverrides,
-      });
-      return new ConnectedOverleafEditor(harness, client, TemporaryDownloadFolder.create());
+      const environment = { ...environmentForCredentials(harness, credentials), ...environmentOverrides };
+      const client = await harness.startClient(environment, clientOptions);
+      return new ConnectedOverleafEditor(harness, environment, client, TemporaryDownloadFolder.create());
     } catch (error) {
       await harness.tearDown();
       throw error;
@@ -50,6 +50,15 @@ export class ConnectedOverleafEditor {
   async close(): Promise<void> {
     await this.harness.tearDown();
     this.downloadFolder.remove();
+  }
+
+  get client(): McpStdioClient {
+    return this.currentClient;
+  }
+
+  async switchClient(clientOptions: McpClientOptions): Promise<void> {
+    await this.currentClient.stop();
+    this.currentClient = await this.harness.startClient(this.environment, clientOptions);
   }
 
   get editor(): FakeOverleafRealtime {

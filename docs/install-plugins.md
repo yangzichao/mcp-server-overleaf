@@ -13,7 +13,7 @@ For the manual `claude mcp add` and `codex mcp add` routes, and for every other 
 Run this once first, in either case:
 
 ```bash
-npx --yes mcp-server-overleaf@0.5.2 setup --clients none
+npx --yes mcp-server-overleaf@0.6.0 setup --clients none
 ```
 
 It asks for the project address and a Git token, proves the token reaches Overleaf, and
@@ -75,7 +75,7 @@ lines of substance:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.5.2", "--stdio"]
+      "args": ["--yes", "mcp-server-overleaf@0.6.0", "--stdio"]
     }
   }
 }

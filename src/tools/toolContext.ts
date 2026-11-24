@@ -38,10 +38,10 @@ export function textResult(text: string): ToolTextResult {
  * Turns a thrown error into a tool-level failure the model can read and react to,
  * with the Overleaf token stripped out of the message.
  */
-export function runToolSafely(
+export function runToolSafely<Reply = ToolTextResult>(
   context: ToolContext,
-  handler: () => ToolTextResult | Promise<ToolTextResult>,
-): Promise<ToolTextResult> {
+  handler: () => Reply | Promise<Reply>,
+): Promise<Reply | ToolTextResult> {
   return Promise.resolve()
     .then(handler)
     .catch((error: unknown) => {

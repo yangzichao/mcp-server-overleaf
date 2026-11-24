@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   fetchPendingInvites,
   fetchProjectMembers,
-} from "../../../../src/overleaf/web/projects/projectMembers.js";
+} from "../../../../../src/overleaf/web/projects/sharing/projectMembers.js";
 import {
   FAKE_COLLABORATOR_ID,
   FAKE_REVIEWER_ID,
-} from "../../../integration/fakeWebRoutes/fakeProjectMembers.js";
-import { failureOf, statusOf } from "../support/failureOf.js";
-import { useFakeOverleafConnection } from "../support/fakeOverleafConnection.js";
+} from "../../../../integration/fakeWebRoutes/fakeProjectMembers.js";
+import { failureOf, statusOf } from "../../support/failureOf.js";
+import { useFakeOverleafConnection } from "../../support/fakeOverleafConnection.js";
 
 describe("who a project is shared with", () => {
   const connection = useFakeOverleafConnection();

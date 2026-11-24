@@ -3,7 +3,12 @@ export interface FakeAnswer {
   readonly status: number;
   readonly contentType?: string;
   readonly body?: string | Buffer;
+  /** Written by the bot protection in front of overleaf.com rather than by Overleaf itself. */
+  readonly fromBotProtection?: boolean;
 }
+
+/** overleaf.com's web servers name themselves in `X-Served-By` (`EXPOSE_HOSTNAME`). */
+export const FAKE_SERVED_BY = "web-fake-1";
 
 export const NO_CONTENT: FakeAnswer = { status: 204 };
 

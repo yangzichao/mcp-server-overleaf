@@ -2,7 +2,7 @@ import { afterEach, beforeEach } from "vitest";
 
 import { FakeOverleafRealtime } from "../fakeOverleafRealtime.js";
 import { FakeOverleafRemote } from "../fakeOverleafRemote.js";
-import { McpStdioClient } from "../mcpStdioClient.js";
+import { type McpClientOptions, McpStdioClient } from "../mcpStdioClient.js";
 
 /**
  * The tools that use the session cookie need both fakes at once: the Git bridge the server
@@ -53,8 +53,11 @@ export class EditorTestHarness {
     };
   }
 
-  async startClient(environment: NodeJS.ProcessEnv = this.reviewEnvironment()): Promise<McpStdioClient> {
-    const client = await McpStdioClient.start(environment);
+  async startClient(
+    environment: NodeJS.ProcessEnv = this.reviewEnvironment(),
+    options: McpClientOptions = {},
+  ): Promise<McpStdioClient> {
+    const client = await McpStdioClient.start(environment, options);
     this.clients.push(client);
     return client;
   }
