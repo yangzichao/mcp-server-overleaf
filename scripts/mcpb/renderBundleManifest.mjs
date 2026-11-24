@@ -12,18 +12,20 @@ const PRIVACY_POLICY_URL =
 
 const LONG_DESCRIPTION = `Read and edit your Overleaf papers from Claude Desktop.
 
-The extension clones your Overleaf project over the Overleaf Git bridge and keeps the copy on
-your computer. Claude can read the paper, search it, rewrite a section, and compile it locally.
-Nothing reaches Overleaf until you approve \`push_changes\`, and every edit can be inspected with
-\`show_diff\` first. If a co-author changed the same lines, the push stops and shows you both
-versions rather than picking a winner.
+With an Overleaf Git token, the extension keeps a clone of your project on this computer.
+Claude can read the paper, search it, rewrite a section, check its references and citations,
+and compile it. Nothing reaches Overleaf until you approve \`push_changes\`, and
+\`read_project\` shows every pending edit first. If a co-author changed the same lines, the push
+stops and shows you both versions rather than picking a winner.
 
-Add an Overleaf session cookie and three more tools appear. An edit then arrives in the editor
-as a tracked-change suggestion your co-authors accept or reject, you can read what the review
-panel already holds, and you can leave a comment on a passage.
+With an Overleaf session cookie, an edit can arrive in the editor as a tracked-change suggestion
+your co-authors accept or reject. Claude can also read, answer and resolve review comments,
+compile on Overleaf without a local TeX installation, and organise projects, folders and
+settings.
 
-Requires an Overleaf plan that includes Git integration, and a Git authentication token from
-your Overleaf account settings.`;
+Fill in a Git token, a session cookie, or both. The cookie alone is enough on a plan without Git
+integration; the token comes from your Overleaf account settings, and whether Git works for a
+paper depends on the plan of whoever owns it.`;
 
 export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconPath }) {
   if (!Array.isArray(tools) || tools.length === 0) {
@@ -76,8 +78,8 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         type: "string",
         title: "Overleaf Git token",
         description:
-          "Create one at https://www.overleaf.com/user/settings under Git integration. Any account can generate one, and it expires after a year. Whether Git works for a given paper depends on the subscription of whoever owns it.",
-        required: true,
+          "Create one at https://www.overleaf.com/user/settings under Git integration. Any account can generate one, and it expires after a year. Whether Git works for a given paper depends on the subscription of whoever owns it. Leave it empty on a plan without Git integration and fill in the session cookie below instead.",
+        required: false,
         sensitive: true,
       },
       overleaf_project_url: {
@@ -92,7 +94,7 @@ export function renderBundleManifest({ packageMetadata, tools, entryPoint, iconP
         type: "string",
         title: "Overleaf session cookie (optional)",
         description:
-          "Leave empty unless you want edits to arrive as suggestions in Overleaf's review panel. That needs your browser session rather than the Git token, so it covers your whole account and stops working when you sign out. Copy the value of the overleaf_session2 cookie from a browser where you are signed in to Overleaf.",
+          "Needed on a plan without Git integration, and for edits that arrive as suggestions in Overleaf's review panel. It is your browser session rather than a token, so it covers your whole account and stops working when you sign out. Copy the value of the overleaf_session2 cookie from a browser where you are signed in to Overleaf.",
         required: false,
         sensitive: true,
       },

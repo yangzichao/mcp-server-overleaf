@@ -25,12 +25,21 @@
         "noUnusedVariables": "error",
         "noUnusedImports": "error",
         "noUnusedFunctionParameters": "error",
-        "noUnusedPrivateClassMembers": "error"
+        "noUnusedPrivateClassMembers": "error",
+        "noUndeclaredDependencies": "error",
+        "noUnresolvedImports": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
         "noConsole": { "level": "error", "options": { "allow": ["error"] } },
-        "useAwait": "error"
+        "useAwait": "error",
+        "noImportCycles": "error",
+        "noDeprecatedImports": "error",
+        "noUnusedExpressions": "error",
+        "noNestedPromises": "error",
+        "noConstantBinaryExpressions": "error",
+        "noUnassignedVariables": "error",
+        "noReturnAssign": "error"
       },
       "complexity": {
         "noExcessiveCognitiveComplexity": { "level": "warn", "options": { "maxAllowedComplexity": 15 } }
@@ -39,6 +48,11 @@
         "useConst": "error",
         "noNonNullAssertion": "warn",
         "useThrowOnlyError": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useExhaustiveSwitchCases": "error"
       }
     }
   },

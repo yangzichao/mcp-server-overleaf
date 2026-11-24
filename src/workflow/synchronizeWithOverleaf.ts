@@ -52,7 +52,7 @@ export async function requireSynchronizedWithOverleaf(repository: OverleafGitRep
   if (result.rebaseConflict || result.commitsStillOnlyOnRemote > 0) {
     throw new Error(
       "Cannot synchronize with Overleaf. Local work has been preserved. " +
-        "Review it with show_diff, then publish with push_changes or explicitly discard it with discard_local_changes.\n" +
+        "Review it with read_project (view changes), then publish it with push_changes or explicitly discard it with manage_files (action discard_local_changes).\n" +
         (result.rebaseConflict ?? "Remote commits could not be integrated."),
     );
   }

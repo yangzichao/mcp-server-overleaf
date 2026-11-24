@@ -1,7 +1,11 @@
-import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import {
+  hasAnyOverleafCredential,
+  hasGitBridgeCredential,
+} from "../../src/config/missingOverleafCredential.js";
 import {
   ConfigurationError,
   loadServerConfigurationFromEnvironment,
@@ -39,16 +43,41 @@ describe("looksLikeOverleafProjectId", () => {
 });
 
 describe("required configuration", () => {
-  it("refuses to start without a token", () => {
-    expect(() => loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` })).toThrow(
-      ConfigurationError,
-    );
+  it("starts unconfigured when nothing at all is set", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      XDG_CONFIG_HOME: join(tmpdir(), "overleaf-mcp-test-without-user-configuration"),
+    });
+    expect(configuration).toMatchObject({
+      overleafGitToken: "",
+      registeredProjects: [],
+      defaultProjectName: null,
+    });
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 
-  it("refuses a token that is only whitespace", () => {
-    expect(() =>
-      loadServerConfigurationFromEnvironment(environmentWith({ OVERLEAF_GIT_TOKEN: "  " })),
-    ).toThrow(ConfigurationError);
+  it("starts unconfigured with a registered project when there is no credential at all", () => {
+    const configuration = loadServerConfigurationFromEnvironment({ OVERLEAF_PROJECTS: `paper=${paperId}` });
+    expect(configuration.defaultProjectName).toBe("paper");
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
+  });
+
+  it("accepts a project with no Git token when a session cookie reaches it through the editor", () => {
+    const configuration = loadServerConfigurationFromEnvironment({
+      OVERLEAF_PROJECTS: `paper=${paperId}`,
+      OVERLEAF_SESSION_COOKIE: "s%3Aplaceholder",
+    });
+    expect(configuration.registeredProjects).toEqual([{ projectName: "paper", overleafProjectId: paperId }]);
+    expect(configuration.defaultProjectName).toBe("paper");
+    expect(hasGitBridgeCredential(configuration)).toBe(false);
+    expect(hasAnyOverleafCredential(configuration)).toBe(true);
+  });
+
+  it("treats a token that is only whitespace as no token", () => {
+    const configuration = loadServerConfigurationFromEnvironment(
+      environmentWith({ OVERLEAF_GIT_TOKEN: "  " }),
+    );
+    expect(configuration.overleafGitToken).toBe("");
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 });
 
@@ -186,6 +215,28 @@ describe("OVERLEAF_PROJECT_ID", () => {
         OVERLEAF_GIT_TOKEN: "olp_test",
         OVERLEAF_PROJECT_ID: "https://www.overleaf.com/read/abcdefghijkl",
       }),
+    ).toThrow(ConfigurationError);
+  });
+});
+
+describe("citation lookup endpoints", () => {
+  it("defaults to the public services", () => {
+    expect(loadServerConfigurationFromEnvironment(environmentWith()).citationLookup).toEqual({
+      doiResolverUrl: "https://doi.org",
+      crossrefApiUrl: "https://api.crossref.org",
+      arxivApiUrl: "https://export.arxiv.org/api",
+    });
+  });
+
+  it("takes a mirror without its trailing slash, and refuses something that is not a web address", () => {
+    const configuration = loadServerConfigurationFromEnvironment(
+      environmentWith({ OVERLEAF_MCP_CROSSREF_API_URL: "https://crossref.example.org/api/" }),
+    );
+    expect(configuration.citationLookup?.crossrefApiUrl).toBe("https://crossref.example.org/api");
+    expect(() =>
+      loadServerConfigurationFromEnvironment(
+        environmentWith({ OVERLEAF_MCP_DOI_RESOLVER_URL: "file:///etc" }),
+      ),
     ).toThrow(ConfigurationError);
   });
 });

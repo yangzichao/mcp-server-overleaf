@@ -24,31 +24,31 @@ const PACKET_TYPE_NAMES = [
   "noop",
 ] as const;
 
-export type SocketIoPacketTypeName = (typeof PACKET_TYPE_NAMES)[number];
+type SocketIoPacketTypeName = (typeof PACKET_TYPE_NAMES)[number];
 
-export interface SocketIoHeartbeatPacket {
+interface SocketIoHeartbeatPacket {
   readonly type: "heartbeat";
 }
 
-export interface SocketIoDisconnectPacket {
+interface SocketIoDisconnectPacket {
   readonly type: "disconnect";
 }
 
-export interface SocketIoConnectPacket {
+interface SocketIoConnectPacket {
   readonly type: "connect";
 }
 
-export interface SocketIoNoopPacket {
+interface SocketIoNoopPacket {
   readonly type: "noop";
 }
 
-export interface SocketIoErrorPacket {
+interface SocketIoErrorPacket {
   readonly type: "error";
   readonly reason: string;
   readonly advice: string;
 }
 
-export interface SocketIoEventPacket {
+interface SocketIoEventPacket {
   readonly type: "event";
   readonly name: string;
   readonly args: readonly unknown[];
@@ -56,7 +56,7 @@ export interface SocketIoEventPacket {
   readonly acknowledgementId?: number;
 }
 
-export interface SocketIoAcknowledgementPacket {
+interface SocketIoAcknowledgementPacket {
   readonly type: "ack";
   readonly acknowledgementId: number;
   readonly args: readonly unknown[];
@@ -173,6 +173,8 @@ export function decodeSocketIoPacket(frame: string): SocketIoPacket | undefined 
   }
 }
 
+const PAYLOAD_LENGTH = /^\d+$/;
+
 /**
  * One frame can carry several packets. Overleaf batches applied operations this way, so a
  * client that reads only the first packet of a frame silently loses a co-author's edits.
@@ -183,15 +185,18 @@ export function decodeSocketIoFrame(frame: string): SocketIoPacket[] {
     return single ? [single] : [];
   }
   const packets: SocketIoPacket[] = [];
-  let cursor = 1;
-  while (cursor < frame.length) {
-    const lengthEnd = frame.indexOf(PAYLOAD_DELIMITER, cursor);
+  let cursor = 0;
+  while (frame.startsWith(PAYLOAD_DELIMITER, cursor)) {
+    const lengthStart = cursor + PAYLOAD_DELIMITER.length;
+    const lengthEnd = frame.indexOf(PAYLOAD_DELIMITER, lengthStart);
     if (lengthEnd === -1) break;
-    const length = Number(frame.slice(cursor, lengthEnd));
-    if (!Number.isFinite(length)) break;
-    const packet = decodeSocketIoPacket(frame.slice(lengthEnd + 1, lengthEnd + 1 + length));
+    const lengthText = frame.slice(lengthStart, lengthEnd);
+    if (!PAYLOAD_LENGTH.test(lengthText)) break;
+    const packetStart = lengthEnd + PAYLOAD_DELIMITER.length;
+    const packetEnd = packetStart + Number(lengthText);
+    const packet = decodeSocketIoPacket(frame.slice(packetStart, packetEnd));
     if (packet) packets.push(packet);
-    cursor = lengthEnd + 1 + length;
+    cursor = packetEnd;
   }
   return packets;
 }

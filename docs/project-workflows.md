@@ -109,20 +109,21 @@ an 8,000-character preview with `truncated: true` and `revision: null`. Never us
 as a baseline or reconstruct a whole-file write from it. Read large files using plain-text
 line ranges and prefer exact snippet edits. Revision modes cannot be combined with line ranges.
 
-Pass a complete read's `revision` as `expectedRevision` to `write_file`, `replace_text` or
-`edit_section`. After synchronization and while holding the project lock, the server
+Pass a complete read's `revision` as `expectedRevision` to `edit_file`, whichever its
+action. After synchronization and while holding the project lock, the server
 checks the current file before writing. A mismatch refuses the edit without changing
 the file. This protects against another client or collaborator changing the file between
 read and edit. All successful edits still require explicit `push_changes` to publish.
 
 ## Filtering and summaries
 
-`list_files` accepts `extension: "tex"` or `".bib"`, case-insensitively. Omit it to list
-all kinds. Set `includeUntracked: true` to include new unpublished files; ignored build
-artifacts remain excluded. Sparse files remain visible in the inventory.
+`read_project` with `view: "files"` accepts `extension: "tex"` or `".bib"`,
+case-insensitively. Omit it to list all kinds. Set `includeUntracked: true` to include new
+unpublished files; ignored build artifacts remain excluded. Sparse files remain visible in
+the inventory.
 
-`project_summary` returns JSON with total/tracked file counts, category counts, a likely
-main document, that document's section count, the first ten files, tracked pending diff
-statistics, and all untracked files. `mainFile` is a heuristic, not Overleaf's browser
-project setting. Use `project_status` for synchronization state and recent commits, and
-`show_diff` for the complete review of unpublished work.
+`read_project`'s default `overview` gives file counts by kind, a likely main document and
+its section count, pending diff statistics, untracked files, the clone's path on this
+computer, and whether the checkout is text-only. The main document is a heuristic, not
+Overleaf's project setting. Use `view: "status"` for synchronization state and recent
+commits, and `view: "changes"` for the complete review of unpublished work.

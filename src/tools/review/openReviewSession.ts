@@ -24,7 +24,7 @@ export async function withReviewSession<T>(
   const credentials = context.configuration.reviewCredentials;
   if (!credentials) throw new ConfigurationError(REVIEW_CREDENTIALS_MISSING_MESSAGE);
 
-  const resolved = context.projectRegistry.resolveProjectId(project);
+  const resolved = context.projectRegistry.resolveEditorProject(project);
   const session = await OverleafRealtimeSession.open({
     baseUrl: credentials.webBaseUrl,
     cookieHeader: credentials.cookieHeader,
@@ -48,6 +48,19 @@ export function requireReviewCapableProject(session: OverleafRealtimeSession): v
   if (session.permissionsLevel === "readOnly") {
     throw new Error(
       "This account has read-only access to the project, and Overleaf requires review access to leave a tracked change.",
+    );
+  }
+}
+
+/**
+ * Accepting or rejecting a suggestion changes the paper, which Overleaf keeps for accounts that
+ * can edit. A reviewer may suggest and comment but not decide, so that is refused up front.
+ */
+export function requireEditCapableProject(session: OverleafRealtimeSession): void {
+  if (session.permissionsLevel === "readOnly" || session.permissionsLevel === "review") {
+    throw new Error(
+      `This account has ${session.permissionsLevel === "review" ? "review" : "read-only"} access to the project. ` +
+        "Accepting or rejecting suggestions needs edit access; ask the project owner to decide them, or to raise this account's access.",
     );
   }
 }

@@ -2,6 +2,295 @@
 
 ## Unreleased
 
+Fixes for what the new Gherkin and property tests found. No tool changes its name or arguments.
+
+- `manage_project` (`update_settings`) answers "nothing changed" and sends nothing when the
+  project already has every requested setting, as `rename`, `tag` and `archive` do. It used to
+  answer "Changed the settings" and send the change again.
+- `manage_comments` (`edit_message`) answers "nothing changed" and sends nothing when the
+  message already reads the new text. It used to answer "Edited message".
+- A path written with more than one `./`, such as `././main.tex`, or with `./` inside it, names
+  the same file as without them. `././main.tex` used to find nothing.
+- A `.env` value holding U+2028, U+2029 or a lone carriage return is read. The whole line used
+  to be skipped.
+- `OVERLEAF_PROJECT_NAME` is taken whole, so a name with `,` or `=` in it no longer stops the
+  server from starting.
+- `setup --project` takes an address with `=` in its query string as one address, not as
+  `name=address`, and a project named `__proto__` is kept in the configuration file it writes.
+- Reading Crossref and arXiv XML, an element whose name only starts with the one asked for,
+  such as `<title-group>` for `<title>`, is no longer taken for it.
+
+## 0.5.2
+
+.bib files are read as BibTeX 0.99d reads them, or as biber does for a document that uses
+biblatex. No tool changes its name or arguments.
+
+- `check_references` and `look_up_citations` (`verify`) read .bib files the way the program
+  that runs on them does: biber when the document loads biblatex or names its files with
+  `\addbibresource`, BibTeX otherwise, including for biblatex loaded with `backend=bibtex`.
+  `look_up_citations` (`find`) cannot tell which one will run, so before it picks a new key it
+  reads `%` lines, as BibTeX does, and every entry on a file's last line, as biber does.
+- For BibTeX, a line starting with `%` is text: an entry written on it is defined, and such a
+  line between two fields ends the entry there. biber still skips the line.
+- For BibTeX, reading a file stops once an entry or command ends on its last line, so a second
+  entry on that line is not defined unless another line follows, even an empty one.
+- `@string` macros are expanded, by name without regard to case, and carry over from one .bib
+  file to the next in the order the document names them, as BibTeX does. `jan` to `dec` stand
+  for the month names, as plain.bst defines them, or for 1 to 12 under biber, and a macro
+  nothing defines expands to nothing. `booktitle = icml` used to be read as the text `icml`.
+- An entry an error cuts short keeps the fields read before the error, as BibTeX keeps them.
+  `look_up_citations` (`verify`) used to say such a cited entry had no entry in any
+  bibliography file, and (`find`) could give its key, or the key of an entry on a `%` line, to
+  a new entry. A field written twice keeps its first value.
+
+## 0.5.1
+
+Fixes for what new property tests, a protocol fuzz, recheck and stricter compiler checks found.
+No tool changes its name or arguments.
+
+- On a disk that ignores case, as macOS does by default, a path that differs from a file's
+  name only in case is refused, and the reply names the file as stored. `manage_files`
+  (`delete`) with `Main.tex` used to delete `main.tex`, and `edit_file` (`write`) used to
+  overwrite it. A rename that changes only case, such as `main.tex` to `Main.tex`, is now made
+  in the clone and published by `push_changes` instead of refused.
+- `manage_files` (`restore`) with a folder and an older revision is refused. It used to put
+  every file in the folder back to that revision and delete the files added since.
+- Replies that read as success when nothing changed are now tool errors: a missing or repeated
+  snippet in `edit_file` (`replace_text`), a section title that matches nothing, a move whose
+  source is missing or whose destination is taken, a `startLine` past the last line, and a
+  rename of a project to the name it has.
+- A folder where a file was expected, a path inside a file and a missing file are described in
+  words, without Node's error codes or the clone's absolute path. A blank commit message is
+  refused before anything is staged, and a failed Git command reports its error once instead
+  of the whole command line.
+- `check_references` and `look_up_citations` follow BibTeX 0.99d in two places they used to
+  differ: an entry written inside another entry's field defines nothing, and a backslash
+  escapes no brace. `check_references` also counts `key` as defined in `@misc{key}` and
+  `@misc{key title = {T}}`, where no comma follows it, as BibTeX does.
+  natbib's `\Citet`, `\Citep` and `\Citeauthor`, biblatex's `\Cite` and `\Cites`,
+  `\vpageref[here][there]{key}` and a listing label after `caption={[short]long}` are read.
+  `\import{../}{a}` no longer finds the project root's `a.tex`.
+- `look_up_citations` (`find`) writes entries BibTeX reads as meant: an author with only a
+  family name stays one name, a name with "and" in it stays one person, a lone brace no longer
+  runs past the value, and a key for a name with particles starts with BibTeX's last part.
+- An edit sent to Overleaf's editor changes only what differs at each place it touches. An
+  edit that joined lines next to an identical line used to rewrite two lines, which dropped
+  what was anchored to them.
+- A Socket.IO frame with a negative length no longer loops forever. Regular expressions in the
+  LaTeX, arXiv, Crossref, texcount and editor page readers run in linear time, and flattening
+  40,000 `\input` lines takes 80 ms instead of 4 seconds. A tracked change dated past what a
+  Date holds, or a character reference past U+10FFFF, no longer throws.
+- Also: a `.env` with Windows line endings loads, overlapping secrets are redacted whole, an
+  SVG with a longer prolog gets the advice to render it to PNG, one null item in a Crossref
+  answer no longer fails the search, and each editor setting is read from its own meta tag.
+
+## 0.5.0
+
+36 tools become 15. Each one only reads or only writes, and an `action` or `view` argument
+picks what it does, so a client lists less and a model picks from fewer names. A Git token
+offers 11 tools, a session cookie alone 13, both 15. The old names are gone; a client picks up
+the new list when it reconnects.
+
+| 0.4.1 | 0.5.0 |
+| --- | --- |
+| `list_projects`, `list_account_projects` | `list_projects` |
+| `project_summary` | `read_project` (view `overview`) |
+| `list_files` | `read_project` (view `files`) |
+| `list_sections` | `read_project` (view `outline`), now following included files by default |
+| `project_status`, `sync_project` | `read_project` (view `status`) |
+| `show_diff` without revisions | `read_project` (view `changes`) |
+| `show_diff` with `fromRevision` | `read_history` (view `diff`) |
+| `list_history` | `read_history` (view `commits`) |
+| `read_section` | `read_file` with `sectionTitle` |
+| `replace_text`, `edit_section`, `write_file` | `edit_file` (actions `replace_text`, `replace_section`, `write`) |
+| `delete_file`, `move_file`, `upload_file`, `restore_file`, `discard_local_changes` | `manage_files` (actions `delete`, `move`, `upload`, `restore`, `discard_local_changes`); a move takes `path` and `toPath` |
+| `verify_citations` | `look_up_citations` (action `verify`) |
+| `list_tracked_changes`, `list_comments` | `read_review` (views `tracked_changes`, `comments`) |
+| `suggest_edit`, `accept_tracked_changes`, `reject_tracked_changes` | `manage_tracked_changes` (actions `suggest`, `accept`, `reject`) |
+| `add_comment`, `reply_to_comment`, `resolve_comment`, `delete_comment` | `manage_comments` (actions `add`, `reply`, `resolve`, `reopen`, `delete`) |
+| `create_project`, `download_project_zip` | `manage_project` (actions `create`, `download_zip`) |
+| `compile_project`, `compile_on_overleaf` | `compile_project` (`where: "local"` or `"overleaf"`) |
+
+`read_file`, `search_project`, `check_references` and `push_changes` keep their names.
+
+New:
+
+- `list_projects` filters the account's projects (`filter`: owned, shared, archived, trashed;
+  `tag`) and shows each project's tags. A filter or a tag lists the account's projects
+  alone, without the configured ones.
+- `read_project` adds `members` (owner, collaborators and their access, pending invitations)
+  and `word_count`: Overleaf's own count with a session cookie, texcount in the clone with
+  only a Git token. Without Git its overview adds the compiler, TeX Live image, spell check
+  and track-changes state, and it outlines the paper too.
+- `read_file` returns PNG, JPEG, GIF and WebP figures as images, up to 3,750,000 bytes and
+  8000 pixels a side, and names the command that renders a PDF, EPS or SVG figure to PNG.
+  With `followIncludes` it returns a `.tex` file with every file it reaches through
+  `\input`, `\include`, `\subfile` or `\import` inlined between `% ---- begin` and
+  `% ---- end` comments.
+- `read_history` adds `blame`: each line of a file, or of a line range, with the short hash,
+  date and author of the commit that last changed it. Lines edited in the clone and not
+  pushed are marked as not committed yet.
+- `look_up_citations` adds `find`. It turns 1 to 20 DOIs, arXiv ids or title searches into
+  BibTeX entries with keys no `.bib` file in the project uses, names the key of a work the
+  bibliography already holds, and writes nothing.
+- `edit_file` adds `append`, which puts text on its own line after a file's last line and
+  refuses a missing file.
+- `manage_files` deletes and moves whole folders in the clone. With a session cookie it adds
+  `create_folder`, which acts on Overleaf at once, since Git cannot hold an empty folder.
+- `manage_tracked_changes` (action `suggest`) also takes `content`: alone it is the document's
+  new text, and with `sectionTitle` it replaces that section. Only the passages that differ
+  become tracked changes, so unchanged text keeps its comments.
+- `manage_project` creates a project from a ZIP, and copies, renames, archives, unarchives,
+  trashes, untrashes, tags and untags projects. `update_settings` changes the compiler, main
+  document, spell-check language, TeX Live image and the track-changes switch, and reads
+  them back.
+- `manage_comments` edits one message of a thread, or deletes a reply. The first message is
+  the thread's own text, which `delete` removes with the thread.
+- `compile_project` on Overleaf also saves the `.bbl`, `.blg` and SyncTeX map next to the PDF
+  and log, and a local build writes a SyncTeX map too. The reply lists every saved path.
+- With only a session cookie, more of the work happens in Overleaf's editor and file tree.
+  `search_project`, `check_references` and `look_up_citations` read the project from the
+  editor. `edit_file` also replaces a section, writes a whole file (creating a missing
+  document and its folders) and appends, sending the fewest operations so comments outside
+  the change keep their anchors. `manage_files` deletes, moves, uploads and creates folders.
+- Five MCP prompts, each offered when its tools are: `review_paper`, `revise_section`,
+  `address_review_comments` (with a session cookie), `resolve_push_conflict` (with Git) and
+  `prepare_arxiv_submission`.
+- The Claude Code and Codex plugins ship five skills for local LaTeX tools: chktex,
+  latexindent and texcount checks, latexdiff and flattening, PDF pages and SyncTeX,
+  arXiv submission, and working with co-authors.
+
+Not offered, on purpose: sharing changes (inviting, removing, transferring ownership) and
+permanent project deletion. Project text and comments reach the model, so a prompt hidden in
+a paper must not be able to give anyone access or destroy a project.
+
+Changed:
+
+- Citation lookups queue across calls: Crossref searches 1.1 s apart (was 250 ms), doi.org
+  250 ms apart (was unspaced), arXiv 3 s apart as before. Crossref's public pool allows one
+  search a second and answers a second one within the second with 429.
+- Both `look_up_citations` actions stop starting lookups after 45 seconds, under the MCP
+  SDK's default 60 second request timeout, and name the entries or queries they did not
+  reach.
+- arXiv is reached at `https://export.arxiv.org/api`. The `http://` address now answers
+  every request with a redirect there.
+- `look_up_citations` (action `verify`) on a document whose entries are written with
+  `\bibitem` names the cited keys and says there is no `.bib` file to check. It used to say
+  the document cited no entry.
+
+Verification: the session-cookie features added here are tested against fakes built from
+Overleaf's open-source routes. Their reads were run against overleaf.com on a test project on
+2026-11-23 and their writes were not; [tracked changes](docs/tracked-changes.md#verification)
+lists both. The track-changes switch and the comment-message routes are closed source, so
+their tests follow what the editor sends.
+
+## 0.4.1
+
+Work on an Overleaf plan without Git integration. With only a session cookie the server
+offers 17 tools: `list_projects`, the 13 review, comment, compile and account tools, and `list_files`,
+`read_file` and `replace_text` over the real-time editor. Verified against overleaf.com on
+2026-11-20 with a cookie and no Git token.
+
+- Reach Overleaf with only `OVERLEAF_SESSION_COOKIE_FILE`. A project may be registered
+  without a Git token once a cookie is configured. Without a Git credential the Git-bridge
+  tools are not offered, and the server instructions say so.
+- `list_files`, `read_file` and `replace_text` run over the editor on such a server, under
+  the same names. `replace_text` changes the live document at once, needs edit access, and
+  points a reviewer at `suggest_edit`. `read_file` returns pending suggestions as if
+  accepted, and refuses a binary upload by name.
+- The desktop bundle's Git token is now optional. A setting still holding its
+  `${user_config.*}` placeholder is treated as unset. A registered project with no
+  credential at all now starts unconfigured instead of exiting, and every call says what to
+  fill in. A configuration where some projects have a token and others have none to fall
+  back on still fails.
+- `replace_text` and `suggest_edit` over the editor refuse emoji and other characters
+  outside the Basic Multilingual Plane, and NUL. Overleaf itself replaces them with U+FFFD.
+- `list_account_projects` prints "can edit" for an invited collaborator. Overleaf calls that
+  access `readWrite`, not the `readAndWrite` of link sharing, so it used to be printed raw.
+- The release waits for the published tarball, not just the version listing, before
+  installing it. 0.4.0's verification hit a CDN-cached 404.
+
+## 0.4.0
+
+Everything competing Overleaf MCP servers offer that fits this server's credential model,
+plus two checks none of them has. 23 tools without a session cookie, 36 with one.
+
+- Read and act on the review panel with a session cookie. `list_comments` reads every message
+  in each comment thread; `reply_to_comment`, `resolve_comment` (and reopen) and
+  `delete_comment` act on a thread; `add_comment` now posts the first message too.
+  `accept_tracked_changes` and `reject_tracked_changes` decide suggestions by id or all at
+  once, and check afterwards that they are gone.
+- Reach the account through Overleaf's web app with a session cookie: `list_account_projects`,
+  `create_project`, `compile_on_overleaf` (errors and warnings from the log, and the PDF saved
+  where you say), and `download_project_zip`. Output files come from Overleaf's own host, so
+  the cookie never goes to the separate PDF domain.
+- Browse and restore history. `list_history` lists commits for the project or one file.
+  `show_diff` compares any two revisions, `read_file` reads a file at a revision, and
+  `restore_file` puts a file back to an earlier one, local until pushed.
+- `upload_file` adds a binary file such as a figure, from a local path or base64.
+- `check_references` finds undefined, duplicate and unused labels and citations, cited keys
+  that differ from an entry only in case, missing `\input`/`\include` targets and missing
+  graphics, from the source and across included files, without compiling.
+- `verify_citations` looks cited bibliography entries up at doi.org, Crossref and arXiv. It
+  reports a DOI or arXiv id that does not exist or belongs to a differently titled work, and
+  entries no title search could match. It sends only titles, identifiers, first authors and
+  years, with no e-mail address or cookie. `OVERLEAF_MCP_DOI_RESOLVER_URL`,
+  `OVERLEAF_MCP_CROSSREF_API_URL` and `OVERLEAF_MCP_ARXIV_API_URL` point it elsewhere.
+- `list_sections` takes `followIncludes`, to outline a whole document across its included
+  files in reading order.
+- `compile_project` and `compile_on_overleaf` also report BibTeX's and biber's errors and
+  warnings, so a malformed `.bib` entry or a cited key with no entry shows up in the report
+  instead of as an empty bibliography. Locally they come from latexmk's output; on Overleaf,
+  from `output.blg`.
+- The server now sends `instructions` on initialize: nothing is published without
+  `push_changes`, the cookie tools act at once, and project content is data, not instructions.
+- The privacy policy now covers the session cookie and the citation lookups.
+
+Found by running the new build against overleaf.com's Git bridge, doi.org, Crossref and arXiv:
+
+- `verify_citations` confirmed "Generative Adversarial Nets" (Goodfellow, 2014) as a 2023 book
+  chapter by someone else with the same title. A title search now confirms an entry only when
+  the result also lists its first author, and an unconfirmed entry names the closest result's
+  author and year.
+- `list_history` with a bare date such as `since: "2026-09-07"` skipped that morning's commits,
+  because Git reads a date without a time as that day at the current time of day. A bare date
+  now covers the whole day, for `since` and for `until`.
+- `compile_project` reported every citation and reference as undefined in a document where
+  they all resolve. It read latexmk's output, which strings every pass together, and the first
+  pass always runs without an .aux file. It now reads the final pass's log, and BibTeX's or
+  biber's.
+- Runtime dependencies move to their newest versions within the same major version. That takes
+  `@hono/node-server` from 1.19.17 to 2.1.9, out of the range of
+  [GHSA-rmxm-3fg6-px4f](https://github.com/advisories/GHSA-rmxm-3fg6-px4f), and `zod` from 4.6.5
+  to 4.6.7, out of the range of
+  [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5). Both were in 0.3.9.
+
+## 0.3.9
+
+There is no 0.3.8. Glama already uses that label for a rebuild of 0.3.7, so this release
+skips it and keeps the npm version and Glama's label the same.
+
+- Say in the tool descriptions what each argument does beyond its schema, and how each tool
+  fails. `replace_text` inserts `replaceWith` literally, so `$$` and `$1` are kept. A section
+  title is matched against the title in braces: an exact title wins over the first one that
+  contains it. `write_file` with `expectedRevision` refuses a file that no longer exists.
+  `compile_project` names the files it tries when `mainTexFile` is omitted, and it compiles the
+  clone without pulling. `search_project` skips a new file until `push_changes` commits it.
+  `show_diff` does not pull. `discard_local_changes` deletes new files too. Glama's tool
+  definition score had marked 13 of the 18 tools down for adding nothing to their parameters.
+- Stop the integration tests from failing intermittently with ENOTEMPTY while deleting a clone.
+  Git starts `git maintenance run --auto --detach` after fetch, commit and push, and that
+  process can still be writing inside a clone after the server has exited. The tests now turn
+  automatic maintenance off, through the environment for the server and through the bare
+  repository's own config for the push side, which does not see that environment.
+
+## 0.3.7
+
+- Start without any credentials instead of exiting. With no token and no registered project,
+  the server now lists its tools, and every call that needs Overleaf answers that
+  `OVERLEAF_GIT_TOKEN` is not set, as does `list_projects`. Glama's sandbox starts a listed
+  server with no credentials, and 0.3.6 exited there before answering `initialize`. A project
+  registered without any token is still a startup error, since that configuration is half written.
 - Wait for the package document `npm install` reads, not only the per-version one, before
   verifying a publication. For 0.3.6 the version document answered while the abbreviated
   packument the install fetches still lacked the version, so the install failed with ETARGET,

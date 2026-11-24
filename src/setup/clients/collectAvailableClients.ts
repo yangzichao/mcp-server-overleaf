@@ -2,7 +2,7 @@ import { commandLineClientTargets } from "./commandLineClientTargets.js";
 import { jsonConfigurationClientTargets } from "./jsonConfigurationClientTargets.js";
 import type { McpClientTarget } from "./mcpClientTarget.js";
 
-export function allClientTargets(): readonly McpClientTarget[] {
+function allClientTargets(): readonly McpClientTarget[] {
   return [...commandLineClientTargets(), ...jsonConfigurationClientTargets()];
 }
 

@@ -16,3 +16,17 @@ export async function shouldRunTexTests(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * texcount is optional even when TeX tests are required: CI installs only latexmk and
+ * texlive-latex-base, and Debian ships texcount in texlive-extra-utils.
+ */
+export async function shouldRunTexcountTests(): Promise<boolean> {
+  if ((process.env.OVERLEAF_TEST_TEX ?? "auto") === "skip") return false;
+  try {
+    await execFileAsync("texcount", ["-ver"], { timeout: 10_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}

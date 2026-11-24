@@ -5,7 +5,7 @@
     "url": "https://github.com/yangzichao"
   },
   "metadata": {
-    "description": "Overleaf MCP server for Claude, Codex, ChatGPT, and Cursor with safe LaTeX editing and review."
+    "description": "Overleaf MCP server for Claude, Codex, ChatGPT & Cursor. Edit LaTeX via Git or as tracked changes."
   },
   "plugins": [
     {

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadEnvironmentFileIfPresent } from "../../src/config/loadEnvironmentFile.js";
+import { hasAnyOverleafCredential } from "../../src/config/missingOverleafCredential.js";
 import { loadServerConfigurationFromEnvironment } from "../../src/config/serverConfiguration.js";
 import { createToolContext } from "../../src/server/createOverleafMcpServer.js";
 import { runToolSafely } from "../../src/tools/toolContext.js";
@@ -107,7 +108,10 @@ describe("portable project credentials", () => {
   it.each([
     { [thesisId]: { projectId: paperId, gitToken: "private-secret" } },
     { paper: { projectId: "../escape", gitToken: "private-secret" } },
-    { paper: { projectId: paperId } },
+    {
+      paper: { projectId: paperId, gitToken: "private-secret" },
+      thesis: { projectId: thesisId },
+    },
     { paper: { projectId: paperId, gitTokenFile: "./relative" } },
     { paper: { projectId: paperId, gitToken: "private-secret\nanother-line" } },
     { paper: { projectId: paperId, typo: "private-secret" } },
@@ -122,6 +126,12 @@ describe("portable project credentials", () => {
     } catch (error) {
       expect(String(error)).not.toContain("private-secret");
     }
+  });
+
+  it("starts unconfigured, rather than refusing, when no project and no default has a credential", () => {
+    const configuration = loadProjects({ paper: { projectId: paperId } });
+    expect(configuration.registeredProjects).toEqual([{ projectName: "paper", overleafProjectId: paperId }]);
+    expect(hasAnyOverleafCredential(configuration)).toBe(false);
   });
 
   it("redacts every project's credential from tool errors", async () => {

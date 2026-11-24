@@ -12,14 +12,33 @@ export interface McpToolDescription {
   readonly annotations?: Record<string, boolean | string>;
 }
 
+/** A prompt as `prompts/list` advertises it. */
+interface McpPromptDescription {
+  readonly name: string;
+  readonly title?: string;
+  readonly description?: string;
+  readonly arguments?: Array<{ name: string; description?: string; required?: boolean }>;
+}
+
+/** A text block, or an image block with its base64 `data` and `mimeType`. */
+export interface McpContentBlock {
+  readonly type: string;
+  readonly text?: string;
+  readonly data?: string;
+  readonly mimeType?: string;
+}
+
 export interface JsonRpcResponse {
   readonly id?: number;
   readonly result?: {
-    readonly content?: Array<{ type: string; text?: string }>;
+    readonly content?: McpContentBlock[];
     readonly structuredContent?: Record<string, unknown>;
     readonly tools?: McpToolDescription[];
+    readonly prompts?: McpPromptDescription[];
+    readonly messages?: Array<{ role: string; content: McpContentBlock }>;
     readonly isError?: boolean;
     readonly protocolVersion?: string;
+    readonly instructions?: string;
   };
   readonly error?: { code: number; message: string };
 }

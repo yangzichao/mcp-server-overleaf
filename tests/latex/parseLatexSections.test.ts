@@ -7,7 +7,7 @@ import {
   replaceSectionText,
 } from "../../src/latex/parseLatexSections.js";
 
-/** Rewrites the named section and returns the whole file, the way edit_section does. */
+/** Rewrites the named section and returns the whole file, the way edit_file's replace_section does. */
 function rewriteSection(source: string, title: string, replacement: string): string {
   const section = findSectionByTitle(parseLatexSections(source), title);
   if (!section) throw new Error(`no section titled ${title}`);

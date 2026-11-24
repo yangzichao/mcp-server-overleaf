@@ -18,23 +18,23 @@ export function renderProjectsConfiguration(
   registrations: readonly OverleafProjectRegistration[],
   existingConfiguration?: ProjectsConfiguration,
 ): ProjectsConfiguration {
-  const projects: Record<string, { projectId: string; gitToken: string }> = {
-    ...(existingConfiguration?.projects ?? {}),
-  };
+  // A Map rather than assignment to an object, where a project named "__proto__" would set the
+  // prototype instead of adding a key.
+  const projects = new Map(Object.entries(existingConfiguration?.projects ?? {}));
   for (const registration of registrations) {
-    projects[registration.projectName] = {
+    projects.set(registration.projectName, {
       projectId: registration.overleafProjectId,
       gitToken: registration.overleafGitToken,
-    };
+    });
   }
 
   const firstRegistration = registrations[0];
   const defaultProject =
-    Object.keys(projects).length === 1
+    projects.size === 1
       ? undefined
       : (firstRegistration?.projectName ?? existingConfiguration?.defaultProject);
 
-  return { ...(defaultProject ? { defaultProject } : {}), projects };
+  return { ...(defaultProject ? { defaultProject } : {}), projects: Object.fromEntries(projects) };
 }
 
 export function serializeProjectsConfiguration(configuration: ProjectsConfiguration): string {

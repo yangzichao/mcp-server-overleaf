@@ -16,18 +16,20 @@ Cursor, and can register several projects at once.
    from the latest release.
 2. Double-click it, or drag it onto the Claude Desktop window, or use
    **Settings → Extensions → Advanced settings → Install Extension…**.
-3. Fill in the two fields the panel asks for:
+3. Fill in the project address, and the Git token or the session cookie:
 
    | Field | Where it comes from |
    | --- | --- |
    | Overleaf project address | The browser address bar with the project open, for example `https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1`. The bundle takes the id out of the URL itself. |
    | Overleaf Git token | <https://www.overleaf.com/user/settings> under Git integration. Claude Desktop stores it in the operating system keychain and passes it to the server as an environment variable. |
+   | Overleaf session cookie | Optional with a Git token. Without Git integration, fill this in instead: the `overleaf_session2` cookie from a browser signed in to Overleaf. See [tracked changes](tracked-changes.md#without-git-integration) for what it reaches and what it costs. |
 
 4. Enable the extension and ask Claude to list the files in the project.
 
 A read-only share link is not a project address; open the project and copy the address bar
 instead. The token needs an Overleaf plan that includes Git integration, and Overleaf expires
-these tokens after one year.
+these tokens after one year. With neither the token nor the cookie, the extension still starts,
+and every tool answers with what to fill in.
 
 ## What is inside
 

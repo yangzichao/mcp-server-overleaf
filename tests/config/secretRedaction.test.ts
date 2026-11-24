@@ -45,4 +45,13 @@ describe("redactSecrets", () => {
   it("copes with an empty string", () => {
     expect(redactSecrets("", [token])).toBe("");
   });
+
+  it("hides the whole of secrets that overlap or contain one another", () => {
+    expect(redactSecrets("abcdefgh", ["abcd", "bcdefgh"])).toBe("***REDACTED***");
+    expect(redactSecrets("x abcdefgh y", ["cdef", "abcdefgh"])).toBe("x ***REDACTED*** y");
+  });
+
+  it("hides a secret that overlaps itself", () => {
+    expect(redactSecrets("aaaaa!", ["aaaa"])).toBe("***REDACTED***!");
+  });
 });

@@ -66,6 +66,12 @@ describe("running a command", () => {
     await expect(git(["rev-parse", "HEAD"])).rejects.toThrow(/git rev-parse HEAD failed/);
   });
 
+  it("says what went wrong once, in git's words, without the -c overrides it runs with", async () => {
+    const error = (await git(["rev-parse", "HEAD"]).catch((caught: unknown) => caught)) as GitCommandError;
+    expect(error.message).toBe(`git rev-parse HEAD failed: ${error.stderr.trim()}`);
+    expect(error.message).not.toContain("credential.helper");
+  });
+
   it("throws GitCommandError, carrying git's own output", async () => {
     const error = await git(["rev-parse", "HEAD"]).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(GitCommandError);
