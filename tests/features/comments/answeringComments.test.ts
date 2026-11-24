@@ -47,6 +47,18 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
       await scenario.world.callTool("manage_comments", { action: "reply", threadId: adasThreadId, message });
     });
 
+    When(
+      "I reply {string} in Ada's thread and also pass the quoteText {string}",
+      async (_context, message: string, quoteText: string) => {
+        await scenario.world.callTool("manage_comments", {
+          action: "reply",
+          threadId: adasThreadId,
+          message,
+          quoteText,
+        });
+      },
+    );
+
     When("I reply {string} in a thread that does not exist", async (_context, message: string) => {
       await scenario.world.callTool("manage_comments", {
         action: "reply",
@@ -174,6 +186,7 @@ describeFeature(feature, ({ Background, Scenario, ScenarioOutline, AfterEachScen
   Scenario("A reply is added after the earlier messages", () => {});
   Scenario("Replying to a thread that does not exist creates nothing", () => {});
   Scenario("A thread id of the wrong shape is refused before anything is sent", () => {});
+  Scenario("An argument the action does not take is refused before anything is sent", () => {});
   Scenario("Resolving a thread keeps its messages", () => {});
   Scenario("A resolved thread can be reopened", () => {});
   Scenario("A thread in another document is found without naming the document", () => {});

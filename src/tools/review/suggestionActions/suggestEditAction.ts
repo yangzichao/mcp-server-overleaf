@@ -24,7 +24,7 @@ export function suggestEdit(context: ToolContext, edit: SuggestedEdit): Promise<
     requireReviewCapableProject(session);
     const document = requireDocument(session, edit.path);
     const joined = await session.joinDocument(document.documentId);
-    const position = findTextOffset(joined.lines, edit.findText, "unique");
+    const position = findTextOffset(joined.lines, edit.findText, "Nothing was suggested.");
 
     // A tracked delete removes the text and records what it removed, so the insert that
     // follows it lands at the same position rather than after the old text.

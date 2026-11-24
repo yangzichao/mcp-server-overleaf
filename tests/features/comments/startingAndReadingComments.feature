@@ -28,7 +28,12 @@ Feature: A comment thread raises a question about a passage without changing it
   Scenario: A passage that appears twice is refused rather than guessed at
     Given the project has a document "repeats.tex" with "the same line" on two lines
     When I comment "Which one?" on "the same line" in "repeats.tex"
-    Then the reply says "appears more than once"
+    Then the reply says "appears more than once, so it is not clear which one is meant. No comment was added."
+    And Overleaf holds no comment threads
+
+  Scenario: A passage that is not in the document is refused, and no thread is started
+    When I comment "Where is this?" on "Goodbye world."
+    Then the reply says "That text does not appear in the document. No comment was added."
     And Overleaf holds no comment threads
 
   Scenario: A read-only collaborator may still comment

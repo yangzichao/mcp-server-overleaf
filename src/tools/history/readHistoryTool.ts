@@ -100,14 +100,12 @@ export function registerReadHistoryTool(server: McpServer, context: ToolContext)
     {
       title: "Read the project's history",
       description:
-        "Read the history Overleaf's Git bridge has recorded for a project, plus anything pushed from here; view picks what. " +
-        "commits, the default, lists commits newest first, with date, author, message and the files each one changed. Use it to find out who changed a file and when, or to find a revision for read_file, manage_files (action restore) or the diff view, which take the short hash it prints. " +
-        "diff shows what changed from fromRevision to toRevision, or to Overleaf's latest fetched version when toRevision is omitted; read_project (view changes) shows local edits not yet pushed instead. " +
-        "path narrows commits and diff to one file or directory. " +
-        "blame lists each line of the file at path, or of startLine to endLine, after the short hash, date and author of the commit that last changed it, then those commits with their messages; a line edited here and not committed yet is marked not committed yet. Blame follows the file through renames and refuses a binary file or one that has no commit yet. " +
-        "commits and blame pull from Overleaf first, so the newest commits are included, and fail, keeping local work, if that pull conflicts with it; diff does not pull and compares against Overleaf as last fetched. " +
-        "A diff missing fromRevision, a blame missing path, or a revision that is not a commit hash, is refused before Git runs. " +
-        "Returns at most limit commits, so narrow with path, since and until rather than raising limit far; a diff or blame is cut off after 60,000 characters, so blame a long file in line ranges.",
+        "Read the history Overleaf's Git bridge has recorded for a project, plus anything pushed from here. " +
+        "commits, the default view, lists commits newest first, with date, author, message and the files each one changed. Use it to find who changed a file and when, or a revision for read_file, manage_files (action restore) or the diff view, which take the short hash it prints. It returns at most limit commits, so narrow with path, since and until rather than raising limit far. " +
+        "diff shows what changed from fromRevision to toRevision, or to Overleaf's latest fetched version without toRevision. For local edits not yet pushed, use read_project (view changes) instead. " +
+        'blame prints each line of the file at path, or of startLine to endLine, after the short hash, date and author of the commit that last changed it, then lists those commits with their messages. A line edited here and not committed yet is marked "not committed yet". Blame follows the file through renames, and refuses a binary file or one with no commit yet. ' +
+        "commits and blame pull from Overleaf first, so the newest commits are included. If that pull conflicts with local work, they fail and keep the local work. diff does not pull, and compares against Overleaf as last fetched. " +
+        "A diff without fromRevision, a blame without path, or a revision that is not a commit hash is refused before Git runs. A diff or blame is cut off after 60,000 characters, so blame a long file in line ranges.",
       inputSchema: readHistoryInput,
       annotations: READS_OVERLEAF,
     },

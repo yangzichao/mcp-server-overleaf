@@ -61,13 +61,14 @@ export function registerReadReviewTool(server: McpServer, context: ToolContext):
     {
       title: "Read tracked changes and comments",
       description:
-        "Read what is waiting in Overleaf's review panel; view picks what. " +
-        "tracked_changes lists the suggestions on one document, which path names, each with its line, its text and the id manage_tracked_changes takes, plus the text each comment thread there is anchored to. " +
-        "comments lists comment threads with every message, its id, author and time, the anchored text, and whether the thread is open or resolved, with the thread and message ids manage_comments takes; resolved threads are left out unless includeResolved is true, and without path every document is read, one after another. " +
-        "This reads the live editor rather than the Git bridge, so it sees suggestions nobody has accepted yet, which no other tool here can. " +
+        "Read what is waiting in Overleaf's review panel. It reads the live editor rather than the Git bridge, so it sees suggestions nobody has accepted yet, which no other tool here can. " +
         "Call it before suggesting, deciding, replying or resolving, to see what is already there. " +
-        "A path that is not an editable document fails, and the reply names the documents that exist. " +
-        "Returns plain text grouped by document.",
+        "tracked_changes lists one document's suggestions, each with its line, its text and its id, plus the text each comment thread in that document is anchored to. " +
+        "comments lists threads under their documents, in the order their anchors appear, each with its line, the anchored text, whether it is open or resolved, and every message with its id, author and time. " +
+        "path must name one of the project's editable documents, as read_project (view files) lists them. Any other path is refused, and the reply names the documents that exist. " +
+        "Leaving out path in the comments view also counts threads whose anchored text was deleted, which reading one document cannot find. When includeResolved is false, a note counts the resolved threads left out. " +
+        "An argument the chosen view does not take, such as includeResolved with tracked_changes, is refused. " +
+        "Returns plain text grouped by document, cut off after 60,000 characters.",
       inputSchema: readReviewInput,
       annotations: READS_OVERLEAF,
     },

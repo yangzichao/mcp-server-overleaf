@@ -1,6 +1,6 @@
 {
   "name": "overleaf",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Overleaf MCP server for Claude, Codex, ChatGPT & Cursor. Edit LaTeX via Git or as tracked changes.",
   "author": {
     "name": "Zichao Yang",

@@ -59,17 +59,13 @@ export function describeDocumentRanges(
  * Overleaf counts a document as one string joined by newlines, so an offset has to be built
  * the same way rather than from any one line.
  */
-export function findTextOffset(
-  lines: readonly string[],
-  findText: string,
-  occurrence: "unique" | "first",
-): number {
+export function findTextOffset(lines: readonly string[], findText: string, nothingDone: string): number {
   const whole = lines.join("\n");
   const first = whole.indexOf(findText);
-  if (first === -1) throw new Error("That text does not appear in the document. Nothing was suggested.");
-  if (occurrence === "unique" && whole.indexOf(findText, first + 1) !== -1) {
+  if (first === -1) throw new Error(`That text does not appear in the document. ${nothingDone}`);
+  if (whole.indexOf(findText, first + 1) !== -1) {
     throw new Error(
-      "That text appears more than once, so it is not clear which one to change. Give a longer, unique snippet.",
+      `That text appears more than once, so it is not clear which one is meant. ${nothingDone} Give a longer, unique snippet.`,
     );
   }
   return first;
