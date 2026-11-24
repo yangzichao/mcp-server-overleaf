@@ -33,6 +33,10 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
       lastReply = await project.client.call("read_history");
     });
 
+    Step("I list the project's history through the commits view", async () => {
+      lastReply = await project.client.call("read_history", { view: "commits" });
+    });
+
     Step("I list the history of {string}", async (_context: unknown, path: string) => {
       lastReply = await project.client.call("read_history", { path });
     });
@@ -148,6 +152,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   });
 
   Scenario("The history lists commits newest first, with author and changed files", () => {});
+  Scenario("Asking for the commits view by name gives the same list", () => {});
   Scenario("The history of one file leaves out commits that did not touch it", () => {});
   Scenario("Work pushed from here appears in the history", () => {});
   Scenario("A file can be read as it was at an earlier commit", () => {});

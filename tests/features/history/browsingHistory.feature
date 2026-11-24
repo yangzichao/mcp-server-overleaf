@@ -17,6 +17,15 @@ Feature: The project's history can be read back, one commit at a time
     And the history names "A Collaborator" as the author
     And the history says "added figures/plot.png"
 
+  Scenario: Asking for the commits view by name gives the same list
+    When I list the project's history through the commits view
+    Then the reply says "3 commits for the project, newest first:"
+    And the commits are listed in this order:
+      | subject           |
+      | Rewrite the intro |
+      | Add the plot      |
+      | First draft       |
+
   Scenario: The history of one file leaves out commits that did not touch it
     When I list the history of "main.tex"
     Then the reply says "2 commits for main.tex"

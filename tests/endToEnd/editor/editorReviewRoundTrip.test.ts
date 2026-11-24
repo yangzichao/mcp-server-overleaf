@@ -5,6 +5,7 @@ import { liveEditorConfigured, liveOverleafSettings } from "../support/liveOverl
 import { callFailing, callSucceeding } from "../support/liveToolCalls.js";
 import {
   findUniqueAnchorLine,
+  messageIdOnLineMentioning,
   scratchCommentLine,
   threadIdFromAddCommentReply,
   trackedChangeIdsMentioning,
@@ -111,7 +112,7 @@ describe.skipIf(!liveEditorConfigured)(
       expect(await readDocument()).toContain(currentScratchLine);
     });
 
-    it("runs a comment thread from first message to deletion", async () => {
+    it("runs a comment thread through every action, from first message to deletion", async () => {
       const quoteText = `mcp-e2e ${runIdentifier}`;
       const listComments = (includeResolved?: boolean) =>
         call("read_review", {
@@ -132,12 +133,33 @@ describe.skipIf(!liveEditorConfigured)(
       expect(
         await call("manage_comments", { action: "reply", threadId, message: `Reply ${runTag}` }),
       ).toContain(`Replied in thread ${threadId}.`);
+      const replyId = messageIdOnLineMentioning(await listComments(), `Reply ${runTag}`);
+      expect(
+        await call("manage_comments", {
+          action: "edit_message",
+          threadId,
+          messageId: replyId,
+          message: `Edited reply ${runTag}`,
+        }),
+      ).toContain(`Edited message ${replyId} in thread ${threadId}`);
+      expect(await listComments()).toContain(`Edited reply ${runTag}`);
+
       expect(await call("manage_comments", { action: "resolve", threadId })).toContain(
         `Resolved thread ${threadId}`,
       );
       const withResolved = await listComments(true);
-      expect(withResolved).toContain(`Reply ${runTag}`);
+      expect(withResolved).toContain(`Edited reply ${runTag}`);
       expect(withResolved).toContain("resolved");
+      expect(await call("manage_comments", { action: "reopen", threadId })).toContain(
+        `Reopened thread ${threadId}`,
+      );
+
+      expect(
+        await call("manage_comments", { action: "delete_message", threadId, messageId: replyId }),
+      ).toContain(`Deleted message ${replyId}`);
+      const afterDeletingReply = await listComments();
+      expect(afterDeletingReply).toContain(`First message ${runTag}`);
+      expect(afterDeletingReply).not.toContain(`Edited reply ${runTag}`);
 
       expect(await call("manage_comments", { action: "delete", threadId })).toContain(
         `Deleted thread ${threadId}`,

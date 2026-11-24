@@ -7,14 +7,17 @@ import { shouldRunTexTests } from "../../support/texAvailability.js";
 import { LIVE_PROJECT_NAME, LiveOverleafServer, liveRunIdentifier } from "../support/liveOverleafServer.js";
 import { liveGitBridgeConfigured } from "../support/liveOverleafSettings.js";
 import { callFailing, callSucceeding, listedFilePaths, pushedCommitHash } from "../support/liveToolCalls.js";
+import { isProgramOnPath } from "../support/programOnPath.js";
 
 const texAvailable = await shouldRunTexTests();
+const texcountAvailable = await isProgramOnPath("texcount");
 const runIdentifier = liveRunIdentifier();
 const SCRATCH_ROOT_OF_EVERY_RUN = "mcp-e2e/";
 const scratchFolder = `${SCRATCH_ROOT_OF_EVERY_RUN}${runIdentifier}`;
 const paperPath = `${scratchFolder}/paper.tex`;
 const bibliographyPath = `${scratchFolder}/refs.bib`;
 const figurePath = `${scratchFolder}/figure.png`;
+const appendedLine = `% appended by run ${runIdentifier}`;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 const firstDraft = [
@@ -46,6 +49,7 @@ const bibliography = [
 describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live Overleaf project", () => {
   let server: LiveOverleafServer;
   let firstDraftCommit = "";
+  let editsCommit = "";
   const call = (toolName: string, toolArguments: Record<string, unknown> = {}) =>
     callSucceeding(server.client, toolName, { project: LIVE_PROJECT_NAME, ...toolArguments });
   const pendingChanges = () => call("read_project", { view: "changes" });
@@ -131,14 +135,38 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
       sectionTitle: "Conclusion",
       content: "\\section{Conclusion}\nRewritten ending.\n",
     });
+    await call("edit_file", { action: "append", path: paperPath, content: appendedLine });
     const pending = await pendingChanges();
     expect(pending).toContain("8000");
     expect(pending).toContain("Rewritten ending.");
+    expect(pending).toContain(appendedLine);
 
-    await call("push_changes", { commitMessage: `End-to-end edits ${runIdentifier}` });
+    editsCommit = pushedCommitHash(
+      await call("push_changes", { commitMessage: `End-to-end edits ${runIdentifier}` }),
+    );
     const published = await call("read_file", { path: paperPath });
     expect(published).toContain("8000");
     expect(published).toContain("Rewritten ending.");
+    expect(published.trimEnd().endsWith(appendedLine)).toBe(true);
+  });
+
+  it("reads the paper's history as commits, a diff and a blame", async () => {
+    const commits = await call("read_history", { view: "commits", path: paperPath, limit: 5 });
+    expect(commits).toContain(`End-to-end first draft ${runIdentifier}`);
+    expect(commits).toContain(`End-to-end edits ${runIdentifier}`);
+
+    const diff = await call("read_history", {
+      view: "diff",
+      path: paperPath,
+      fromRevision: firstDraftCommit,
+      toRevision: editsCommit,
+    });
+    expect(diff).toContain("8000");
+    expect(diff).toContain("Original ending.");
+
+    const blame = await call("read_history", { view: "blame", path: paperPath });
+    const rewrittenLine = blame.split("\n").find((line) => line.endsWith("\tRewritten ending."));
+    expect(rewrittenLine).toContain(editsCommit.slice(0, 7));
   });
 
   it("shows the first draft from history and restores it", async () => {
@@ -176,6 +204,19 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
     const report = await call("look_up_citations", { action: "verify", mainTexFile: paperPath });
     expect(report).toContain("no entry points at the wrong work.");
     expect(report).toContain("Confirmed (1): lecun2015deep (DOI)");
+  });
+
+  it("turns a DOI into a BibTeX entry with Crossref", async () => {
+    const found = await call("look_up_citations", { action: "find", queries: ["10.1038/nature14539"] });
+    expect(found).toContain("1 found");
+    expect(found).toMatch(/@article\{/i);
+    expect(found).toContain("Deep learning");
+  });
+
+  it.runIf(texcountAvailable)("counts the paper's words with texcount", async () => {
+    expect(await call("read_project", { view: "word_count", path: paperPath })).toContain(
+      `texcount's word count for ${paperPath}`,
+    );
   });
 
   it.runIf(texAvailable)("compiles the paper locally with latexmk", async () => {

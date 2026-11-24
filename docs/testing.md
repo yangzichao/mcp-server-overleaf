@@ -50,11 +50,17 @@ cannot grow large. The check fails on a review that no longer matches a slow pat
 ## Live end-to-end run
 
 Use a throwaway project you own, never a co-author's paper. The run writes a scratch folder
-`mcp-e2e/<run id>/` through the Git bridge and pushes it, then deletes it and pushes again.
-Through the editor it appends one LaTeX comment line to a document, suggests, accepts and
-rejects edits and runs a comment thread inside that line, then removes it. It also compiles
-on Overleaf and downloads the ZIP. It never creates projects, because no tool can delete one
-for good.
+`mcp-e2e/<run id>/` through the Git bridge and pushes it, reads its history as commits, a diff
+and a blame, then deletes it and pushes again. Through the editor it creates another scratch
+folder, writes, appends to, rewrites, uploads into and renames inside it, then deletes it; the
+next run removes whatever a crashed run left under `mcp-e2e/`. It also appends one LaTeX
+comment line to a document, suggests, accepts and rejects edits and runs a comment thread
+through every `manage_comments` action inside that line, then removes it. On the account it
+compiles on Overleaf, downloads the ZIP, reads the members and word count, and renames,
+archives, trashes and tags the project, putting each back. The tag `mcp-e2e` stays in the
+account, because untagging keeps a tag. It never creates projects, because no tool can delete
+one for good, and never changes the project's settings, because no view reports them to put
+back.
 
 The suite reads its own variable names, so a normal `.env` cannot aim it at a real paper:
 
@@ -71,5 +77,6 @@ The suite reads its own variable names, so a normal `.env` cannot aim it at a re
 OVERLEAF_E2E_ENV_FILE=$HOME/.config/overleaf-e2e.env npm run test:e2e
 ```
 
-`look_up_citations` (action `verify`) in the Git bridge run sends one DOI to doi.org and
-Crossref.
+`look_up_citations` in the Git bridge run sends one DOI to doi.org and Crossref, once to
+verify an entry and once to find it. Overleaf's Git bridge rate-limits fetches, so a run waits
+and retries when it answers "Rate-limit exceeded"; expect about two minutes.

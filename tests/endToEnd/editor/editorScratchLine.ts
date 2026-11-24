@@ -27,3 +27,11 @@ export function trackedChangeIdsMentioning(listing: string, text: string): strin
       return match?.[1] ? [match[1]] : [];
     });
 }
+
+/** The [message …] id read_review (view comments) shows on the line holding the given text. */
+export function messageIdOnLineMentioning(commentsView: string, text: string): string {
+  const line = commentsView.split("\n").find((candidate) => candidate.includes(text));
+  const match = line ? /\[message ([^\]\s]+)\]/.exec(line) : null;
+  if (!match?.[1]) throw new Error(`No [message …] line mentions "${text}":\n${commentsView}`);
+  return match[1];
+}

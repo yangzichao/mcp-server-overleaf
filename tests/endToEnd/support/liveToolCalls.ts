@@ -56,5 +56,5 @@ export function listedFilePaths(filesViewReply: string): string[] {
   return filesViewReply
     .split("\n")
     .filter((line) => line.startsWith("  "))
-    .map((line) => line.trim().replace(/ \(untracked\)$/, ""));
+    .map((line) => line.trim().replace(/ \((untracked|binary)\)$/, ""));
 }
