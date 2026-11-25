@@ -96,14 +96,33 @@ async function installPublishedPackage(directory) {
   }
 }
 
+// The attestations endpoint `npm audit signatures` reads lags too: 0.6.2's audit got 404 from
+// it about three minutes after the publish, while the version document already listed the
+// attestations, and the endpoint answered later. So that 404 is retried the same way.
+const auditRetryTimeoutMilliseconds = 5 * 60_000;
+const missingAttestations = /\b404 Not Found - GET [^\n]*\/-\/npm\/v1\/attestations\//;
+
+async function auditPublishedSignatures(directory) {
+  const retryDeadline = Date.now() + auditRetryTimeoutMilliseconds;
+  for (;;) {
+    const audit = spawnSync("npm", ["audit", "signatures", "--prefer-online"], {
+      cwd: directory,
+      stdio: ["ignore", "inherit", "pipe"],
+      encoding: "utf8",
+      timeout: 180_000,
+    });
+    process.stderr.write(audit.stderr ?? "");
+    if (audit.status === 0) return;
+    const attestationsWereMissing = missingAttestations.test(audit.stderr ?? "");
+    assert.ok(attestationsWereMissing && Date.now() < retryDeadline, "npm audit signatures failed");
+    await setTimeout(registryPollIntervalMilliseconds);
+  }
+}
+
 const consumerDirectory = mkdtempSync(join(tmpdir(), "overleaf-published-check-"));
 try {
   await installPublishedPackage(consumerDirectory);
-  execFileSync("npm", ["audit", "signatures"], {
-    cwd: consumerDirectory,
-    stdio: "inherit",
-    timeout: 180_000,
-  });
+  await auditPublishedSignatures(consumerDirectory);
   const version = execFileSync("npm", ["exec", "--offline", "--", manifest.name, "--version"], {
     cwd: consumerDirectory,
     encoding: "utf8",
