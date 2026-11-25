@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { shouldRunTexTests } from "../../support/texAvailability.js";
 import { LIVE_PROJECT_NAME, LiveOverleafServer, liveRunIdentifier } from "../support/liveOverleafServer.js";
-import { liveGitBridgeConfigured } from "../support/liveOverleafSettings.js";
+import { liveEditorConfigured, liveGitBridgeConfigured } from "../support/liveOverleafSettings.js";
 import { callFailing, callSucceeding, listedFilePaths, pushedCommitHash } from "../support/liveToolCalls.js";
 import { isProgramOnPath } from "../support/programOnPath.js";
 
@@ -232,11 +232,31 @@ describe.skipIf(!liveGitBridgeConfigured)("the Git bridge tools against a live O
     expect(found).toContain("Deep learning");
   });
 
-  it.runIf(texcountAvailable)("counts the paper's words with texcount", async () => {
-    expect(await call("read_project", { view: "word_count", path: paperPath })).toContain(
-      `texcount's word count for ${paperPath}`,
-    );
-  });
+  it.runIf(liveEditorConfigured)(
+    "counts the paper's words on Overleaf when the session cookie is set",
+    async () => {
+      expect(await call("read_project", { view: "word_count", path: paperPath })).toContain(
+        `Overleaf's word count for ${paperPath}:`,
+      );
+    },
+  );
+
+  it.runIf(texcountAvailable)(
+    "counts the paper's words with texcount in the clone without the cookie",
+    async () => {
+      const withoutCookie = await LiveOverleafServer.start("gitBridgeOnly");
+      try {
+        const counted = await callSucceeding(withoutCookie.client, "read_project", {
+          project: LIVE_PROJECT_NAME,
+          view: "word_count",
+          path: paperPath,
+        });
+        expect(counted).toContain(`texcount's word count for ${paperPath}`);
+      } finally {
+        await withoutCookie.stop();
+      }
+    },
+  );
 
   it.runIf(texAvailable)("compiles the paper locally with latexmk", async () => {
     expect(await call("compile_project", { mainTexFile: paperPath })).toContain(`Compiled ${paperPath}.`);

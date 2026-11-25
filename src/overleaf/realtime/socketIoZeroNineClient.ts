@@ -26,7 +26,7 @@ export class RealtimeConnectionError extends Error {
     /** What the user can do about it, kept separate so tools can present it on its own line. */
     readonly remedy?: string,
   ) {
-    super(message);
+    super(remedy ? `${message} ${remedy}` : message);
     this.name = "RealtimeConnectionError";
   }
 }

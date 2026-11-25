@@ -3,9 +3,15 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { McpStdioClient } from "../../integration/mcpStdioClient.js";
 import { type JsonRpcResponse, responseText } from "../../integration/support/mcpProtocol.js";
 
-// Overleaf's Git bridge answers "Rate-limit exceeded" after a few dozen fetches in a minute,
-// and every Git tool fetches first, so a live run has to wait it out rather than fail.
+// Overleaf's Git bridge answers "Rate-limit exceeded" after a few dozen fetches in a minute, and
+// its editor refuses an account that opens a project too often (45 times a minute in Overleaf's
+// source). Every Git tool fetches first and every editor tool opens the project, so a live run
+// has to wait both out rather than fail.
 const RATE_LIMIT_WAITS_MILLISECONDS = [20_000, 40_000, 60_000, 90_000];
+const RATE_LIMIT_REPLIES = [
+  "Rate-limit exceeded",
+  "Overleaf is rate-limiting how often this account opens the project",
+];
 
 async function callWaitingOutRateLimits(
   client: McpStdioClient,
@@ -14,7 +20,8 @@ async function callWaitingOutRateLimits(
 ): Promise<JsonRpcResponse> {
   for (const waitMilliseconds of RATE_LIMIT_WAITS_MILLISECONDS) {
     const response = await client.callRaw(toolName, toolArguments);
-    if (!responseText(response).includes("Rate-limit exceeded")) return response;
+    const text = responseText(response);
+    if (!RATE_LIMIT_REPLIES.some((reply) => text.includes(reply))) return response;
     await sleep(waitMilliseconds);
   }
   return await client.callRaw(toolName, toolArguments);

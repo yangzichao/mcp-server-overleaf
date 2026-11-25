@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.2
+
+Four tool descriptions change, replies about the editor connection say what went wrong and
+what to do, and the OpenSSF Scorecard workflow runs again. No tool, action or argument changes.
+
+- `list_projects` says that it only finds projects and names `read_project`, `read_file` and
+  `search_project` for looking inside one. It also says that the account's projects keep the
+  order Overleaf returns them in.
+- `read_review` says it is not for reading a document's text, and that its ids are the ones
+  `manage_tracked_changes` and `manage_comments` take.
+- `read_history` says that the pull before `commits` and `blame` can fail when Overleaf has new
+  commits and local work is not pushed yet. The call is then refused, the local work stays, and
+  the reply says how to review, push or discard it.
+- `manage_comments` no longer repeats in its argument descriptions what the tool description
+  says about `action`, `quoteText` and `message`.
+- When Overleaf refuses to open a project because the account opened it too often in the last
+  minute, which every call through the editor does, the reply says so and to wait a minute. It
+  used to be Overleaf's own text alone, "rate-limit hit when joining project". While Overleaf's
+  real-time service restarts, the reply says to try again in a few seconds instead of "retry".
+- Replies about the editor connection include what to do, such as copying a fresh session
+  cookie. That advice was written but never reached the reply.
+- The Scorecard workflow uses `ossf/scorecard-action` v2.5.0, because the v2.6.0 image cannot
+  be pulled (ossf/scorecard-action#1752). Dependabot skips v2.6.0.
+
 ## 0.6.1
 
 Five tool descriptions are rewritten, and one reply of `manage_comments` is fixed. No tool,

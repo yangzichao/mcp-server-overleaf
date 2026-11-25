@@ -66,7 +66,30 @@ describe("a real-time session against Overleaf", () => {
         overleafProjectId: "64ffffffffffffffffffffff",
         connectTimeoutMs: 5_000,
       }),
-    ).rejects.toThrow(/not authorized to open this project/i);
+    ).rejects.toThrow(
+      "Overleaf refused to open the project: not authorized to open this project. Check that this account can open the project in Overleaf.",
+    );
+  });
+
+  it("reports Overleaf's limit on opening the project as a rate limit, with when to try again", async () => {
+    remote.rejectJoinsWith = "rate-limit hit when joining project";
+    await expect(openSession()).rejects.toThrow(
+      "Overleaf is rate-limiting how often this account opens the project, which every call through the editor does. Wait a minute before trying again.",
+    );
+  });
+
+  it("reports a real-time service that is shutting down as one to try again shortly", async () => {
+    remote.rejectJoinsWith = "retry";
+    await expect(openSession()).rejects.toThrow(
+      "Overleaf's real-time service is restarting. Try again in a few seconds.",
+    );
+  });
+
+  it("shows what to do about a session cookie Overleaf does not accept", async () => {
+    remote.rejectJoinsWith = "invalid session";
+    await expect(openSession()).rejects.toThrow(
+      "Overleaf did not accept the session cookie. Copy a fresh session cookie from a browser where you are signed in.",
+    );
   });
 
   it("reads a document and its version", async () => {

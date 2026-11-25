@@ -30,3 +30,13 @@ Feature: Without Git integration, a project is named by its address, its id, or 
     Given the server was given "only a session cookie and no registered project"
     When I list the tracked changes in "main.tex" of the project "64ffffffffffffffffffffff"
     Then the reply says "not authorized to open this project"
+    And the reply says "Check that this account can open the project in Overleaf."
+
+  Scenario: Opening the project too often in a minute is reported as Overleaf's rate limit, not as missing access
+    Given the server was given "only a session cookie"
+    And Overleaf refuses to open the project because this account opened it too often in the last minute
+    When I list the tracked changes in "main.tex" without naming a project
+    Then the reply is an error
+    And the reply says "Overleaf is rate-limiting how often this account opens the project"
+    And the reply says "Wait a minute before trying again."
+    But the reply does not say "Check that this account can open the project"

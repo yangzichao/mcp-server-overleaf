@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 import { describeFeature, loadFeature } from "@amiceli/vitest-cucumber";
+import { expect } from "vitest";
 
 import { OverleafEditorScenario } from "../support/overleafEditorScenario.js";
 import { defineSharedEditorSteps } from "../support/sharedEditorSteps.js";
@@ -21,7 +22,18 @@ describeFeature(feature, ({ Scenario, AfterEachScenario, defineSteps }) => {
 
   defineSteps((steps) => {
     defineSharedEditorSteps(steps, scenario);
-    const { When } = steps;
+    const { And, When, But } = steps;
+
+    And(
+      "Overleaf refuses to open the project because this account opened it too often in the last minute",
+      () => {
+        scenario.world.editor.rejectJoinsWith = "rate-limit hit when joining project";
+      },
+    );
+
+    But("the reply does not say {string}", (_context, unexpected: string) => {
+      expect(scenario.world.lastReply.text).not.toContain(unexpected);
+    });
 
     When("I list the configured projects", async () => {
       await scenario.world.callTool("list_projects");
@@ -52,4 +64,8 @@ describeFeature(feature, ({ Scenario, AfterEachScenario, defineSteps }) => {
   Scenario("A project is reached by its id", () => {});
   Scenario("Without a project or a default, the reply asks which project is meant", () => {});
   Scenario("A project the account cannot open is reported as such", () => {});
+  Scenario(
+    "Opening the project too often in a minute is reported as Overleaf's rate limit, not as missing access",
+    () => {},
+  );
 });

@@ -24,30 +24,20 @@ const COMMENT_ACTIONS = [
 
 const manageCommentsInput = z.object({
   project: projectArgument,
-  action: z
-    .enum(COMMENT_ACTIONS)
-    .describe(
-      "What to do: add (start a thread), reply, resolve, reopen, delete (a thread, permanently), edit_message (change one message's text) or delete_message (remove one reply).",
-    ),
+  action: z.enum(COMMENT_ACTIONS).describe("What to do. The tool description explains each action."),
   path: z
     .string()
     .optional()
     .describe(
       "add, required: the document to comment in, relative to the project root, for example main.tex. resolve, reopen and delete, optional: the document the thread is anchored in; without it every document is searched, which takes one read per document.",
     ),
-  quoteText: z
-    .string()
-    .min(1)
-    .optional()
-    .describe(
-      "add, required: exact text the comment is anchored to, matched literally. Must occur exactly once in the document.",
-    ),
+  quoteText: z.string().min(1).optional().describe("add, required: the passage the comment is anchored to."),
   message: z
     .string()
     .min(1)
     .optional()
     .describe(
-      "add, reply and edit_message, required: the comment, the reply, or a message's new text, as it should appear in the review panel under the account's name.",
+      "add, reply and edit_message, required: the comment, the reply, or a message's new text, as it should appear in the review panel.",
     ),
   threadId: z
     .string()
@@ -140,7 +130,7 @@ export function registerManageCommentsTool(server: McpServer, context: ToolConte
         "delete removes a thread, its anchor and every message for everyone, and cannot be undone from here, so prefer resolve unless the thread should not exist at all. " +
         "edit_message replaces the text of one message. Overleaf's editor offers that only on the account's own messages, and sending the text the message already has changes nothing. " +
         "delete_message removes one reply. With review access only the account's own replies can go. A thread's first message is refused, because only delete removes it, with the whole thread. " +
-        "After edit_message or delete_message, the thread is read again, and the call fails if the change is not there. " +
+        "edit_message and delete_message read the thread again and fail if the change is not there. " +
         "An unknown threadId is refused rather than starting a new thread, and an unknown messageId is refused with the ids the thread has. An argument the chosen action does not take is refused before anything is sent. " +
         "Returns the new thread id for add, otherwise a one-line confirmation.",
       inputSchema: manageCommentsInput,
