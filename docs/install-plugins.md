@@ -1,16 +1,15 @@
-# Install the Claude Code and Codex Plugins
+# Install Overleaf in Claude Code, Codex, Gemini CLI, and Kiro
 
-Claude Code and Codex both install this server as a plugin, which is one command instead of
-a hand-written configuration entry. This guide covers what the plugin contains, how to
-install and remove it in each client, how it gets your Overleaf token without holding one,
-and how to build it.
+Claude Code, Codex, and Gemini CLI install this server from the repository. Kiro can add
+the same server using an install link. Each client starts the server locally and uses the
+project configuration created by `setup`.
 
 For the manual `claude mcp add` and `codex mcp add` routes, and for every other client, see
 [Connect local MCP clients to Overleaf](connect-local-mcp-clients.md).
 
 ## Install
 
-Run this once first, in either case:
+Run setup before installing a plugin or adding the server to Kiro.
 
 ```bash
 npx --yes mcp-server-overleaf@0.6.3 setup --clients none
@@ -41,6 +40,34 @@ codex plugin add overleaf@mcp-server-overleaf
 Restart Codex, then `codex plugin list` should show the plugin installed and enabled, and
 `codex mcp list` should show an `overleaf` server running
 `npx --yes mcp-server-overleaf --stdio`.
+
+### Gemini CLI
+
+Install the extension from the repository.
+
+```bash
+gemini extensions install https://github.com/yangzichao/mcp-server-overleaf
+```
+
+If Gemini CLI reports a `GIT_CONFIG_SYSTEM` error during installation, clone the repository
+with Git and install from the local checkout. [Gemini CLI issue #30416](https://github.com/google-gemini/gemini-cli/issues/30416)
+tracks the error.
+
+```bash
+git clone https://github.com/yangzichao/mcp-server-overleaf.git
+gemini extensions install ./mcp-server-overleaf
+```
+
+Restart Gemini CLI and use `/mcp` to check that `overleaf` is connected. The extension
+starts the release named in `gemini-extension.json` and reads the same local project
+configuration as the other plugins.
+
+### Kiro
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=overleaf&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22--yes%22%2C%22mcp-server-overleaf%22%2C%22--stdio%22%5D%7D)
+
+Open the link and review the `overleaf` server configuration in Kiro. Kiro runs the npm
+package on your machine, where it can read the project configuration created by setup.
 
 ## Why this repository is the marketplace today
 
@@ -131,10 +158,10 @@ if you want the token gone.
 npm run plugins:build
 ```
 
-`scripts/plugins/writePluginFiles.mjs` rewrites both marketplaces, both manifests, the shared
-`.mcp.json`, and the icon from `package.json`, so the plugin version and the npm version
-cannot disagree. The files are committed rather than built into `build/`, because both
-clients clone this repository and read them where they lie.
+`scripts/plugins/writePluginFiles.mjs` writes the Claude Code and Codex marketplaces,
+their manifests and icon, and the Gemini CLI manifest. It uses one MCP launch configuration
+and reads the release version from `package.json`. The manifests are committed so each client
+can find them when it clones the repository.
 
 `npm run check` fails if the committed files drift from what the renderers produce, so a
 forgotten `npm run plugins:build` after a version bump is caught before release.

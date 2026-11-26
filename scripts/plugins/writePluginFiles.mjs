@@ -4,10 +4,11 @@ import { fileURLToPath } from "node:url";
 import { renderBundleIcon } from "../mcpb/renderBundleIcon.mjs";
 import { renderClaudeCodeMarketplace, renderClaudeCodePluginManifest } from "./renderClaudeCodePlugin.mjs";
 import { renderCodexMarketplace, renderCodexPluginManifest } from "./renderCodexPlugin.mjs";
+import { renderGeminiCliExtension } from "./renderGeminiCliExtension.mjs";
 import { pluginName, renderPluginMcpServers } from "./renderSharedMcpServers.mjs";
 
 /**
- * Rewrites the committed Claude Code and Codex plugins from `package.json`.
+ * Rewrites the committed plugins and Gemini CLI extension from `package.json`.
  *
  * Run this after a version bump. `tests/plugins/` fails when the committed files drift
  * from what this writes, so the check suite catches a forgotten run.
@@ -23,6 +24,7 @@ function writeJsonFile(filePath, value) {
 }
 
 writeJsonFile(join(pluginRoot, ".mcp.json"), renderPluginMcpServers(packageMetadata));
+writeJsonFile(join(packageRoot, "gemini-extension.json"), renderGeminiCliExtension(packageMetadata));
 
 writeJsonFile(
   join(pluginRoot, ".claude-plugin", "plugin.json"),
@@ -41,5 +43,5 @@ mkdirSync(dirname(iconPath), { recursive: true });
 writeFileSync(iconPath, renderBundleIcon());
 
 process.stdout.write(
-  `Wrote the Claude Code and Codex plugins for ${packageMetadata.name}@${packageMetadata.version} into plugins/${pluginName}.\n`,
+  `Wrote the Claude Code, Codex, and Gemini CLI manifests for ${packageMetadata.name}@${packageMetadata.version}.\n`,
 );

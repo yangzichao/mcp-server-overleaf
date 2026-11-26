@@ -1,0 +1,15 @@
+{
+  "name": "mcp-server-overleaf",
+  "version": "0.6.3",
+  "description": "Read, edit, and compile shared Overleaf LaTeX projects from Gemini CLI. Git publishing is explicit and checks for co-author conflicts.",
+  "mcpServers": {
+    "overleaf": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "mcp-server-overleaf@0.6.3",
+        "--stdio"
+      ]
+    }
+  }
+}
