@@ -25,7 +25,7 @@ const editorEditFileInput = z.object({
     .string()
     .optional()
     .describe(
-      "replace_text, required: exact text to find, matched literally including whitespace and newlines. Not a regular expression.",
+      "replace_text, required: non-empty exact text to find, matched literally including whitespace and newlines. Not a regular expression.",
     ),
   replaceWith: z
     .string()

@@ -1,132 +1,53 @@
-import { stripLineComment } from "./source/prepareLatexSource.js";
+import { LATEX_SECTION_LEVELS, type LatexSectionLevel, sectionCommands } from "./sections/sectionCommands.js";
+import { maskLatexSource } from "./source/prepareLatexSource.js";
 
-export const LATEX_SECTION_LEVELS = [
-  "part",
-  "chapter",
-  "section",
-  "subsection",
-  "subsubsection",
-  "paragraph",
-  "subparagraph",
-] as const;
+export { LATEX_SECTION_LEVELS };
 
-type LatexSectionLevel = (typeof LATEX_SECTION_LEVELS)[number];
-
-export interface LatexSection {
-  readonly level: LatexSectionLevel;
-  readonly depth: number;
-  readonly title: string;
-  /** 1-indexed line of the sectioning command itself. */
-  readonly startLine: number;
-  /** 1-indexed last line belonging to this section. */
-  readonly endLine: number;
+interface SectionRange {
+  level: LatexSectionLevel;
+  depth: number;
+  title: string;
+  /** Inclusive, 1-based lines. Columns are zero-based; the end column is exclusive. */
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number | undefined;
 }
 
-const SECTION_COMMAND_PATTERN = new RegExp(`\\\\(${LATEX_SECTION_LEVELS.join("|")})\\*?\\s*(\\[|\\{)`);
+export type LatexSection = Readonly<SectionRange>;
 
-/** Reads a balanced `{...}` group starting at `openBraceIndex`, tolerating nested braces. */
-function readBalancedGroup(
-  text: string,
-  openBraceIndex: number,
-): { content: string; endIndex: number } | null {
-  if (text[openBraceIndex] !== "{") return null;
-  let depth = 0;
-  for (let index = openBraceIndex; index < text.length; index += 1) {
-    const character = text[index];
-    if (character === "\\") {
-      index += 1;
-      continue;
-    }
-    if (character === "{") depth += 1;
-    else if (character === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return { content: text.slice(openBraceIndex + 1, index), endIndex: index };
+function closeSections(openSections: SectionRange[], depth: number, line: number, column: number): void {
+  for (let section = openSections.at(-1); section && section.depth >= depth; section = openSections.at(-1)) {
+    section.endLine = column === 0 ? line - 1 : line;
+    section.endColumn = column === 0 ? undefined : column;
+    openSections.pop();
+  }
+}
+
+export function parseLatexSections(latexSource: string): LatexSection[] {
+  const lines = maskLatexSource(latexSource).split("\n");
+  const sections: SectionRange[] = [];
+  const openSections: SectionRange[] = [];
+  for (const [lineIndex, line] of lines.entries()) {
+    for (const command of sectionCommands(line)) {
+      const depth = command.kind === "heading" ? LATEX_SECTION_LEVELS.indexOf(command.level) : -1;
+      closeSections(openSections, depth, lineIndex + 1, command.column);
+      if (command.kind === "heading") {
+        const section = {
+          level: command.level,
+          title: command.title,
+          depth,
+          startLine: lineIndex + 1,
+          startColumn: command.column,
+          endLine: lines.length,
+          endColumn: undefined,
+        };
+        sections.push(section);
+        openSections.push(section);
       }
     }
   }
-  return null;
-}
-
-/** Strips an optional `[...]` argument so `\section[short]{long}` resolves to the long title. */
-function skipOptionalArgument(text: string, startIndex: number): number {
-  if (text[startIndex] !== "[") return startIndex;
-  let depth = 0;
-  for (let index = startIndex; index < text.length; index += 1) {
-    const character = text[index];
-    if (character === "\\") {
-      index += 1;
-      continue;
-    }
-    if (character === "[") depth += 1;
-    else if (character === "]") {
-      depth -= 1;
-      if (depth === 0) return index + 1;
-    }
-  }
-  return startIndex;
-}
-
-/**
- * Matter that follows the prose but belongs to nobody's section. Without this a section
- * that happens to be last would swallow `\end{document}` or the bibliography, and
- * rewriting it would silently delete them.
- */
-const TRAILING_MATTER_PATTERN =
-  /\\(end\s*\{\s*document\s*\}|appendix\b|bibliography\s*\{|bibliographystyle\s*\{|printbibliography\b|begin\s*\{\s*thebibliography\s*\})/;
-
-/**
- * 1-indexed line of the first trailing-matter command at or after `fromLine`, or null.
- */
-function findTrailingMatterLine(lines: readonly string[], fromLine: number): number | null {
-  for (let lineIndex = fromLine - 1; lineIndex < lines.length; lineIndex += 1) {
-    if (TRAILING_MATTER_PATTERN.test(stripLineComment(lines[lineIndex] ?? ""))) {
-      return lineIndex + 1;
-    }
-  }
-  return null;
-}
-
-/**
- * Locates the sectioning commands in a LaTeX source file so tools can address
- * "Section 4" instead of a line range that shifts on every edit.
- */
-export function parseLatexSections(latexSource: string): LatexSection[] {
-  const lines = latexSource.split("\n");
-  const found: Array<Omit<LatexSection, "endLine">> = [];
-
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-    const uncommentedLine = stripLineComment(lines[lineIndex] ?? "");
-    const match = SECTION_COMMAND_PATTERN.exec(uncommentedLine);
-    if (!match || match.index === undefined) continue;
-
-    const level = match[1] as LatexSectionLevel;
-    const argumentStartIndex = skipOptionalArgument(uncommentedLine, match.index + match[0].length - 1);
-    const group = readBalancedGroup(uncommentedLine, argumentStartIndex);
-
-    found.push({
-      level,
-      depth: LATEX_SECTION_LEVELS.indexOf(level),
-      title: (group?.content ?? "").trim(),
-      startLine: lineIndex + 1,
-    });
-  }
-
-  return found.map((section, index) => {
-    const nextSameOrShallower = found.findIndex(
-      (candidate, candidateIndex) => candidateIndex > index && candidate.depth <= section.depth,
-    );
-    const nextSection = nextSameOrShallower === -1 ? undefined : found[nextSameOrShallower];
-    const endAtNextSection = nextSection ? nextSection.startLine - 1 : lines.length;
-
-    // A section stops at whichever comes first: the next sibling heading, or the
-    // trailing matter that is not prose at all.
-    const trailingMatterLine = findTrailingMatterLine(lines, section.startLine + 1);
-    const endLine =
-      trailingMatterLine === null ? endAtNextSection : Math.min(endAtNextSection, trailingMatterLine - 1);
-
-    return { ...section, endLine: Math.max(endLine, section.startLine) };
-  });
+  return sections;
 }
 
 /** Case-insensitive match on the section title, falling back to a substring match. */
@@ -143,10 +64,11 @@ export function findSectionByTitle(
 }
 
 export function extractSectionText(latexSource: string, section: LatexSection): string {
-  return latexSource
-    .split("\n")
-    .slice(section.startLine - 1, section.endLine)
-    .join("\n");
+  const lines = latexSource.split("\n").slice(section.startLine - 1, section.endLine);
+  const last = lines.length - 1;
+  lines[last] = (lines[last] ?? "").slice(0, section.endColumn);
+  lines[0] = (lines[0] ?? "").slice(section.startColumn);
+  return lines.join("\n");
 }
 
 export function replaceSectionText(
@@ -155,7 +77,10 @@ export function replaceSectionText(
   replacementText: string,
 ): string {
   const lines = latexSource.split("\n");
-  const before = lines.slice(0, section.startLine - 1);
-  const after = lines.slice(section.endLine);
-  return [...before, ...replacementText.split("\n"), ...after].join("\n");
+  const first = section.startLine - 1;
+  const prefix = (lines[first] ?? "").slice(0, section.startColumn);
+  const suffix =
+    section.endColumn === undefined ? "" : (lines[section.endLine - 1] ?? "").slice(section.endColumn);
+  lines.splice(first, section.endLine - first, prefix + replacementText + suffix);
+  return lines.join("\n");
 }

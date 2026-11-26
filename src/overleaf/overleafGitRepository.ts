@@ -439,6 +439,13 @@ export class OverleafGitRepository {
     // existing ancestor, so a symlinked directory cannot be used to move a file out.
     const toAbsolutePath = await this.resolveClientPath(toRelativePath);
     await requireFileShapedPath(this.options.repositoryDirectory, toRelativePath, toAbsolutePath);
+    const destination = this.gitPathOf(toAbsolutePath);
+    const ignored = await this.git(["check-ignore", "--quiet", "--", `./${destination}`], {
+      tolerateFailure: true,
+    });
+    if (ignored.exitCode === 0) throw new Error(`Git ignores ${destination}. Nothing was moved.`);
+    if (ignored.exitCode !== 1)
+      throw new Error(`Could not check Git ignore rules for ${destination}: ${ignored.stderr}`);
     await mkdir(dirname(toAbsolutePath), { recursive: true });
     await rename(fromAbsolutePath, toAbsolutePath);
   }
