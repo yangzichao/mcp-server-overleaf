@@ -49,6 +49,15 @@ Install the extension from the repository.
 gemini extensions install https://github.com/yangzichao/mcp-server-overleaf
 ```
 
+If Gemini CLI reports a `GIT_CONFIG_SYSTEM` error during installation, clone the repository
+with Git and install from the local checkout. [Gemini CLI issue #30416](https://github.com/google-gemini/gemini-cli/issues/30416)
+tracks the error.
+
+```bash
+git clone https://github.com/yangzichao/mcp-server-overleaf.git
+gemini extensions install ./mcp-server-overleaf
+```
+
 Restart Gemini CLI and use `/mcp` to check that `overleaf` is connected. The extension
 starts the release named in `gemini-extension.json` and reads the same local project
 configuration as the other plugins.
