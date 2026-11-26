@@ -106,11 +106,12 @@ export class ProjectDirectories {
 
     await this.bringBackHiddenFilesUnder(fromAbsolutePath);
     const files = await this.listFilesUnder(fromAbsolutePath);
-    await rename(fromAbsolutePath, toAbsolutePath);
     const fromGitPath = this.toGitPath(fromAbsolutePath);
     const toGitPath = this.toGitPath(toAbsolutePath);
+    const respelledFiles = files.map((file) => toGitPath + file.slice(fromGitPath.length));
+    await this.renameCheckingIgnoredFiles(fromAbsolutePath, toAbsolutePath, respelledFiles);
     await moveIndexEntries(this.access.git, fromGitPath, toGitPath);
-    return { respelledFiles: files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`) };
+    return { respelledFiles };
   }
 
   /** Removes the directory and everything in it; answers with the project files that were in it. */
@@ -140,10 +141,37 @@ export class ProjectDirectories {
     await this.bringBackHiddenFilesUnder(fromAbsolutePath);
     const files = await this.listFilesUnder(fromAbsolutePath);
     await mkdir(dirname(toAbsolutePath), { recursive: true });
-    await rename(fromAbsolutePath, toAbsolutePath);
     const fromGitPath = this.toGitPath(fromAbsolutePath);
     const toGitPath = this.toGitPath(toAbsolutePath);
-    return files.map((file) => `${toGitPath}${file.slice(fromGitPath.length)}`);
+    const movedFiles = files.map((file) => toGitPath + file.slice(fromGitPath.length));
+    await this.renameCheckingIgnoredFiles(fromAbsolutePath, toAbsolutePath, movedFiles);
+    return movedFiles;
+  }
+
+  /** A folder can carry its own .gitignore. Git can evaluate those rules at their new paths only after the rename. */
+  private async renameCheckingIgnoredFiles(
+    from: string,
+    to: string,
+    projectFilesAtDestination: readonly string[],
+  ): Promise<void> {
+    await rename(from, to);
+    try {
+      const { stdout } = await this.access.git([
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "-z",
+        "--",
+        `:(literal)${this.toGitPath(to)}`,
+      ]);
+      const ignoredPaths = new Set(stdout.split("\0"));
+      const omittedFile = projectFilesAtDestination.find((file) => ignoredPaths.has(file));
+      if (omittedFile) throw new Error(`Git ignores ${omittedFile}. Nothing was moved.`);
+    } catch (error) {
+      await rename(to, from);
+      throw error;
+    }
   }
 
   private async areOneEntryUnderTwoSpellings(

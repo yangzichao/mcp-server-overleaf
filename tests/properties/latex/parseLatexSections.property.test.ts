@@ -46,13 +46,16 @@ describe("parseLatexSections properties", () => {
       fc.property(sectionedDocument, (source) => {
         const lineCount = source.split("\n").length;
         const sections = parseLatexSections(source);
-        let previousStart = 0;
+        let previousLine = 0;
+        let previousColumn = 0;
         for (const section of sections) {
-          expect(section.startLine).toBeGreaterThan(previousStart);
+          expect(section.startLine).toBeGreaterThanOrEqual(previousLine);
+          if (section.startLine === previousLine) expect(section.startColumn).toBeGreaterThan(previousColumn);
           expect(section.endLine).toBeGreaterThanOrEqual(section.startLine);
           expect(section.endLine).toBeLessThanOrEqual(lineCount);
           expect(section.depth).toBe(LATEX_SECTION_LEVELS.indexOf(section.level));
-          previousStart = section.startLine;
+          previousLine = section.startLine;
+          previousColumn = section.startColumn;
         }
       }),
     );
@@ -64,7 +67,13 @@ describe("parseLatexSections properties", () => {
         const sections = parseLatexSections(source);
         sections.forEach((section, index) => {
           const nextSibling = sections.slice(index + 1).find((later) => later.depth <= section.depth);
-          if (nextSibling) expect(section.endLine).toBeLessThan(nextSibling.startLine);
+          if (!nextSibling) return;
+          if (section.endLine === nextSibling.startLine) {
+            expect(section.endColumn).toBeDefined();
+            expect(section.endColumn!).toBeLessThanOrEqual(nextSibling.startColumn);
+          } else {
+            expect(section.endLine).toBeLessThan(nextSibling.startLine);
+          }
         });
       }),
     );
@@ -76,7 +85,11 @@ describe("parseLatexSections properties", () => {
         const sections = parseLatexSections(source);
         sections.forEach((parent, index) => {
           for (const child of sections.slice(index + 1)) {
-            if (child.depth > parent.depth && child.startLine <= parent.endLine) {
+            if (
+              child.depth > parent.depth &&
+              (child.startLine < parent.endLine ||
+                (child.startLine === parent.endLine && child.startColumn < (parent.endColumn ?? Infinity)))
+            ) {
               expect(child.endLine).toBeLessThanOrEqual(parent.endLine);
             }
           }

@@ -5,6 +5,10 @@ import { replaceTextOccurrences } from "../../src/latex/replaceTextOccurrences.j
 const paper = "The sample size is 5000. We report 5000 observations.";
 
 describe("replaceTextOccurrences", () => {
+  it.each([false, true])("refuses an empty snippet with replaceAll=%s", (replaceAll) => {
+    expect(() => replaceTextOccurrences("abc", "", "-", replaceAll)).toThrow("findText is empty");
+  });
+
   it("reports text that is not there rather than changing anything", () => {
     expect(replaceTextOccurrences(paper, "7000", "8000", false)).toEqual({ status: "not-found" });
   });

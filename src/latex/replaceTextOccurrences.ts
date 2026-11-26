@@ -16,6 +16,7 @@ export function replaceTextOccurrences(
   replaceWith: string,
   replaceAll: boolean,
 ): TextReplacement {
+  if (findText === "") throw new Error("findText is empty; give the exact text to replace.");
   const pieces = originalContent.split(findText);
   const occurrenceCount = pieces.length - 1;
 

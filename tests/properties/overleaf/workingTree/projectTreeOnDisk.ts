@@ -25,6 +25,7 @@ export async function readProjectTree(root: string): Promise<Map<string, string>
 
 function listFilesOnDisk(root: string) {
   return async (args: readonly string[]): Promise<GitCommandResult> => {
+    if (args.includes("--ignored")) return { stdout: "", stderr: "", exitCode: 0 };
     const literal = (args.at(-1) ?? "").replace(/^:\(literal\)/, "");
     const files = [...(await readProjectTree(root)).keys()].filter(
       (path) => path === literal || path.startsWith(`${literal}/`),

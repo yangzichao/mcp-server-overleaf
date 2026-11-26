@@ -20,7 +20,7 @@ export function describeManageFilesPath(withFolders: boolean): string {
 export function describeManageFiles(withFolders: boolean): string {
   return [
     "Change which files and directories the project's local clone holds, or throw local work away; action picks what.",
-    "delete removes a file, or a directory with everything in it. move renames a file or a directory or moves it inside the project, creating missing parent directories and refusing a toPath that already exists or lies inside the directory being moved.",
+    "delete removes a file, or a directory with everything in it. move renames a file or a directory or moves it inside the project, creating missing parent directories and refusing a toPath that already exists or lies inside the directory being moved. A move that would leave a project file ignored by Git is refused.",
     "upload adds a file byte for byte, such as a figure, a PDF, a data file or a .bib from elsewhere, copied from sourcePath on this computer or decoded from contentBase64, and replaces a file already at path; edit_file is for text written in the call itself.",
     "upload_folder copies every file under the folder sourcePath into the directory path, keeping its subfolders and replacing files already at those paths; hidden files and folders and symbolic links are left out, and it takes at most 180 files, as Overleaf's upload dialog does.",
     "restore puts a file back to exactly what it was at revision, binary files included, and brings back a file deleted since; find the revision with read_history.",
