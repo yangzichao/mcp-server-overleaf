@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.3
+
+- `manage_files` refuses moves that would leave a project file at a path Git ignores.
+  Previously, moving a tracked file into an ignored directory could publish only its deletion.
+- Section reads and edits skip headings inside `verbatim` examples. Replacing a section
+  preserves a sibling heading or `\end{document}` on the same line.
+- Git-backed `replace_text` rejects an empty `findText`, matching the live editor.
+
 ## 0.6.2
 
 Four tool descriptions change, replies about the editor connection say what went wrong and
