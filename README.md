@@ -85,6 +85,7 @@ depends on the credentials you give it; see [the tools](#the-tools).
 | Codex CLI, desktop, and IDE extension | The same, with the Codex commands. [Two commands](#install-as-a-claude-code-or-codex-plugin) |
 | Cursor | `npx --yes mcp-server-overleaf setup`. [One command](#install-with-one-command) |
 | Visual Studio Code | A `.vscode/mcp.json` entry. [Guide](docs/connect-local-mcp-clients.md#6-visual-studio-code) |
+| Docker | [Build and run the local stdio server](docs/install-docker.md). |
 | ChatGPT on the web and desktop | An outbound-only Secure MCP Tunnel, no public endpoint and no open port. [Guide](docs/connect-chatgpt-with-secure-mcp-tunnel.md) |
 | A catalogue that reads the MCP registry | Already listed as `io.github.yangzichao/mcp-server-overleaf`. [Details](#find-it-in-the-mcp-registry) |
 | Any other MCP client | `npx --yes mcp-server-overleaf --stdio`, or Streamable HTTP. [By hand](#install-from-npm-by-hand) |
