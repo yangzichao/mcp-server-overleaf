@@ -1,7 +1,7 @@
 {
   "name": "mcp-server-overleaf",
   "mcpName": "io.github.yangzichao/mcp-server-overleaf",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Overleaf MCP server for Claude, Codex, ChatGPT & Cursor. Edit LaTeX via Git or as tracked changes.",
   "license": "MIT",
   "author": "Zichao Yang",
