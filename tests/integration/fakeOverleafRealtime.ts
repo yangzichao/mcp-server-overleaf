@@ -89,6 +89,8 @@ export class FakeOverleafRealtime {
   readonly sharing = new FakeProjectSharing();
   /** Set by a test to make the next `applyOtUpdate` fail the way Overleaf does. */
   rejectNextUpdateWith: string | undefined;
+  /** Set by a test to refuse every join with this `connectionRejected` message, such as "retry". */
+  rejectJoinsWith: string | undefined;
   /** Documents stored in the newer history-OT format, which `joinDoc` refuses to old clients. */
   readonly historyOtDocumentIds = new Set<string>();
   readonly userId = "6500000000000000000000aa";
@@ -280,10 +282,11 @@ export class FakeOverleafRealtime {
 
   private serveConnection(webSocket: ServerWebSocket, requestedProjectId: string | null): void {
     webSocket.send("1::");
-    if (requestedProjectId !== this.projectId) {
-      webSocket.send(
-        encodeSocketIoEvent("connectionRejected", [{ message: "not authorized to open this project" }]),
-      );
+    const rejection =
+      this.rejectJoinsWith ??
+      (requestedProjectId === this.projectId ? undefined : "not authorized to open this project");
+    if (rejection) {
+      webSocket.send(encodeSocketIoEvent("connectionRejected", [{ message: rejection }]));
       webSocket.close();
       return;
     }

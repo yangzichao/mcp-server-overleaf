@@ -38,6 +38,14 @@ Feature: The project's history can be read back, one commit at a time
     Then the reply says "4 commits for the project"
     And the commits start with "Third draft of the intro"
 
+  Scenario: An unpushed edit holds back the pull, so the history is refused and the edit is kept
+    When I replace "Second draft" with "Third draft" in "main.tex"
+    And the co-author has since added "sections/results.tex"
+    And I try to list the project's history
+    Then the history is refused with "Cannot synchronize with Overleaf. Local work has been preserved. Review it with read_project (view changes), then publish it with push_changes or explicitly discard it with manage_files (action discard_local_changes)."
+    And blaming "main.tex" is refused the same way
+    And the pending diff still shows "+Third draft, much better."
+
   Scenario: A file can be read as it was at an earlier commit
     When I read "main.tex" as it was in the first draft
     Then the reply is exactly the first draft

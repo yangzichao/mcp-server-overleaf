@@ -22,7 +22,7 @@ For a project with Overleaf Git integration, run the following command in a term
 and enter the project URL and your Overleaf Git token when prompted.
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.1 setup --clients none
+npx --yes mcp-server-overleaf@0.6.2 setup --clients none
 ```
 
 For a project without Git integration, follow the

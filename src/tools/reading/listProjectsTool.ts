@@ -23,13 +23,13 @@ const TITLE = "List Overleaf projects";
 const CONFIGURED_ONLY_DESCRIPTION =
   "List the Overleaf projects this server is configured to reach, marking which one is the default. " +
   "Reads local configuration only, so it answers without contacting Overleaf and proves nothing about access. " +
-  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. " +
+  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. It only finds projects. To look inside one, use read_project, read_file or search_project. " +
   "Returns one line per registered name, marked (default) where it applies and followed by its display name when one is configured. " +
   "Any project not listed can still be reached by passing its Overleaf address as `project`.";
 
 const WITH_ACCOUNT_DESCRIPTION =
-  "List the Overleaf projects this server can reach. The ones configured here come first, with the default marked. With the session cookie, the signed-in account's projects follow, as Overleaf's dashboard lists them, each with its access level, address and tags. " +
-  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. Any project listed can be passed to other tools as `project`, by its registered name or its address. " +
+  "List the Overleaf projects this server can reach. The ones configured here come first, with the default marked. With the session cookie, the signed-in account's projects follow, as Overleaf's dashboard lists them, each with its access level, address and tags. They keep the order Overleaf returns them in. " +
+  "Call this when a request is ambiguous about which paper it means, or when another tool reports an unknown project. Any project listed can be passed to other tools as `project`, by its registered name or its address. It only finds projects. To look inside one, use read_project, read_file or search_project. " +
   "filter and tag need the session cookie. Setting tag, or a filter other than all, lists only the account's projects, without the configured ones. nameContains narrows every list. A tag the account does not have is reported with the tags it does have. " +
   "Returns the registered names, then one line per account project, marked with its registered name where it has one. The whole list comes in one reply, with no paging, and is cut off after 60,000 characters.";
 

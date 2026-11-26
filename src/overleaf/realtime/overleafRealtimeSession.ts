@@ -212,19 +212,36 @@ interface ProjectJoin {
 }
 
 function describeRejection(payload: unknown): RealtimeConnectionError {
-  const message =
+  const reason =
     payload && typeof payload === "object" && typeof (payload as { message?: unknown }).message === "string"
       ? (payload as { message: string }).message
-      : "Overleaf refused the connection to this project.";
-  // `Router.js` sends exactly this text when the session key does not resolve to a session.
-  // Anything else is a decision about the project, so it is reported as Overleaf worded it.
-  if (/invalid session/i.test(message)) {
+      : undefined;
+  // `Router.js` sends "invalid session" when the session key does not resolve to a session and
+  // "retry" while the service shuts down; `WebApiManager` sends the rate-limit text when web's
+  // join-project limiter answers 429. Anything else is a decision about the project, so it is
+  // reported as Overleaf worded it.
+  if (reason && /invalid session/i.test(reason)) {
     return new RealtimeConnectionError(
       "Overleaf did not accept the session cookie.",
       "Copy a fresh session cookie from a browser where you are signed in. Cookies stop working when you sign out, change your password, or after they expire.",
     );
   }
-  return new RealtimeConnectionError(message, "Check that this account can open the project in Overleaf.");
+  if (reason === "rate-limit hit when joining project") {
+    return new RealtimeConnectionError(
+      "Overleaf is rate-limiting how often this account opens the project, which every call through the editor does.",
+      "Wait a minute before trying again.",
+    );
+  }
+  if (reason === "retry") {
+    return new RealtimeConnectionError(
+      "Overleaf's real-time service is restarting.",
+      "Try again in a few seconds.",
+    );
+  }
+  return new RealtimeConnectionError(
+    reason ? `Overleaf refused to open the project: ${reason}.` : "Overleaf refused to open the project.",
+    "Check that this account can open the project in Overleaf.",
+  );
 }
 
 function waitForProjectJoin(client: SocketIoZeroNineClient, timeoutMs: number): Promise<ProjectJoin> {

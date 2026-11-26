@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "--yes",
-        "mcp-server-overleaf@0.6.1",
+        "mcp-server-overleaf@0.6.2",
         "--stdio"
       ]
     }

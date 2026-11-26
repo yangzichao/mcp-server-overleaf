@@ -78,5 +78,9 @@ OVERLEAF_E2E_ENV_FILE=$HOME/.config/overleaf-e2e.env npm run test:e2e
 ```
 
 `look_up_citations` in the Git bridge run sends one DOI to doi.org and Crossref, once to
-verify an entry and once to find it. Overleaf's Git bridge rate-limits fetches, so a run waits
-and retries when it answers "Rate-limit exceeded"; expect about two minutes.
+verify an entry and once to find it. The Git bridge run counts the paper's words twice: on
+Overleaf with the session cookie, and with texcount in a second clone without it.
+
+Overleaf rate-limits Git bridge fetches, and it limits how often an account opens a project in
+the editor (45 times a minute in Overleaf's source), which every editor tool call does. A run
+waits and retries when the reply says either limit was hit; expect about three minutes.

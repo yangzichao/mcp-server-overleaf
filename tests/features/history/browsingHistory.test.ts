@@ -5,6 +5,7 @@ import { expect } from "vitest";
 
 import { ConnectedOverleafProject } from "../support/connectedOverleafProject.js";
 import { firstDraft, type PublishedHistory, publishThreeCommitHistory } from "../support/paperWithHistory.js";
+import { callTool, type ToolReply } from "../support/toolReply.js";
 
 const feature = await loadFeature(fileURLToPath(new URL("browsingHistory.feature", import.meta.url)));
 
@@ -12,6 +13,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   let project: ConnectedOverleafProject;
   let history: PublishedHistory;
   let lastReply = "";
+  let lastToolReply: ToolReply = { text: "", isError: false };
 
   AfterEachScenario(async () => {
     await project.close();
@@ -31,6 +33,25 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
 
     Step("I list the project's history", async () => {
       lastReply = await project.client.call("read_history");
+    });
+
+    Step("I try to list the project's history", async () => {
+      lastToolReply = await callTool(project.client, "read_history");
+    });
+
+    Step("the history is refused with {string}", (_context: unknown, expected: string) => {
+      expect(lastToolReply.isError, lastToolReply.text).toBe(true);
+      expect(lastToolReply.text).toContain(expected);
+    });
+
+    Step("blaming {string} is refused the same way", async (_context: unknown, path: string) => {
+      const blameReply = await callTool(project.client, "read_history", { view: "blame", path });
+      expect(blameReply.isError, blameReply.text).toBe(true);
+      expect(blameReply.text.split("\n")[0]).toBe(lastToolReply.text.split("\n")[0]);
+    });
+
+    Step("the pending diff still shows {string}", async (_context: unknown, line: string) => {
+      expect((await project.client.call("read_project", { view: "changes" })).split("\n")).toContain(line);
     });
 
     Step("I list the project's history through the commits view", async () => {
@@ -155,6 +176,7 @@ describeFeature(feature, ({ Background, Scenario, AfterEachScenario, defineSteps
   Scenario("Asking for the commits view by name gives the same list", () => {});
   Scenario("The history of one file leaves out commits that did not touch it", () => {});
   Scenario("Work pushed from here appears in the history", () => {});
+  Scenario("An unpushed edit holds back the pull, so the history is refused and the edit is kept", () => {});
   Scenario("A file can be read as it was at an earlier commit", () => {});
   Scenario("An earlier version can be read with line numbers", () => {});
   Scenario("A commit that does not exist is reported, pointing at read_history", () => {});
