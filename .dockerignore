@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!package.json
+!npm-shrinkwrap.json
+!tsconfig.json
+!scripts/
+!scripts/compilation/
+!scripts/compilation/cleanOutput.mjs
+!src/
+!src/**
