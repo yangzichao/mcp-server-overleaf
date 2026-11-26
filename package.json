@@ -69,6 +69,7 @@
     "test:e2e": "vitest run --config vitest.endToEnd.config.ts",
     "check": "npm run typecheck && npm run lint && npm run check:unused && npm run test",
     "check:unused": "knip --no-progress",
+    "site:build": "node scripts/site/renderSite.mjs",
     "check:regex": "node scripts/checks/regexBacktracking/checkRegexBacktracking.mjs",
     "package:check": "node scripts/release/verifyPackage.mjs",
     "mcpb:build": "node scripts/mcpb/buildMcpbBundle.mjs",

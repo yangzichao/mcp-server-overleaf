@@ -229,3 +229,6 @@ CLAUDE.local.md
 
 # Test coverage output
 coverage/
+
+# GitHub Pages output, built by `npm run site:build`
+_site/

@@ -1,0 +1,30 @@
+# mcp-server-overleaf
+
+> Open-source (MIT) Model Context Protocol server that connects Claude Code, Claude Desktop, Codex, ChatGPT, Cursor, VS Code and any other MCP client to Overleaf. The AI reads, searches, edits, compiles and reviews real LaTeX projects. Git edits stay in a local clone until an explicit push, and a push that would overwrite a co-author's change to the same lines is refused, with both versions shown.
+
+Install for Claude Code, Codex, Cursor and other local clients: `npx --yes mcp-server-overleaf setup`. Claude Desktop installs a one-click `.mcpb` bundle. The server is listed in the official MCP registry as `io.github.yangzichao/mcp-server-overleaf`, on Glama (rated A), and in punkpeye/awesome-mcp-servers. Requires Node 22.14+ and git; tested on macOS and Linux. Independent community project, not affiliated with Overleaf.
+
+Credentials decide which of the 15 tools appear: an Overleaf Git token gives 11 (the local-clone workflow with `push_changes`), a session cookie alone gives 13 and works on a free plan without Git integration (tracked-change suggestions, review comments, compiling on Overleaf, project management), and both give all 15.
+
+## Docs
+
+- [README](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/README.md): install routes per client, the 15 tools, prompts, skills, configuration and FAQ
+- [Connect local MCP clients](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/connect-local-mcp-clients.md): Codex, Claude Code, Claude Desktop, Cursor, VS Code, stdio, troubleshooting
+- [Connect ChatGPT](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/connect-chatgpt-with-secure-mcp-tunnel.md): ChatGPT web and desktop through an outbound-only Secure MCP Tunnel
+- [Claude Desktop bundle](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/install-claude-desktop-bundle.md): the one-click `.mcpb` extension
+- [Claude Code and Codex plugins](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/install-plugins.md): plugin marketplace install, update and removal
+- [Tracked changes and the session cookie](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/tracked-changes.md): suggestions, comments and Overleaf's web app
+- [Project workflows](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/project-workflows.md): per-project credentials, sparse checkout, revision reads, guarded edits
+
+## Links
+
+- [GitHub repository](https://github.com/yangzichao/mcp-server-overleaf)
+- [npm package](https://www.npmjs.com/package/mcp-server-overleaf)
+- [Glama listing](https://glama.ai/mcp/servers/yangzichao/mcp-server-overleaf)
+- [Claude Desktop bundle download](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)
+
+## Optional
+
+- [Full README as plain text](https://yangzichao.github.io/mcp-server-overleaf/llms-full.txt)
+- [Related projects](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/related-projects.md): how this compares with other Overleaf MCP servers
+- [Privacy policy](https://raw.githubusercontent.com/yangzichao/mcp-server-overleaf/main/docs/privacy-policy.md)
