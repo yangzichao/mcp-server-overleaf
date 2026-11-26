@@ -1,16 +1,58 @@
 name: Check
 
+# Pull requests run once, on pull_request; push only covers main itself.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_call:
 
 permissions:
   contents: read
 
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  changes:
+    name: Changed files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # code=false only when every changed file is in site/ or docs/assets/, which no test,
+      # package or bundle reads. Anything else, including a release call, runs everything.
+      - id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PULL_REQUEST_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="" ;;
+          esac
+          code=true
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            changed="$(git diff --name-only "$base" "$GITHUB_SHA")"
+            echo "$changed"
+            if [ -n "$changed" ] && ! grep -qvE '^(site/|docs/assets/)' <<<"$changed"; then
+              code=false
+            fi
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+
   core:
     name: Core / ${{ matrix.os }} / Node ${{ matrix.node }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -61,6 +103,8 @@ jobs:
 
   tex:
     name: TeX and release artifact / Linux / Node 24
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -96,3 +140,23 @@ jobs:
           path: build/mcpb/*.mcpb
           if-no-files-found: error
           retention-days: 14
+
+  # The one required status check. A job skipped because only the site changed counts as
+  # passing; a failed or cancelled one does not.
+  result:
+    name: CI result
+    if: always()
+    needs: [changes, core, static, tex]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          JOB_RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$JOB_RESULTS"
+          for job_result in $JOB_RESULTS; do
+            case "$job_result" in
+              success | skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
