@@ -83,6 +83,8 @@ depends on the credentials you give it; see [the tools](#the-tools).
 | Claude Desktop | Download the bundle and double-click it. [One click](#install-into-claude-desktop-with-one-click) |
 | Claude Code | Add this repository as a plugin marketplace. [Two commands](#install-as-a-claude-code-or-codex-plugin) |
 | Codex CLI, desktop, and IDE extension | The same, with the Codex commands. [Two commands](#install-as-a-claude-code-or-codex-plugin) |
+| Gemini CLI | Install the repository's [Gemini CLI extension](docs/install-plugins.md#gemini-cli). |
+| Kiro | [Set up and add the local MCP server](docs/install-plugins.md#kiro). |
 | Cursor | `npx --yes mcp-server-overleaf setup`. [One command](#install-with-one-command) |
 | Visual Studio Code | A `.vscode/mcp.json` entry. [Guide](docs/connect-local-mcp-clients.md#6-visual-studio-code) |
 | ChatGPT on the web and desktop | An outbound-only Secure MCP Tunnel, no public endpoint and no open port. [Guide](docs/connect-chatgpt-with-secure-mcp-tunnel.md) |
@@ -105,9 +107,8 @@ holds the secret.
   provenance, first publication, and subsequent trusted publishing.
 - [Install the Claude Desktop bundle](docs/install-claude-desktop-bundle.md) covers the
   one-click `.mcpb` extension: what is inside it, how to build it, and how to remove it.
-- [Install the Claude Code and Codex plugins](docs/install-plugins.md) covers the two
-  marketplace entries: what the plugin contains, how it gets a token without holding one,
-  and how to update, remove, or build it.
+- [Install in Claude Code, Codex, Gemini CLI, or Kiro](docs/install-plugins.md) covers each
+  client's install command and the shared local project configuration.
 - [Connect local MCP clients to Overleaf](docs/connect-local-mcp-clients.md) covers Codex
   desktop and CLI, Claude Code, Claude Desktop, Cursor, Visual Studio Code, local stdio,
   verification, and troubleshooting.
@@ -757,6 +758,8 @@ Whatever a tool returns becomes part of the conversation with the MCP client you
 and is handled under that client's own policy.
 
 Full text: [docs/privacy-policy.md](docs/privacy-policy.md).
+
+For installation and usage support, [open a GitHub issue](https://github.com/yangzichao/mcp-server-overleaf/issues).
 
 ## License
 
