@@ -8,11 +8,7 @@ import { fetchGlamaRating, fetchNpmWeeklyDownloads } from "./fetchProjectStats.m
 const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 const siteSourceFolder = join(repositoryRoot, "site");
 const siteOutputFolder = join(repositoryRoot, "_site");
-const imagesShownOnSite = [
-  "collaborator-safety-demo.gif",
-  "collaborator-safety-demo.png",
-  "social-preview.png",
-];
+const imagesShownOnSite = ["demo.gif", "demo.png", "social-preview.png"];
 
 async function renderHomePage() {
   const [npmWeeklyDownloads, glamaRating] = await Promise.all([

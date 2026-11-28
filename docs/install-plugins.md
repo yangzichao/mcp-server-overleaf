@@ -12,7 +12,7 @@ For the manual `claude mcp add` and `codex mcp add` routes, and for every other 
 Run setup before installing a plugin or adding the server to Kiro.
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.3 setup --clients none
+npx --yes mcp-server-overleaf@0.6.4 setup --clients none
 ```
 
 It asks for the project address and a Git token, proves the token reaches Overleaf, and
@@ -102,7 +102,7 @@ lines of substance:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.6.3", "--stdio"]
+      "args": ["--yes", "mcp-server-overleaf@0.6.4", "--stdio"]
     }
   }
 }
