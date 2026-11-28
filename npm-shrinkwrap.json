@@ -36,9 +36,9 @@
       }
     },
     "node_modules/@amiceli/vitest-cucumber": {
-      "version": "8.0.0",
-      "resolved": "https://registry.npmjs.org/@amiceli/vitest-cucumber/-/vitest-cucumber-8.0.0.tgz",
-      "integrity": "sha512-d0e2xMft008GQrEAoFoarnfMdSZLXg3VyNdnV7K+9vctFvk5iIqplsycio2daR7+yz6EGvFvC1l6RsWie8le7Q==",
+      "version": "8.0.1",
+      "resolved": "https://registry.npmjs.org/@amiceli/vitest-cucumber/-/vitest-cucumber-8.0.1.tgz",
+      "integrity": "sha512-FMIHfXX/8JosezYU1+6dejpiB7rldOIPqslNydHaFlHHx5z8iLQQHWNuj6P+Ci+xGC5TfYme7zK0njfTAktoCQ==",
       "dev": true,
       "license": "ISC",
       "dependencies": {
