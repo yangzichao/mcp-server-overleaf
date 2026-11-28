@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.4
+
+No tool, action or argument changes. The README opens with what the server does and a new
+27-second demo, which `scripts/demo/renderHeroDemo.mjs` renders from
+`scripts/demo/heroDemo.html`. The demo shows a citation fix, a tracked-change suggestion, a
+compile and a refused push; it replaces the collaborator-safety slideshow. npm shows the
+README of the published version, so this release is what updates the npm page.
+
 ## 0.6.3
 
 - `manage_files` refuses moves that would leave a project file at a path Git ignores.

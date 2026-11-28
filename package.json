@@ -1,7 +1,7 @@
 {
   "name": "mcp-server-overleaf",
   "mcpName": "io.github.yangzichao/mcp-server-overleaf",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Overleaf MCP server for Claude, Codex, ChatGPT & Cursor. Edit LaTeX via Git or as tracked changes.",
   "license": "MIT",
   "author": "Zichao Yang",
@@ -69,6 +69,7 @@
     "test:e2e": "vitest run --config vitest.endToEnd.config.ts",
     "check": "npm run typecheck && npm run lint && npm run check:unused && npm run test",
     "check:unused": "knip --no-progress",
+    "demo:render": "node scripts/demo/renderHeroDemo.mjs",
     "site:build": "node scripts/site/renderSite.mjs",
     "check:regex": "node scripts/checks/regexBacktracking/checkRegexBacktracking.mjs",
     "package:check": "node scripts/release/verifyPackage.mjs",

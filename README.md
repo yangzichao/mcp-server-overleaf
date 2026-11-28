@@ -1,72 +1,68 @@
-# Overleaf MCP Server — Safe AI Editing for LaTeX Papers
+# Overleaf MCP Server: AI editing for real LaTeX papers
 
 [![npm version](https://img.shields.io/npm/v/mcp-server-overleaf?logo=npm&label=npm)](https://www.npmjs.com/package/mcp-server-overleaf)
 [![Build](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml/badge.svg)](https://github.com/yangzichao/mcp-server-overleaf/actions/workflows/check.yml)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-16A34A)](#find-it-in-the-mcp-registry)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Connect **Claude Code, Claude Desktop, Codex, ChatGPT, Cursor, VS Code, or any MCP client**
-to Overleaf. Read, search, edit, compile, and review real LaTeX projects without
-copy-pasting your paper into a chat window.
+Give **Claude, Codex, ChatGPT, Cursor, VS Code, or any MCP client** direct access to your
+Overleaf project. It reads the whole paper, fixes broken citations, suggests edits as tracked
+changes, compiles, and publishes. When a co-author has changed the same lines, it stops
+instead of overwriting them.
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.3 setup
+npx --yes mcp-server-overleaf@0.6.4 setup
 ```
 
-Edits stay in a local clone until you explicitly publish them. Before every read and every
-push, this Overleaf MCP server checks what your collaborators changed. If both of you touch
-the same lines, it stops the push and shows both versions instead of choosing a winner.
+That command connects the AI clients on this computer. On Claude Desktop you can
+**[download the one-click bundle](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
+instead, and [every other client](#where-it-installs) has its own route.
 
-With an optional Overleaf session cookie, edits can also arrive as tracked-change
-suggestions for co-authors to accept or reject, review-panel comments can be read, answered
-and resolved, a project can be compiled on Overleaf itself, and projects, folders and
-settings can be managed. A plain Git push cannot do any of that. The cookie alone also
-works on a free plan without Git integration.
-
-**[Download the one-click Claude Desktop bundle](https://github.com/yangzichao/mcp-server-overleaf/releases/latest/download/mcp-server-overleaf.mcpb)**
-or use the setup command above for Claude Code, Codex, Cursor, and other local AI clients.
-
-![A 22-second demonstration of mcp-server-overleaf detecting a collaborator conflict and refusing to overwrite the co-author's edit](docs/assets/collaborator-safety-demo.gif)
+![An AI client fixes a broken citation, suggests a tighter abstract as a tracked change, and compiles an Overleaf paper; a co-author then edits the same line, so push_changes refuses and shows both versions](docs/assets/demo.gif)
 
 ---
 
 Independent community project; not affiliated with or endorsed by Overleaf.
 
+## What it does
+
+- **Works on the real project.** The AI reads the outline across `\input` files, searches
+  every file, and edits by section or by exact text. Nothing is copied into a chat window.
+- **Suggests instead of rewriting.** An edit can land in Overleaf's review panel as a tracked
+  change for co-authors to accept or reject, and review comments can be read, answered and
+  resolved.
+- **Never overwrites a co-author.** With a Git token, edits stay in a local clone until you
+  push. Every read and every push first checks Overleaf, and when a co-author changed the
+  same lines, the push stops and shows both versions.
+- **Checks the bibliography.** `check_references` finds undefined and unused labels and
+  citations without compiling. `look_up_citations` checks entries against doi.org, Crossref
+  and arXiv, flags a DOI that belongs to a different paper, and finds BibTeX for a DOI, an
+  arXiv id or a title.
+- **Compiles.** Locally with latexmk, or on Overleaf's servers with no TeX installed, and
+  reports every error and warning, BibTeX's and biber's included.
+- **Works on a free plan.** A session cookie alone gives 13 of the 15 tools, with no Git
+  integration. A Git token adds history, blame and the guarded push.
+- **Comes with workflows.** Prompts review a paper, revise a section, answer `#agent`
+  comments, resolve a refused push and prepare an arXiv upload. The Claude Code and Codex
+  plugins add skills for chktex, latexdiff, texcount, SyncTeX and arXiv packaging.
+
 ## Why choose this Overleaf MCP server?
 
-Several Overleaf MCP servers exist. Of the ones built on Overleaf's official Git bridge,
-this is the most complete, and it is the only one that stops instead of overwriting when a
-co-author has already changed the lines you are editing.
+Several Overleaf MCP servers exist. This one uses both ways into Overleaf: the Git bridge,
+where it is the most complete server and the only one that refuses to overwrite a
+co-author's lines, and the editor itself, through a session cookie, for tracked changes,
+comments, compiling and project management.
 
-- **A conflict ends the push, not your co-author's paragraph.** Every read and every push
-  first checks what changed on Overleaf. When two edits touch the same lines, `push_changes`
-  refuses and shows you both versions.
-- **15 tools, each one a read or a write, and nothing reaches Overleaf until you say so.**
-  Read, search, and edit by section or by exact text; add, move, remove and upload files and
-  folders; browse, blame and restore earlier revisions; compile; inspect the diff; then
-  publish deliberately.
-- **It checks the paper, not only the text.** `check_references` finds undefined and unused
-  labels and citations, and `\input` files that do not exist, without compiling.
-  `look_up_citations` looks bibliography entries up at doi.org, Crossref and arXiv, flags a
-  DOI that belongs to a different paper or an entry no search can find, and finds BibTeX for
-  a DOI, an arXiv id or a title.
-- **An edit can arrive as a suggestion, not as finished text.** With a session cookie the
-  same tools also reach Overleaf's editor and web app: a change lands in the review panel for
-  a co-author to accept or reject, comment threads can be read and answered, a project
-  compiles on Overleaf without a local TeX installation, and projects can be copied, renamed,
-  archived, tagged, configured and shared. An invitation goes out only after you confirm it in
-  your MCP client. [Tracked changes](docs/tracked-changes.md)
-- **Skills and prompts for the work around the tools.** The Claude Code and Codex plugins add
-  skills for chktex, latexindent, texcount, latexdiff, latexpand, arXiv packaging and SyncTeX,
-  and the server offers prompts for reviewing a paper, revising a section, answering
-  `#agent` comments, resolving a refused push and preparing an arXiv upload.
+- **You approve what matters.** Each tool only reads or only writes, so a client can allow
+  every read at once and still confirm each write. An invitation to the project goes out only
+  after you confirm it in your MCP client.
+- **The secret stays in one place.** The token is written once, to one file, at mode 600. No
+  client configuration holds it, and the published plugin declares no environment variables.
 - **No terminal, if you do not want one.** Claude Desktop installs it from a downloaded
-  bundle; Claude Code and Codex install it as a plugin.
-- **The token is written once, to one file, at mode 600.** No client configuration holds
-  it, and the published plugin declares no environment variables at all.
+  bundle; Claude Code, Codex and Gemini CLI install it as a plugin or extension.
 
 [Related projects](docs/related-projects.md) compares the alternatives tool by tool, and is
-equally direct about the things this server cannot do.
+equally direct about what this server cannot do.
 
 Common workflows include revising an academic paper by section, searching a large LaTeX
 project, checking a bibliography, compiling before publication, reviewing the exact diff,
@@ -164,7 +160,7 @@ any other client, use the command below. Details in
 Store the token once:
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.3 setup --clients none
+npx --yes mcp-server-overleaf@0.6.4 setup --clients none
 ```
 
 Then, in Claude Code:
@@ -195,7 +191,7 @@ installation. Details in
 ## Install with one command
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.3 setup
+npx --yes mcp-server-overleaf@0.6.4 setup
 ```
 
 It checks Node and git, asks for the project and a token, proves the token reaches Overleaf
@@ -223,7 +219,7 @@ run. Then ask the assistant to list the files in the project.
 Setup can also run unattended:
 
 ```bash
-printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.6.3 setup \
+printf '%s' "$OVERLEAF_TOKEN" | npx --yes mcp-server-overleaf@0.6.4 setup \
   --project paper=https://www.overleaf.com/project/64a1b2c3d4e5f6a7b8c9d0e1 \
   --token-stdin --yes
 ```
@@ -244,8 +240,8 @@ Claude Code and Codex do not read that registry. They have their own plugin mark
 which is the section above, or the server can be added by hand:
 
 ```bash
-claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.6.3 --stdio
-codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.6.3 --stdio
+claude mcp add --transport stdio --scope user overleaf -- npx --yes mcp-server-overleaf@0.6.4 --stdio
+codex mcp add overleaf -- npx --yes mcp-server-overleaf@0.6.4 --stdio
 ```
 
 Both forms need `OVERLEAF_GIT_TOKEN` and `OVERLEAF_PROJECT_ID` in the environment, which is
@@ -254,12 +250,12 @@ why `setup` writes a `projects.json` instead and registers an absolute path.
 ## Install from npm by hand
 
 Use this when you want to see every step, or to configure a client setup does not cover.
-The commands below select version `0.6.3` explicitly so a client restart does not silently
+The commands below select version `0.6.4` explicitly so a client restart does not silently
 upgrade the server. If that version has not been published yet, use the source installation
 below. npm installs compiled JavaScript and locked runtime dependencies; no local build is needed.
 
 ```bash
-npx --yes mcp-server-overleaf@0.6.3 --version
+npx --yes mcp-server-overleaf@0.6.4 --version
 ```
 
 Keep configuration outside the npm installation and npx cache. Create a private file:
@@ -284,7 +280,7 @@ For clients using the `mcpServers` JSON format:
   "mcpServers": {
     "overleaf": {
       "command": "npx",
-      "args": ["--yes", "mcp-server-overleaf@0.6.3", "--stdio"],
+      "args": ["--yes", "mcp-server-overleaf@0.6.4", "--stdio"],
       "env": {
         "OVERLEAF_MCP_ENV_FILE": "/absolute/path/to/.config/overleaf-mcp/env"
       }
